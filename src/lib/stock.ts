@@ -1,9 +1,10 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 import { getPiece, getProduct } from "./catalog";
 import { seedStock } from "./inventory";
 import type { Db } from "./store";
 import { transact } from "./store";
-import type { Piece, PoolSnapshot, StockEntry } from "./types";
+import type { AuditEntry, Piece, PoolSnapshot, StockEntry } from "./types";
 
 /**
  * Live availability. The database holds how many units of each piece were ever
@@ -148,6 +149,11 @@ export async function applyStockChanges(
 ): Promise<StockChangeResult[]> {
   return transact((db) => {
     const results: StockChangeResult[] = [];
+    const entries: AuditEntry[] = [];
+    // One id for the whole batch, so stocking a series reads as a single act
+    // in the log rather than fifteen unrelated edits.
+    const batchId = randomUUID();
+    const at = new Date().toISOString();
 
     for (const change of changes) {
       const piece = getPiece(change.pieceId);
@@ -174,10 +180,35 @@ export async function applyStockChanges(
         sold,
         available: next - sold,
       });
+
+      // A no-op edit is not worth a line in the log.
+      if (next !== current) {
+        entries.push({
+          id: randomUUID(),
+          batchId,
+          at,
+          pieceId: change.pieceId,
+          op: change.op,
+          before: current,
+          after: next,
+          sold,
+        });
+      }
     }
+
+    // Newest first, and capped: this is an operational log, not an archive.
+    db.audit = [...entries.reverse(), ...db.audit].slice(0, AUDIT_LIMIT);
 
     return results;
   });
+}
+
+/** How many inventory edits the log keeps before the oldest fall off. */
+export const AUDIT_LIMIT = 1000;
+
+/** The most recent inventory edits, newest first. */
+export async function recentAudit(limit = 60): Promise<AuditEntry[]> {
+  return transact((db) => db.audit.slice(0, Math.max(1, Math.min(limit, AUDIT_LIMIT))));
 }
 
 export interface WarehouseRow {

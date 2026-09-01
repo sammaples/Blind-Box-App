@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { Collector, Order } from "./types";
+import type { AuditEntry, Collector, Order } from "./types";
 
 /**
  * A small JSON-file store. It is deliberately swappable: every read and write
@@ -15,10 +15,12 @@ interface Db {
   stock: Record<string, number>;
   /** Units sold per piece. Subtracted from stocked units to get availability. */
   sold: Record<string, number>;
+  /** Newest-first log of inventory edits made in the console. */
+  audit: AuditEntry[];
 }
 
 const DB_PATH = path.join(process.cwd(), "data", "db.json");
-const EMPTY: Db = { collectors: [], orders: [], stock: {}, sold: {} };
+const EMPTY: Db = { collectors: [], orders: [], stock: {}, sold: {}, audit: [] };
 
 /** Serialises writes so two concurrent purchases cannot clobber each other. */
 let queue: Promise<unknown> = Promise.resolve();
@@ -38,6 +40,7 @@ async function read(): Promise<Db> {
       orders: parsed.orders ?? [],
       stock: parsed.stock ?? {},
       sold: parsed.sold ?? {},
+      audit: parsed.audit ?? [],
     };
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") return { ...EMPTY };

@@ -37,6 +37,12 @@ edit — the console is the restocking tool.
   stays intact, so past orders still reconcile.
 - **Add a piece** that has never been stocked, from the full reference
   catalogue.
+- **Read the change log** of every stock edit, newest first, grouped by the
+  click that made it — so stocking a series is one line, not fifteen. Each
+  entry records the units before and after, which is what lets you explain why
+  a shelf looks the way it does. Sales are deliberately absent: the orders
+  behind them are already the record of those units. The log keeps the most
+  recent 1,000 edits.
 
 `src/lib/inventory.ts` seeds the opening shelf the first time the app runs and
 is never consulted again. Editing it will not change a warehouse that has
@@ -133,9 +139,10 @@ src/
   There is no carrier integration behind it.
 - **Accounts.** A collector is an httpOnly cookie, so pulls follow the browser
   rather than a login.
-- **Admin accounts.** The console is one shared password, not per-user logins,
-  and it keeps no audit trail of who changed what. Fine for one or two people;
-  add real accounts before a team relies on it.
+- **Admin accounts.** The console is one shared password, not per-user logins.
+  The change log therefore records *what* changed and when, but never *who* —
+  there is no identity to record. Fine for one or two people; add real accounts
+  before a team relies on it, at which point the log gains an author column.
 
 ## Artwork
 

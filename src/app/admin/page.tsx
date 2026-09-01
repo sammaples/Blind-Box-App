@@ -3,7 +3,7 @@ import { AdminConsole } from "@/components/AdminConsole";
 import { AdminLogin } from "@/components/AdminLogin";
 import { adminMode, isAdmin } from "@/lib/admin";
 import { ALL_PIECES } from "@/lib/catalog";
-import { warehouse } from "@/lib/stock";
+import { recentAudit, warehouse } from "@/lib/stock";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +33,7 @@ export default async function AdminPage() {
     );
   }
 
-  const rows = await warehouse();
+  const [rows, audit] = await Promise.all([warehouse(), recentAudit()]);
   const stock = Object.fromEntries(
     rows.map((row) => [row.piece.id, { stocked: row.stocked, sold: row.sold }]),
   );
@@ -52,6 +52,7 @@ export default async function AdminPage() {
         palette: p.palette,
       }))}
       stock={stock}
+      audit={audit}
       openAccess={mode === "open"}
     />
   );

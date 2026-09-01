@@ -85,6 +85,22 @@ export interface ShippingAddress {
   country: string;
 }
 
+/** One piece's stock moving because someone changed it in the console.
+ *  Sales are not recorded here — orders already are the record of those. */
+export interface AuditEntry {
+  id: string;
+  /** Shared by every entry from a single click, so a series reads as one act. */
+  batchId: string;
+  at: string;
+  pieceId: string;
+  op: "add" | "set" | "pull";
+  /** Units in circulation before and after, so an entry explains itself. */
+  before: number;
+  after: number;
+  /** Units sold at the time, which is the floor the change was clamped to. */
+  sold: number;
+}
+
 /** The shelf as it stood at the moment an order was drawn, so the roll can be
  *  replayed later even after stock has moved on. */
 export type PoolSnapshot = ReadonlyArray<readonly [pieceId: string, units: number]>;
