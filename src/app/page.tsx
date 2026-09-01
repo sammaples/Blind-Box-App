@@ -2,7 +2,9 @@ import Link from "next/link";
 import { Onboarding } from "@/components/Onboarding";
 import { SetBrowser } from "@/components/SetBrowser";
 import { Shop } from "@/components/Shop";
-import { poolFor, SERIES_NUMBERS } from "@/lib/catalog";
+import { PRODUCTS } from "@/lib/catalog";
+import { shelfFor } from "@/lib/stock";
+import type { StockEntry } from "@/lib/types";
 
 const STEPS = [
   { n: "01", title: "Buy a sealed box", body: "Your piece is drawn and locked the moment you pay." },
@@ -10,8 +12,20 @@ const STEPS = [
   { n: "03", title: "We ship it", body: "Add an address and the physical figure goes out to you." },
 ];
 
-export default function HomePage() {
-  const totalPieces = poolFor("series-roulette").length;
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  // Loaded per request: stock moves every time a box sells.
+  const shelves: Record<string, StockEntry[]> = Object.fromEntries(
+    await Promise.all(
+      PRODUCTS.map(async (p) => [p.id, await shelfFor(p.id)] as const),
+    ),
+  );
+
+  const inStock = Object.values(shelves)
+    .flat()
+    .filter((entry) => entry.available > 0);
+  const unitsLeft = inStock.reduce((sum, entry) => sum + entry.available, 0);
 
   return (
     <>
@@ -19,7 +33,8 @@ export default function HomePage() {
 
       <section className="relative mx-auto w-full max-w-6xl px-5 pt-16 pb-20 sm:px-8 sm:pt-24">
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-faint">
-          {totalPieces} pieces · {SERIES_NUMBERS.length} series · rates published
+          {inStock.length} pieces in stock · {unitsLeft.toLocaleString()} units · rates
+          published
         </p>
         <h1 className="mt-5 max-w-3xl text-balance text-5xl font-semibold leading-[0.98] tracking-[-0.03em] sm:text-7xl">
           Open it here.
@@ -57,8 +72,8 @@ export default function HomePage() {
         </ol>
       </section>
 
-      <Shop />
-      <SetBrowser />
+      <Shop shelves={shelves} />
+      <SetBrowser shelves={shelves} />
     </>
   );
 }

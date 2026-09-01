@@ -6,7 +6,6 @@ import {
   formatOdds,
   getPiece,
   oddsAsOneIn,
-  oddsFor,
   RARITY_COLOR,
   RARITY_LABEL,
 } from "@/lib/catalog";
@@ -33,16 +32,20 @@ export function BoxOpening({
   orderId,
   product,
   initialPiece,
+  initialOdds,
   onRevealed,
 }: {
   orderId: string;
   product: Product;
   initialPiece: Piece | null;
+  /** Pull rate this piece had on the shelf it was drawn from. */
+  initialOdds: number;
   onRevealed?: (piece: Piece) => void;
 }) {
   const reducedMotion = useReducedMotion();
   const [stage, setStage] = useState<Stage>(initialPiece ? "reveal" : "sealed");
   const [piece, setPiece] = useState<Piece | null>(initialPiece);
+  const [pulledOdds, setPulledOdds] = useState(initialOdds);
   const [error, setError] = useState<string | null>(null);
 
   const open = useCallback(async () => {
@@ -62,6 +65,7 @@ export function BoxOpening({
       if (!pulled) throw new Error("This order is missing its piece");
 
       await settle;
+      setPulledOdds(data.order.pulledOdds ?? 0);
       setPiece(pulled);
       setStage("burst");
       onRevealed?.(pulled);
@@ -200,7 +204,7 @@ export function BoxOpening({
               transition={{ delay: reducedMotion ? 0 : 0.45, duration: 0.5 }}
               className="w-full"
             >
-              <PullSummary piece={piece} productId={product.id} />
+              <PullSummary piece={piece} odds={pulledOdds} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -387,8 +391,7 @@ function Shards({ count, color }: { count: number; color: string }) {
   );
 }
 
-function PullSummary({ piece, productId }: { piece: Piece; productId: string }) {
-  const odds = oddsFor(productId).find((e) => e.piece.id === piece.id)?.odds ?? 0;
+function PullSummary({ piece, odds }: { piece: Piece; odds: number }) {
   const color = RARITY_COLOR[piece.rarity];
   const isChase = piece.rarity === "grail" || piece.rarity === "secret";
 

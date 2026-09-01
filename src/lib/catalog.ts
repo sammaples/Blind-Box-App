@@ -1,16 +1,13 @@
-import type {
-  Palette,
-  PatternKind,
-  Piece,
-  PoolEntry,
-  Product,
-  Rarity,
-} from "./types";
+import type { Palette, PatternKind, Piece, Product, Rarity } from "./types";
 
 /**
- * The whole catalogue is generated deterministically from the tables below.
- * It is a pure module with no Node built-ins, so client components can build
- * the same 780 pieces locally instead of downloading them as page payload.
+ * The reference catalogue: every piece that exists, generated deterministically
+ * from the tables below. It is a pure module with no Node built-ins, so both
+ * the server and client components can build it locally.
+ *
+ * This is NOT what a box can contain. What is actually buyable is decided by
+ * src/lib/inventory.ts — the pieces currently in stock. A piece can sit in this
+ * catalogue for years without ever being on the shelf.
  */
 
 /* ------------------------------------------------------------------ *
@@ -401,7 +398,7 @@ const BIG_SPECS: readonly BigSpec[] = [
   { name: "Artist Proof 1/1", hue: 0, pattern: "gradient", rarity: "grail", weight: 1, blurb: "Grail. A single piece exists. It is signed on the foot." },
 ];
 
-const BIG_PIECES: readonly Piece[] = BIG_SPECS.map((spec, i) => ({
+export const BIG_PIECES: readonly Piece[] = BIG_SPECS.map((spec, i) => ({
   id: `big-${i}-${spec.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
   name: spec.name,
   setName: "400% Collection",
@@ -428,46 +425,31 @@ const BIG_PIECES: readonly Piece[] = BIG_SPECS.map((spec, i) => ({
 
 export const PRODUCTS: readonly Product[] = [
   {
-    id: "series-roulette",
-    name: "100% Series Roulette",
-    tagline: "One 100% figure. Any series, 1 through 52.",
+    id: "hundred",
+    name: "100% Blind Box",
+    tagline: "One sealed 100% figure from whatever is on the shelf.",
     description:
-      "A single sealed 100% box drawn from the full run of fifty-two series. Every type in the lineup is live, including the secret — which is exactly as hard to hit here as it is in a real case.",
+      "A single 100% figure, drawn from everything currently in stock. The line-up changes as inventory moves — what is listed below is what is in the warehouse right now, and every rate is that piece's share of it.",
     priceCents: 2400,
     highlights: [
-      "780 possible pieces across 52 series",
-      "Every series equally likely",
-      "Secret chase live at 0.5% per series",
+      "One guaranteed 100% figure",
+      "Drawn from live stock, never a fixed list",
+      "Chase pieces sit in the same pool",
     ],
     accent: "#f97316",
     scale: "100%",
   },
   {
-    id: "secret-guaranteed",
-    name: "Guaranteed Secret",
-    tagline: "A secret chase piece. Every single time.",
-    description:
-      "Skip the case-breaking. This box always contains a secret — the piece that normally shows up once in roughly two hundred boxes. Which of the fifty-two secrets you get is still down to the draw, and seven of them are certified grails.",
-    priceCents: 12800,
-    highlights: [
-      "100% secret rate, guaranteed",
-      "52 secrets in the pool",
-      "7 grail secrets at reduced odds",
-    ],
-    accent: "#a855f7",
-    scale: "100%",
-  },
-  {
     id: "four-hundred",
-    name: "400% Big Box",
-    tagline: "One 400% figure. Eleven inches of it.",
+    name: "400% Blind Box",
+    tagline: "One sealed 400% figure. Eleven inches of it.",
     description:
-      "The large format, guaranteed. A curated 400% collection of twenty-eight colourways — from plain bone white through to a one-of-one artist proof that has only ever left the studio once.",
+      "The large format, guaranteed. One 400% figure drawn from the 400% shelf as it stands today — including the grails, while they last.",
     priceCents: 18500,
     highlights: [
-      "Every pull is a 400% figure",
-      "28-piece curated collection",
-      "Three grails, including a 1/1",
+      "One guaranteed 400% figure",
+      "Drawn from live stock, never a fixed list",
+      "Grails stay in until the last one sells",
     ],
     accent: "#22d3ee",
     scale: "400%",
@@ -478,56 +460,14 @@ export function getProduct(id: string): Product | undefined {
   return PRODUCTS.find((p) => p.id === id);
 }
 
-/** The raw draw pool for a product, before weighting. */
-export function poolFor(productId: string): readonly Piece[] {
-  switch (productId) {
-    case "series-roulette":
-      return ALL_100;
-    case "secret-guaranteed":
-      return ALL_100.filter((p) => p.type === "Secret");
-    case "four-hundred":
-      return BIG_PIECES;
-    default:
-      return [];
-  }
-}
-
 /**
- * A piece's draw weight *within a given product*. Piece.weight is the weight
- * inside its own series; a product may re-weight its pool on top of that.
+ * Every piece that exists, in stock or not. This is a reference catalogue:
+ * what a box can actually contain is decided by inventory, not by this list.
  */
-function poolWeight(productId: string, piece: Piece): number {
-  if (productId === "secret-guaranteed") {
-    // Inside a sealed case every series' secret is equally hard to hit, but
-    // this box sells the secret itself, so the grails are pulled back here.
-    return piece.rarity === "grail" ? 1 : 5;
-  }
-  return piece.weight;
-}
-
-/** The product's pool with the weights the server actually draws against. */
-export function weightedPoolFor(
-  productId: string,
-): { piece: Piece; weight: number }[] {
-  return poolFor(productId).map((piece) => ({
-    piece,
-    weight: poolWeight(productId, piece),
-  }));
-}
-
-/**
- * Pool with absolute per-piece odds attached. This is the single source of
- * truth for both the published odds table and the server-side draw.
- */
-export function oddsFor(productId: string): PoolEntry[] {
-  const pool = weightedPoolFor(productId);
-  const total = pool.reduce((sum, e) => sum + e.weight, 0);
-  if (total === 0) return [];
-  return pool.map(({ piece, weight }) => ({ piece, odds: weight / total }));
-}
+export const ALL_PIECES: readonly Piece[] = [...ALL_100, ...BIG_PIECES];
 
 export function getPiece(id: string): Piece | undefined {
-  return ALL_100.find((p) => p.id === id) ?? BIG_PIECES.find((p) => p.id === id);
+  return ALL_PIECES.find((p) => p.id === id);
 }
 
 export const RARITY_ORDER: readonly Rarity[] = [

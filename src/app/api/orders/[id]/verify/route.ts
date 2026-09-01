@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { getProduct, oddsFor } from "@/lib/catalog";
+import { getProduct } from "@/lib/catalog";
 import { verifyDraw } from "@/lib/draw";
+import { oddsFromSnapshot } from "@/lib/serialize";
 import { readCollectorId } from "@/lib/session";
 import { getOrder } from "@/lib/store";
 
@@ -28,7 +29,8 @@ export async function GET(
   }
 
   const product = getProduct(order.productId);
-  const entry = oddsFor(order.productId).find((e) => e.piece.id === order.pieceId);
+  const snapshot = order.poolSnapshot ?? [];
+  const unitsOnShelf = snapshot.reduce((sum, [, units]) => sum + units, 0);
 
   return NextResponse.json({
     orderId: order.id,
@@ -36,8 +38,11 @@ export async function GET(
     pieceId: order.pieceId,
     seed: order.rollSeed,
     rollValue: order.rollValue,
-    publishedOdds: entry?.odds ?? null,
-    poolSize: oddsFor(order.productId).length,
-    reproduces: verifyDraw(order.productId, order.rollSeed, order.pieceId),
+    // The shelf this order was drawn from, which is what the roll must replay
+    // against — stock has almost certainly moved since.
+    publishedOdds: oddsFromSnapshot(snapshot, order.pieceId),
+    piecesOnShelf: snapshot.length,
+    unitsOnShelf,
+    reproduces: verifyDraw(snapshot, order.rollSeed, order.pieceId),
   });
 }

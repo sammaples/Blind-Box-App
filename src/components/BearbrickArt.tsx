@@ -3,8 +3,8 @@ import type { Palette, PatternKind } from "@/lib/types";
 
 /**
  * The figure itself, drawn as original vector art rather than photography.
- * Every colourway in the catalogue renders from its palette + pattern, so a
- * 780-piece set needs no image assets at all.
+ * Every colourway renders from its palette + pattern, so the catalogue needs no
+ * image assets at all however large it grows.
  */
 
 interface Props {

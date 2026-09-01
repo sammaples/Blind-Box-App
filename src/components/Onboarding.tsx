@@ -8,7 +8,7 @@ const KEY = "bb.onboarded.v1";
 const STEPS = [
   {
     title: "Pick a box",
-    body: "Three drops, three sets of odds. Every rate is published before you buy.",
+    body: "Two boxes, 100% or 400%. Every rate is published before you buy.",
     art: "box",
   },
   {

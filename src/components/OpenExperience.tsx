@@ -27,6 +27,7 @@ export function OpenExperience({
         orderId={order.id}
         product={product}
         initialPiece={initialPiece}
+        initialOdds={initialOrder.pulledOdds ?? 0}
         onRevealed={() => setRevealed(true)}
       />
 

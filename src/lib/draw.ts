@@ -1,39 +1,38 @@
-import { weightedPoolFor } from "./catalog";
 import { newSeed, pickWeighted, seededUnit } from "./rng";
-import type { Piece } from "./types";
+import type { PoolSnapshot } from "./types";
 
 export interface DrawResult {
-  piece: Piece;
+  pieceId: string;
   seed: string;
   rollValue: number;
 }
 
 /**
- * Draws a piece for a product. Runs server-side only: the client is never told
- * what it pulled until it asks for the reveal, and never sees the pool weights
- * being applied, only the published odds.
+ * Draws one piece from a snapshot of the shelf, weighted by units remaining —
+ * so a piece with six left is six times as likely as one with a single unit.
+ * Runs server-side only: the client is never told what it pulled until it asks
+ * for the reveal.
  */
-export function draw(productId: string): DrawResult {
-  const pool = weightedPoolFor(productId);
-  if (pool.length === 0) throw new Error(`No pool for product ${productId}`);
+export function drawFrom(snapshot: PoolSnapshot): DrawResult {
+  if (snapshot.length === 0) throw new Error("Cannot draw from an empty shelf");
 
   const seed = newSeed();
   const rollValue = seededUnit(seed);
-  const { piece } = pickWeighted(pool, rollValue);
-  return { piece, seed, rollValue };
+  const items = snapshot.map(([pieceId, units]) => ({ pieceId, weight: units }));
+  return { pieceId: pickWeighted(items, rollValue).pieceId, seed, rollValue };
 }
 
 /**
- * Recomputes a stored roll. Used to prove after the fact that an order's piece
- * really did follow from its seed and the published odds.
+ * Replays a stored roll against the shelf as it stood at the time. Stock moves
+ * on, so the snapshot travels with the order — without it a past draw could
+ * never be checked again.
  */
 export function verifyDraw(
-  productId: string,
+  snapshot: PoolSnapshot,
   seed: string,
   pieceId: string,
 ): boolean {
-  const pool = weightedPoolFor(productId);
-  if (pool.length === 0) return false;
-  const { piece } = pickWeighted(pool, seededUnit(seed));
-  return piece.id === pieceId;
+  if (snapshot.length === 0) return false;
+  const items = snapshot.map(([id, units]) => ({ pieceId: id, weight: units }));
+  return pickWeighted(items, seededUnit(seed)).pieceId === pieceId;
 }

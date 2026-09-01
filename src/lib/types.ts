@@ -43,9 +43,15 @@ export interface Piece {
   blurb: string;
 }
 
-export interface PoolEntry {
+/** A piece on the shelf: how many were stocked, how many are left, and the
+ *  pull rate that follows from what is left. */
+export interface StockEntry {
   piece: Piece;
-  /** Absolute probability of pulling this piece from the product, 0..1. */
+  /** Units ever put into circulation. */
+  stocked: number;
+  /** Units still unsold. Zero means the piece has left the pool. */
+  available: number;
+  /** Share of the product's remaining units, 0..1. Zero when sold out. */
   odds: number;
 }
 
@@ -79,6 +85,10 @@ export interface ShippingAddress {
   country: string;
 }
 
+/** The shelf as it stood at the moment an order was drawn, so the roll can be
+ *  replayed later even after stock has moved on. */
+export type PoolSnapshot = ReadonlyArray<readonly [pieceId: string, units: number]>;
+
 export interface Order {
   id: string;
   collectorId: string;
@@ -91,6 +101,7 @@ export interface Order {
   /** Server seed kept for audit / dispute resolution. */
   rollSeed: string;
   rollValue: number;
+  poolSnapshot: PoolSnapshot;
   email: string | null;
   shipping: ShippingAddress | null;
   trackingNumber: string | null;

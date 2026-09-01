@@ -1,4 +1,4 @@
-import type { Order } from "./types";
+import type { Order, PoolSnapshot } from "./types";
 
 export interface PublicOrder {
   id: string;
@@ -10,6 +10,25 @@ export interface PublicOrder {
   trackingNumber: string | null;
   /** Null while the box is still sealed. */
   pieceId: string | null;
+  /** The pull rate this piece had on the shelf it was drawn from. */
+  pulledOdds: number | null;
+}
+
+/**
+ * A piece's share of the shelf it was drawn from. Stock moves, so a pull's
+ * rate is a fact about the moment of purchase, not about the shelf today.
+ */
+export function oddsFromSnapshot(
+  snapshot: PoolSnapshot,
+  pieceId: string,
+): number {
+  let total = 0;
+  let units = 0;
+  for (const [id, count] of snapshot) {
+    total += count;
+    if (id === pieceId) units = count;
+  }
+  return total > 0 ? units / total : 0;
 }
 
 /**
@@ -27,5 +46,8 @@ export function publicOrder(order: Order): PublicOrder {
     shipping: order.shipping,
     trackingNumber: order.trackingNumber,
     pieceId: revealed ? order.pieceId : null,
+    pulledOdds: revealed
+      ? oddsFromSnapshot(order.poolSnapshot ?? [], order.pieceId)
+      : null,
   };
 }

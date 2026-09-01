@@ -1,11 +1,12 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getProduct } from "@/lib/catalog";
-import { draw } from "@/lib/draw";
+import { drawFrom } from "@/lib/draw";
 import { payments } from "@/lib/payments";
 import { publicOrder } from "@/lib/serialize";
 import { requireCollectorId } from "@/lib/session";
-import { createOrder, listOrders, upsertCollector } from "@/lib/store";
+import { reserve } from "@/lib/stock";
+import { listOrders, upsertCollector } from "@/lib/store";
 import type { Order } from "@/lib/types";
 
 /** The collector's own orders. Pieces are omitted until each one is revealed. */
@@ -52,23 +53,38 @@ export async function POST(request: Request) {
     );
   }
 
-  const { piece, seed, rollValue } = draw(product.id);
+  // The draw, the stock decrement and the order all land in one transaction,
+  // so the last unit of a piece can never be sold twice.
+  let order: Order | null = null;
+  const reservation = await reserve(
+    product.id,
+    (snapshot) => drawFrom(snapshot),
+    (db, { pieceId, seed, rollValue, poolSnapshot }) => {
+      order = {
+        id: `ord_${randomBytes(9).toString("hex")}`,
+        collectorId,
+        productId: product.id,
+        pieceId,
+        status: "paid",
+        createdAt: new Date().toISOString(),
+        revealedAt: null,
+        rollSeed: seed,
+        rollValue,
+        poolSnapshot,
+        email,
+        shipping: null,
+        trackingNumber: null,
+      };
+      db.orders.push(order);
+    },
+  );
 
-  const order: Order = {
-    id: `ord_${randomBytes(9).toString("hex")}`,
-    collectorId,
-    productId: product.id,
-    pieceId: piece.id,
-    status: "paid",
-    createdAt: new Date().toISOString(),
-    revealedAt: null,
-    rollSeed: seed,
-    rollValue,
-    email,
-    shipping: null,
-    trackingNumber: null,
-  };
-  await createOrder(order);
+  if (!reservation || !order) {
+    return NextResponse.json(
+      { error: "This box is sold out. New inventory is on the way." },
+      { status: 409 },
+    );
+  }
   if (email) await upsertCollector(collectorId, { email });
 
   // Deliberately returns no piece information.

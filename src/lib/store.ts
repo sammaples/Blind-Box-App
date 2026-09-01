@@ -11,10 +11,12 @@ import type { Collector, Order } from "./types";
 interface Db {
   collectors: Collector[];
   orders: Order[];
+  /** Units sold per piece. Subtracted from stocked units to get availability. */
+  sold: Record<string, number>;
 }
 
 const DB_PATH = path.join(process.cwd(), "data", "db.json");
-const EMPTY: Db = { collectors: [], orders: [] };
+const EMPTY: Db = { collectors: [], orders: [], sold: {} };
 
 /** Serialises writes so two concurrent purchases cannot clobber each other. */
 let queue: Promise<unknown> = Promise.resolve();
@@ -32,6 +34,7 @@ async function read(): Promise<Db> {
     return {
       collectors: parsed.collectors ?? [],
       orders: parsed.orders ?? [],
+      sold: parsed.sold ?? {},
     };
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") return { ...EMPTY };
@@ -45,6 +48,17 @@ async function write(db: Db): Promise<void> {
   await fs.writeFile(tmp, JSON.stringify(db, null, 2), "utf8");
   await fs.rename(tmp, DB_PATH);
 }
+
+/**
+ * Runs a read-modify-write against the whole database under the write lock.
+ * Buying a box draws a piece and decrements its stock in one of these, so two
+ * simultaneous buyers can never take the same last unit.
+ */
+export async function transact<T>(fn: (db: Db) => T | Promise<T>): Promise<T> {
+  return mutate(fn);
+}
+
+export type { Db };
 
 async function mutate<T>(fn: (db: Db) => T | Promise<T>): Promise<T> {
   return withLock(async () => {

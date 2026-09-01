@@ -5,14 +5,12 @@ import { useMemo, useState } from "react";
 import {
   formatOdds,
   oddsAsOneIn,
-  oddsFor,
   PRODUCTS,
   RARITY_LABEL,
   RARITY_ORDER,
-  SERIES_NUMBERS,
   seriesName,
 } from "@/lib/catalog";
-import type { Piece, PoolEntry, Rarity } from "@/lib/types";
+import type { Piece, Rarity, StockEntry } from "@/lib/types";
 import { BearbrickArt } from "./BearbrickArt";
 import { PieceCard } from "./PieceCard";
 import { RarityChip, SectionLabel } from "./ui";
@@ -20,50 +18,62 @@ import { RarityChip, SectionLabel } from "./ui";
 type Sort = "rarity" | "odds" | "name";
 
 /**
- * The full set list under the shop. Everything a buyer could pull, with the
- * published pull rate on every tile — the odds table and the draw pool are the
- * same data, so this cannot drift away from what the server actually rolls.
+ * What is on the shelf right now. Every tile carries the piece's current pull
+ * rate, which is simply its share of the units left — so the listing and the
+ * draw cannot disagree, and a piece leaves the grid when the last one sells.
  */
-export function SetBrowser({ initialProductId }: { initialProductId?: string }) {
-  const [productId, setProductId] = useState(initialProductId ?? PRODUCTS[0].id);
-  const [series, setSeries] = useState(1);
+export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> }) {
+  const [productId, setProductId] = useState(PRODUCTS[0].id);
+  const [series, setSeries] = useState<number | "all">("all");
   const [rarity, setRarity] = useState<Rarity | "all">("all");
   const [sort, setSort] = useState<Sort>("rarity");
-  const [selected, setSelected] = useState<Piece | null>(null);
+  const [selected, setSelected] = useState<StockEntry | null>(null);
 
-  const bySeries = productId === "series-roulette";
-  const all = useMemo(() => oddsFor(productId), [productId]);
+  const shelf = useMemo(() => shelves[productId] ?? [], [shelves, productId]);
+
+  /** Series that actually have stock, so the filter never offers a dead end. */
+  const stockedSeries = useMemo(() => {
+    const found = new Set<number>();
+    for (const entry of shelf) {
+      if (entry.piece.series !== null && entry.available > 0) found.add(entry.piece.series);
+    }
+    return [...found].sort((a, b) => a - b);
+  }, [shelf]);
 
   const entries = useMemo(() => {
-    let list: PoolEntry[] = all;
-    if (bySeries) list = list.filter((e) => e.piece.series === series);
+    let list = shelf;
+    if (series !== "all") list = list.filter((e) => e.piece.series === series);
     if (rarity !== "all") list = list.filter((e) => e.piece.rarity === rarity);
 
-    const order = (r: Rarity) => RARITY_ORDER.indexOf(r);
     return [...list].sort((a, b) => {
+      // Sold-out pieces always sink to the bottom, whatever the sort.
+      if ((a.available === 0) !== (b.available === 0)) return a.available === 0 ? 1 : -1;
       if (sort === "odds") return b.odds - a.odds;
       if (sort === "name") return a.piece.name.localeCompare(b.piece.name);
-      return order(a.piece.rarity) - order(b.piece.rarity) || b.odds - a.odds;
+      return RARITY_ORDER.indexOf(a.piece.rarity) - RARITY_ORDER.indexOf(b.piece.rarity) || b.odds - a.odds;
     });
-  }, [all, bySeries, series, rarity, sort]);
+  }, [shelf, series, rarity, sort]);
 
   const rarities = useMemo(() => {
-    const present = new Set(all.map((e) => e.piece.rarity));
+    const present = new Set(shelf.map((e) => e.piece.rarity));
     return RARITY_ORDER.filter((r) => present.has(r));
-  }, [all]);
+  }, [shelf]);
 
   const product = PRODUCTS.find((p) => p.id === productId)!;
+  const unitsLeft = shelf.reduce((sum, e) => sum + e.available, 0);
+  const inStock = shelf.filter((e) => e.available > 0).length;
 
   return (
     <section id="set" className="relative z-10 mx-auto w-full max-w-6xl px-5 py-20 sm:px-8">
       <div className="flex flex-col gap-3">
-        <SectionLabel>Everything in the pool</SectionLabel>
+        <SectionLabel>On the shelf right now</SectionLabel>
         <h2 className="max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
-          Every piece, and the exact rate it pulls at.
+          Everything in stock, and the exact rate it pulls at.
         </h2>
         <p className="max-w-2xl text-sm leading-relaxed text-muted">
-          Rates are published per piece, not per tier, and they are the same numbers the
-          server draws against. No piece is ever withheld from the pool.
+          A piece&apos;s rate is its share of the units left on the shelf, so these are the
+          same numbers the draw runs against. Stock changes as inventory arrives and boxes
+          sell — when the last unit of a piece goes, it leaves the pool.
         </p>
       </div>
 
@@ -78,6 +88,7 @@ export function SetBrowser({ initialProductId }: { initialProductId?: string }) 
               onClick={() => {
                 setProductId(p.id);
                 setRarity("all");
+                setSeries("all");
               }}
               className={`relative rounded-full px-4 py-2 text-[13px] font-medium transition-colors ${
                 active ? "text-ink" : "text-muted hover:text-chalk"
@@ -97,17 +108,30 @@ export function SetBrowser({ initialProductId }: { initialProductId?: string }) 
         })}
       </div>
 
-      {/* series rail */}
-      {bySeries && (
+      {/* series filter — only for shelves that hold numbered series */}
+      {stockedSeries.length > 0 && (
         <div className="mt-6">
           <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-            <SectionLabel>Series</SectionLabel>
+            <SectionLabel>Series in stock</SectionLabel>
             <p className="text-xs text-faint">
-              Series {series} · {seriesName(series)} — every series is equally likely
+              {series === "all"
+                ? `${stockedSeries.length} series on the shelf`
+                : `Series ${series} · ${seriesName(series as number)}`}
             </p>
           </div>
           <div className="scroll-slim flex gap-1.5 overflow-x-auto pb-2">
-            {SERIES_NUMBERS.map((n) => (
+            <button
+              type="button"
+              onClick={() => setSeries("all")}
+              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs transition-colors ${
+                series === "all"
+                  ? "bg-chalk text-ink"
+                  : "border border-hairline text-muted hover:border-white/25 hover:text-chalk"
+              }`}
+            >
+              All
+            </button>
+            {stockedSeries.map((n) => (
               <button
                 key={n}
                 type="button"
@@ -125,15 +149,13 @@ export function SetBrowser({ initialProductId }: { initialProductId?: string }) 
         </div>
       )}
 
-      {/* filters */}
+      {/* rarity filter + sort */}
       <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-hairline pt-5">
         <button
           type="button"
           onClick={() => setRarity("all")}
           className={`rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors ${
-            rarity === "all"
-              ? "bg-white/12 text-chalk"
-              : "text-faint hover:text-chalk"
+            rarity === "all" ? "bg-white/12 text-chalk" : "text-faint hover:text-chalk"
           }`}
         >
           All
@@ -169,8 +191,8 @@ export function SetBrowser({ initialProductId }: { initialProductId?: string }) 
       </div>
 
       <p className="mt-4 text-xs text-faint">
-        Showing {entries.length} of {all.length} pieces in {product.name}
-        {bySeries ? ` · pool spans all ${SERIES_NUMBERS.length} series` : ""}
+        Showing {entries.length} of {shelf.length} pieces in {product.name} · {inStock} in stock ·{" "}
+        <span className="font-mono">{unitsLeft.toLocaleString()}</span> units left
       </p>
 
       <motion.div
@@ -183,15 +205,15 @@ export function SetBrowser({ initialProductId }: { initialProductId?: string }) 
               key={entry.piece.id}
               piece={entry.piece}
               odds={entry.odds}
-              onSelect={setSelected}
+              available={entry.available}
+              onSelect={() => setSelected(entry)}
             />
           ))}
         </AnimatePresence>
       </motion.div>
 
       <PieceDetail
-        piece={selected}
-        odds={all.find((e) => e.piece.id === selected?.id)?.odds ?? 0}
+        entry={selected}
         productName={product.name}
         onClose={() => setSelected(null)}
       />
@@ -200,19 +222,18 @@ export function SetBrowser({ initialProductId }: { initialProductId?: string }) 
 }
 
 function PieceDetail({
-  piece,
-  odds,
+  entry,
   productName,
   onClose,
 }: {
-  piece: Piece | null;
-  odds: number;
+  entry: StockEntry | null;
   productName: string;
   onClose: () => void;
 }) {
+  const piece: Piece | undefined = entry?.piece;
   return (
     <AnimatePresence>
-      {piece && (
+      {entry && piece && (
         <motion.div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-6"
           initial={{ opacity: 0 }}
@@ -259,16 +280,22 @@ function PieceDetail({
                   <dd className="mt-1 font-mono">{piece.scale}</dd>
                 </div>
                 <div>
-                  <dt className="text-[11px] uppercase tracking-[0.14em] text-faint">Type</dt>
-                  <dd className="mt-1">{piece.type}</dd>
+                  <dt className="text-[11px] uppercase tracking-[0.14em] text-faint">In stock</dt>
+                  <dd className="mt-1 font-mono">
+                    {entry.available} / {entry.stocked}
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-[11px] uppercase tracking-[0.14em] text-faint">Pull rate</dt>
-                  <dd className="mt-1 font-mono">{formatOdds(odds)}</dd>
+                  <dd className="mt-1 font-mono">
+                    {entry.available > 0 ? formatOdds(entry.odds) : "—"}
+                  </dd>
                 </div>
               </dl>
               <p className="text-xs text-faint">
-                {oddsAsOneIn(odds)} boxes of {productName}, on average.
+                {entry.available > 0
+                  ? `${oddsAsOneIn(entry.odds)} boxes of ${productName}, at today's stock.`
+                  : "Sold out — this piece is out of the pool until it is restocked."}
               </p>
               <button
                 type="button"

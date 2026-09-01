@@ -3,12 +3,12 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { oddsFor, PRODUCTS, RARITY_COLOR } from "@/lib/catalog";
-import type { Product } from "@/lib/types";
+import { PRODUCTS, RARITY_COLOR } from "@/lib/catalog";
+import type { Product, StockEntry } from "@/lib/types";
 import { Price, SectionLabel } from "./ui";
 
-/** The three drops, plus the checkout sheet that seals a box. */
-export function Shop() {
+/** The boxes on sale, plus the checkout sheet that seals one. */
+export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
   const [checkout, setCheckout] = useState<Product | null>(null);
 
   return (
@@ -16,15 +16,16 @@ export function Shop() {
       <div className="flex flex-col gap-3">
         <SectionLabel>Pick your box</SectionLabel>
         <h2 className="max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
-          Three drops. One pull each.
+          Two boxes. One pull each.
         </h2>
       </div>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
         {PRODUCTS.map((product, i) => (
           <ProductCard
             key={product.id}
             product={product}
+            shelf={shelves[product.id] ?? []}
             index={i}
             onBuy={() => setCheckout(product)}
           />
@@ -38,15 +39,19 @@ export function Shop() {
 
 function ProductCard({
   product,
+  shelf,
   index,
   onBuy,
 }: {
   product: Product;
+  shelf: StockEntry[];
   index: number;
   onBuy: () => void;
 }) {
-  const pool = oddsFor(product.id);
-  const best = [...pool].sort((a, b) => a.odds - b.odds)[0];
+  const inStock = shelf.filter((e) => e.available > 0);
+  const unitsLeft = inStock.reduce((sum, e) => sum + e.available, 0);
+  const soldOut = unitsLeft === 0;
+  const best = [...inStock].sort((a, b) => a.odds - b.odds)[0];
 
   return (
     <motion.article
@@ -82,13 +87,19 @@ function ProductCard({
           ))}
         </ul>
 
-        {best && (
-          <p className="mt-auto border-t border-hairline pt-4 text-[11px] text-faint">
-            Rarest in pool:{" "}
-            <span style={{ color: RARITY_COLOR[best.piece.rarity] }}>{best.piece.name}</span>{" "}
-            at {(best.odds * 100).toFixed(3)}%
+        <div className="mt-auto space-y-1.5 border-t border-hairline pt-4 text-[11px] text-faint">
+          <p>
+            In stock now: {inStock.length} pieces ·{" "}
+            <span className="font-mono">{unitsLeft.toLocaleString()}</span> units
           </p>
-        )}
+          {best && (
+            <p>
+              Rarest on the shelf:{" "}
+              <span style={{ color: RARITY_COLOR[best.piece.rarity] }}>{best.piece.name}</span>{" "}
+              at {(best.odds * 100).toFixed(3)}%
+            </p>
+          )}
+        </div>
 
         <div className="mt-5 flex items-center justify-between gap-3 pt-1">
           <p className="font-mono text-xl">
@@ -97,10 +108,11 @@ function ProductCard({
           <button
             type="button"
             onClick={onBuy}
-            className="rounded-full px-5 py-2.5 text-sm font-semibold text-ink transition-transform hover:scale-[1.03] active:scale-[0.98]"
-            style={{ background: product.accent }}
+            disabled={soldOut}
+            className="rounded-full px-5 py-2.5 text-sm font-semibold text-ink transition-transform hover:scale-[1.03] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
+            style={{ background: soldOut ? "#3a3a44" : product.accent }}
           >
-            Buy one box
+            {soldOut ? "Sold out" : "Buy one box"}
           </button>
         </div>
       </div>

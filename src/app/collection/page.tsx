@@ -1,13 +1,8 @@
 import Link from "next/link";
 import { BearbrickArt } from "@/components/BearbrickArt";
 import { RarityChip } from "@/components/ui";
-import {
-  formatOdds,
-  getPiece,
-  getProduct,
-  oddsFor,
-  RARITY_ORDER,
-} from "@/lib/catalog";
+import { formatOdds, getPiece, getProduct, RARITY_ORDER } from "@/lib/catalog";
+import { oddsFromSnapshot } from "@/lib/serialize";
 import { readCollectorId } from "@/lib/session";
 import { listOrders } from "@/lib/store";
 import type { Piece } from "@/lib/types";
@@ -30,7 +25,8 @@ export default async function CollectionPage() {
     if (order.status === "paid") return [];
     const piece = getPiece(order.pieceId);
     if (!piece) return [];
-    const odds = oddsFor(order.productId).find((e) => e.piece.id === piece.id)?.odds ?? 0;
+    // The rate this piece had on the shelf it came off, not on today's shelf.
+    const odds = oddsFromSnapshot(order.poolSnapshot ?? [], order.pieceId);
     return [{ order, piece, odds }];
   });
 

@@ -6,16 +6,19 @@ import type { Piece } from "@/lib/types";
 import { BearbrickArt } from "./BearbrickArt";
 import { RarityChip } from "./ui";
 
-/** One tile in the "what's inside" grid: the art, the name, and the pull rate. */
+/** One tile on the shelf: the art, the name, the pull rate, and what is left. */
 export function PieceCard({
   piece,
   odds,
+  available,
   onSelect,
 }: {
   piece: Piece;
   odds: number;
+  available: number;
   onSelect?: (piece: Piece) => void;
 }) {
+  const soldOut = available === 0;
   return (
     <motion.button
       type="button"
@@ -25,7 +28,9 @@ export function PieceCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
       whileHover={{ y: -4 }}
-      className="group relative overflow-hidden rounded-2xl border border-hairline bg-ink-card p-3 text-left transition-colors hover:border-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400"
+      className={`group relative overflow-hidden rounded-2xl border border-hairline bg-ink-card p-3 text-left transition-colors hover:border-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400 ${
+        soldOut ? "opacity-45" : ""
+      }`}
     >
       <div
         className="relative flex h-36 items-center justify-center rounded-xl"
@@ -47,13 +52,24 @@ export function PieceCard({
         <p className="truncate text-[11px] text-faint">{piece.setName}</p>
         <div className="flex items-center justify-between gap-2 pt-1">
           <RarityChip rarity={piece.rarity} />
-          <span
-            className="shrink-0 font-mono text-[11px] text-muted"
-            title={oddsAsOneIn(odds)}
-          >
-            {formatOdds(odds)}
-          </span>
+          {soldOut ? (
+            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
+              Sold out
+            </span>
+          ) : (
+            <span
+              className="shrink-0 font-mono text-[11px] text-muted"
+              title={oddsAsOneIn(odds)}
+            >
+              {formatOdds(odds)}
+            </span>
+          )}
         </div>
+        {!soldOut && (
+          <p className="font-mono text-[10px] text-faint">
+            {available} left
+          </p>
+        )}
       </div>
     </motion.button>
   );
