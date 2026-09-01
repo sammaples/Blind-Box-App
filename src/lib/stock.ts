@@ -16,7 +16,13 @@ import type { AuditBatch, Piece, StockEntry } from "./types";
 
 let seeded: Promise<void> | null = null;
 
-/** Seeds an untouched warehouse from the opening inventory, once per process. */
+/**
+ * Seeds an untouched warehouse from the opening inventory, once per process.
+ *
+ * A failed attempt clears itself rather than being cached: a database that is
+ * briefly unreachable, or not yet migrated, must not leave the process unable
+ * to serve a shelf for the rest of its life.
+ */
 function ensureSeeded(): Promise<void> {
   seeded ??= (async () => {
     const units = new Map<string, { scale: Piece["scale"]; units: number }>();
@@ -25,7 +31,11 @@ function ensureSeeded(): Promise<void> {
       if (piece) units.set(pieceId, { scale: piece.scale, units: count });
     }
     await backend().seed(units);
-  })();
+  })().catch((err: unknown) => {
+    seeded = null;
+    throw err;
+  });
+
   return seeded;
 }
 

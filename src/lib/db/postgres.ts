@@ -16,60 +16,28 @@ import type {
  * processes: correctness comes from row locks and constraints in the database
  * rather than an in-process mutex, so any number of app instances can serve
  * the same shop.
+ *
+ * The schema is owned by the migrations in migrations/, applied with
+ * `npm run migrate` as a deploy step. The app never creates or alters tables
+ * itself — a server that quietly reshapes the database on boot is a server
+ * that can do it halfway through a rolling deploy, with two versions running.
  */
 
-const SCHEMA = `
-create table if not exists collectors (
-  id            text primary key,
-  email         text,
-  display_name  text,
-  created_at    timestamptz not null default now(),
-  onboarded_at  timestamptz
-);
-
-create table if not exists stock (
-  piece_id  text primary key,
-  scale     text    not null,
-  stocked   integer not null default 0,
-  sold      integer not null default 0,
-  -- The database itself refuses to oversell, whatever the app believes.
-  constraint stock_not_oversold check (sold <= stocked),
-  constraint stock_non_negative check (stocked >= 0 and sold >= 0)
-);
-create index if not exists stock_shelf_idx on stock (scale) where stocked > sold;
-
-create table if not exists orders (
-  id              text primary key,
-  collector_id    text        not null,
-  product_id      text        not null,
-  piece_id        text        not null,
-  status          text        not null,
-  created_at      timestamptz not null,
-  revealed_at     timestamptz,
-  roll_seed       text        not null,
-  roll_value      double precision not null,
-  pool_snapshot   jsonb       not null,
-  email           text,
-  shipping        jsonb,
-  tracking_number text
-);
-create index if not exists orders_collector_idx
-  on orders (collector_id, created_at desc);
-
-create table if not exists audit (
-  id           uuid primary key,
-  batch_id     uuid        not null,
-  at           timestamptz not null,
-  piece_id     text        not null,
-  op           text        not null,
-  before_units integer     not null,
-  after_units  integer     not null,
-  sold         integer     not null
-);
-create index if not exists audit_at_idx on audit (at desc, id);
-`;
 
 const AUDIT_LIMIT = 1000;
+
+/** Tables the app cannot run without. Their absence means "not migrated". */
+const REQUIRED_TABLES = ["collectors", "stock", "orders", "audit"] as const;
+
+class SchemaNotReadyError extends Error {
+  constructor(missing: readonly string[]) {
+    super(
+      `The database is missing ${missing.join(", ")}. ` +
+        "Run `npm run migrate` against DATABASE_URL before starting the app.",
+    );
+    this.name = "SchemaNotReadyError";
+  }
+}
 
 /* ------------------------------ row mapping ----------------------------- */
 
@@ -129,9 +97,28 @@ export function createPostgresBackend(connectionString: string): Backend {
   const pool = new Pool({ connectionString, max: 10 });
   let ready: Promise<void> | null = null;
 
-  /** Applies the schema once per process, then gets out of the way. */
+  /**
+   * Checks once per process that the migrations have been run. This catches an
+   * unmigrated database, which is the mistake people actually make; keeping a
+   * deploy's migrate step ahead of its app start is what handles the rest.
+   */
   function migrated(): Promise<void> {
-    ready ??= pool.query(SCHEMA).then(() => undefined);
+    // The failure handler is attached once, when the promise is created, so a
+    // failed check clears itself and the next request tries again. Caching a
+    // rejected promise would leave the process permanently convinced the
+    // schema is missing, even after someone runs the migration.
+    ready ??= (async () => {
+      const { rows } = await pool.query(
+        "select tablename from pg_tables where schemaname = current_schema()",
+      );
+      const present = new Set(rows.map((r) => r.tablename as string));
+      const missing = REQUIRED_TABLES.filter((t) => !present.has(t));
+      if (missing.length > 0) throw new SchemaNotReadyError(missing);
+    })().catch((err: unknown) => {
+      ready = null;
+      throw err;
+    });
+
     return ready;
   }
 

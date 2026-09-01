@@ -28,13 +28,37 @@ configure — no keys, no database, no image assets.
 
 ```bash
 export DATABASE_URL=postgres://user:password@localhost:5432/blindbox
+npm run migrate     # applies migrations/ — a deploy step, before the app starts
 npm start
 ```
 
-That is the whole setup. The schema is applied on first use, and the warehouse
-seeds itself from `src/lib/inventory.ts`. With `DATABASE_URL` unset the app
-falls back to a JSON file at `data/db.json`, which is what lets the demo run
-with no database at all.
+The warehouse then seeds itself from `src/lib/inventory.ts`. With
+`DATABASE_URL` unset the app falls back to a JSON file at `data/db.json`, needs
+no migration step, and runs with no database at all — which is what keeps the
+demo zero-config.
+
+### Changing the schema
+
+Migrations live in `migrations/` and are run by
+[node-pg-migrate](https://github.com/salsita/node-pg-migrate), which reads
+`DATABASE_URL`.
+
+```bash
+npm run migrate:create -- add-order-status-index   # writes a timestamped .sql file
+npm run migrate                                    # apply everything pending
+npm run migrate:down                               # roll back the last one
+```
+
+Each file has an `-- Up Migration` and a `-- Down Migration` section; write
+both, because the down is what makes a bad deploy recoverable. Applied
+migrations are recorded in a `pgmigrations` table, so `npm run migrate` is safe
+to run repeatedly and on every deploy.
+
+**The app never creates or alters tables itself.** A server that reshapes the
+database on boot can do it halfway through a rolling deploy, with two versions
+of the code running at once. Instead it checks its tables exist and, if they do
+not, fails with the command to run. A database migrated while the app is
+already running recovers on the next request, without a restart.
 
 ## Adding inventory
 
@@ -158,9 +182,10 @@ src/
   `data/db.json`, which is gitignored, serialised through one in-process lock,
   and would corrupt if two Node processes shared it. That is a demo store, not
   a production one — set `DATABASE_URL` and the same app runs on Postgres.
-- **Migrations.** The Postgres schema is applied with `create table if not
-  exists` on first use. That is enough for a schema that has never changed;
-  bring in a real migration tool before the first change to it.
+- **Migration safety net.** The boot check catches an unmigrated database,
+  which is the mistake people actually make. It does not catch a database that
+  is migrated but out of date — keeping a deploy's `npm run migrate` ahead of
+  its app start is what handles that.
 - **Fulfilment.** Shipping a box sets a status and a tracking number locally.
   There is no carrier integration behind it.
 - **Accounts.** A collector is an httpOnly cookie, so pulls follow the browser
