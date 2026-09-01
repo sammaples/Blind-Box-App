@@ -11,12 +11,14 @@ import type { Collector, Order } from "./types";
 interface Db {
   collectors: Collector[];
   orders: Order[];
+  /** Total units ever put into circulation, per piece. Managed from /admin. */
+  stock: Record<string, number>;
   /** Units sold per piece. Subtracted from stocked units to get availability. */
   sold: Record<string, number>;
 }
 
 const DB_PATH = path.join(process.cwd(), "data", "db.json");
-const EMPTY: Db = { collectors: [], orders: [], sold: {} };
+const EMPTY: Db = { collectors: [], orders: [], stock: {}, sold: {} };
 
 /** Serialises writes so two concurrent purchases cannot clobber each other. */
 let queue: Promise<unknown> = Promise.resolve();
@@ -34,6 +36,7 @@ async function read(): Promise<Db> {
     return {
       collectors: parsed.collectors ?? [],
       orders: parsed.orders ?? [],
+      stock: parsed.stock ?? {},
       sold: parsed.sold ?? {},
     };
   } catch (err) {

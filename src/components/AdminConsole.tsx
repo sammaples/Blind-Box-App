@@ -1,0 +1,575 @@
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { BearbrickArt } from "@/components/BearbrickArt";
+import { RarityChip } from "@/components/ui";
+import { formatOdds, RARITY_LABEL, RARITY_ORDER, seriesName } from "@/lib/catalog";
+import { UNITS_BY_RARITY } from "@/lib/inventory";
+import type { Palette, PatternKind, Rarity, Scale } from "@/lib/types";
+
+/** The slice of a piece the console needs. */
+export interface AdminPiece {
+  id: string;
+  name: string;
+  setName: string;
+  series: number | null;
+  scale: Scale;
+  rarity: Rarity;
+  pattern: PatternKind;
+  palette: Palette;
+}
+
+type Levels = Record<string, { stocked: number; sold: number }>;
+type Change = { pieceId: string; op: "add" | "set" | "pull"; units?: number };
+
+const SHELVES: { scale: Scale; label: string; accent: string }[] = [
+  { scale: "100%", label: "100% shelf", accent: "#f97316" },
+  { scale: "400%", label: "400% shelf", accent: "#22d3ee" },
+];
+
+/**
+ * The inventory console. Stock lives in the database, so restocking is a few
+ * clicks rather than an edit and a deploy — and because pull rates are derived
+ * from units, changing stock here republishes the odds at the same instant.
+ */
+export function AdminConsole({
+  pieces,
+  stock,
+  openAccess,
+}: {
+  pieces: AdminPiece[];
+  stock: Levels;
+  openAccess: boolean;
+}) {
+  const [levels, setLevels] = useState<Levels>(stock);
+  const [scale, setScale] = useState<Scale>("100%");
+  const [tab, setTab] = useState<"shelf" | "add">("shelf");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const byId = useMemo(() => new Map(pieces.map((p) => [p.id, p])), [pieces]);
+
+  const send = async (changes: Change[], message: string) => {
+    if (changes.length === 0 || busy) return;
+    setBusy(true);
+    setError(null);
+    setNote(null);
+    try {
+      const res = await fetch("/api/admin/stock", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ changes }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Could not save that");
+
+      setLevels((current) => {
+        const next = { ...current };
+        for (const row of data.applied as { pieceId: string; stocked: number; sold: number }[]) {
+          if (row.stocked === 0 && row.sold === 0) delete next[row.pieceId];
+          else next[row.pieceId] = { stocked: row.stocked, sold: row.sold };
+        }
+        return next;
+      });
+      setNote(message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /* ---------------------------- derived views --------------------------- */
+
+  const shelf = useMemo(() => {
+    const rows = pieces
+      .filter((p) => p.scale === scale && levels[p.id])
+      .map((piece) => {
+        const { stocked, sold } = levels[piece.id];
+        return { piece, stocked, sold, available: Math.max(0, stocked - sold) };
+      });
+
+    const remaining = rows.reduce((sum, r) => sum + r.available, 0);
+    return rows
+      .map((r) => ({ ...r, odds: remaining > 0 ? r.available / remaining : 0 }))
+      .sort(
+        (a, b) =>
+          (a.available === 0 ? 1 : 0) - (b.available === 0 ? 1 : 0) ||
+          RARITY_ORDER.indexOf(a.piece.rarity) - RARITY_ORDER.indexOf(b.piece.rarity) ||
+          a.piece.name.localeCompare(b.piece.name),
+      );
+  }, [pieces, levels, scale]);
+
+  const unitsLeft = shelf.reduce((sum, r) => sum + r.available, 0);
+  const unitsSold = shelf.reduce((sum, r) => sum + r.sold, 0);
+  const inStock = shelf.filter((r) => r.available > 0).length;
+
+  /* --------------------------- series shortcuts ------------------------- */
+
+  const seriesRows = useMemo(() => {
+    if (scale !== "100%") return [];
+    const map = new Map<number, { total: number; stocked: number; available: number }>();
+    for (const piece of pieces) {
+      if (piece.scale !== "100%" || piece.series === null) continue;
+      const row = map.get(piece.series) ?? { total: 0, stocked: 0, available: 0 };
+      row.total += 1;
+      const level = levels[piece.id];
+      if (level) {
+        row.stocked += 1;
+        row.available += Math.max(0, level.stocked - level.sold);
+      }
+      map.set(piece.series, row);
+    }
+    return [...map.entries()]
+      .map(([series, row]) => ({ series, ...row }))
+      .sort((a, b) => b.available - a.available || a.series - b.series);
+  }, [pieces, levels, scale]);
+
+  const stockSeries = (series: number) => {
+    const changes = pieces
+      .filter((p) => p.series === series && p.scale === "100%")
+      .map((p) => ({
+        pieceId: p.id,
+        op: "set" as const,
+        units: UNITS_BY_RARITY[p.scale][p.rarity],
+      }));
+    void send(changes, `Series ${series} stocked — ${changes.length} pieces`);
+  };
+
+  const pullSeries = (series: number) => {
+    const changes = pieces
+      .filter((p) => p.series === series && p.scale === "100%" && levels[p.id])
+      .map((p) => ({ pieceId: p.id, op: "pull" as const }));
+    void send(changes, `Series ${series} pulled from the shelf`);
+  };
+
+  return (
+    <div className="mx-auto w-full max-w-5xl px-5 py-10 sm:px-8">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-2xl">
+          <Link href="/" className="text-xs text-faint transition-colors hover:text-muted">
+            ← Back to the shop
+          </Link>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight">Inventory</h1>
+          <p className="mt-1.5 text-sm text-muted">
+            Stock is the product. Change what is on a shelf and the published pull rates
+            move with it, because a rate is just a piece&apos;s share of the units left.
+          </p>
+        </div>
+        {!openAccess && (
+          <button
+            type="button"
+            onClick={async () => {
+              await fetch("/api/admin/session", { method: "DELETE" });
+              window.location.reload();
+            }}
+            className="rounded-full border border-hairline px-4 py-2 text-xs text-muted transition-colors hover:border-white/30 hover:text-chalk"
+          >
+            Sign out
+          </button>
+        )}
+      </div>
+
+      {openAccess && (
+        <p className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs leading-relaxed text-amber-200">
+          No <code className="font-mono">ADMIN_PASSWORD</code> is set, so this console is
+          unlocked. That is fine locally; in production it refuses to load until you set
+          one.
+        </p>
+      )}
+
+      {/* shelf picker */}
+      <div className="mt-7 flex flex-wrap gap-2">
+        {SHELVES.map((s) => (
+          <button
+            key={s.scale}
+            type="button"
+            onClick={() => setScale(s.scale)}
+            className="rounded-full px-4 py-2 text-[13px] font-medium transition-colors"
+            style={
+              scale === s.scale
+                ? { background: s.accent, color: "#08080b" }
+                : { color: "#8b8b99", boxShadow: "inset 0 0 0 1px #26262f" }
+            }
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      <dl className="mt-5 grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-4">
+        <Stat label="Pieces in stock" value={inStock.toLocaleString()} />
+        <Stat label="Units available" value={unitsLeft.toLocaleString()} />
+        <Stat label="Units sold" value={unitsSold.toLocaleString()} />
+        <Stat
+          label="Shelf status"
+          value={unitsLeft > 0 ? "Selling" : "Sold out"}
+          tone={unitsLeft > 0 ? "good" : "warn"}
+        />
+      </dl>
+
+      {(note || error) && (
+        <p
+          className={`mt-4 rounded-xl px-4 py-3 text-xs ${
+            error
+              ? "border border-rose-500/30 bg-rose-500/10 text-rose-300"
+              : "border border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+          }`}
+        >
+          {error ?? note}
+        </p>
+      )}
+
+      {/* series shortcuts */}
+      {scale === "100%" && (
+        <section className="mt-8">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-faint">
+            Stock a whole series
+          </h2>
+          <p className="mt-1.5 text-xs text-muted">
+            Sets every piece in the series to its default unit count for its rarity. One
+            batch, so a series never lands half-stocked.
+          </p>
+          <div className="scroll-slim mt-3 flex gap-2 overflow-x-auto pb-2">
+            {seriesRows.map((row) => (
+              <div
+                key={row.series}
+                className="w-40 shrink-0 rounded-xl border border-hairline bg-ink-card p-3"
+              >
+                <p className="font-mono text-xs">
+                  {String(row.series).padStart(2, "0")}
+                </p>
+                <p className="mt-0.5 truncate text-[11px] text-muted">
+                  {seriesName(row.series)}
+                </p>
+                <p className="mt-2 font-mono text-[11px] text-faint">
+                  {row.available > 0
+                    ? `${row.available} unit${row.available === 1 ? "" : "s"}`
+                    : "not stocked"}
+                </p>
+                <div className="mt-2.5 flex gap-1.5">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => stockSeries(row.series)}
+                    className="flex-1 rounded-lg bg-white/10 py-1.5 text-[11px] font-medium transition-colors hover:bg-white/16 disabled:opacity-40"
+                  >
+                    {row.available > 0 ? "Restock" : "Stock"}
+                  </button>
+                  {row.available > 0 && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => pullSeries(row.series)}
+                      className="rounded-lg border border-hairline px-2.5 py-1.5 text-[11px] text-muted transition-colors hover:border-white/30 hover:text-chalk disabled:opacity-40"
+                    >
+                      Pull
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* shelf / add tabs */}
+      <div className="mt-9 flex gap-1 border-b border-hairline">
+        {(["shelf", "add"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={`-mb-px border-b-2 px-4 py-2.5 text-[13px] font-medium transition-colors ${
+              tab === t
+                ? "border-chalk text-chalk"
+                : "border-transparent text-muted hover:text-chalk"
+            }`}
+          >
+            {t === "shelf" ? `On the shelf (${shelf.length})` : "Add a piece"}
+          </button>
+        ))}
+      </div>
+
+      {tab === "shelf" ? (
+        <ShelfTable rows={shelf} busy={busy} onChange={send} />
+      ) : (
+        <AddPieces
+          pieces={pieces.filter((p) => p.scale === scale && !levels[p.id])}
+          busy={busy}
+          onChange={send}
+          byId={byId}
+        />
+      )}
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "good" | "warn";
+}) {
+  return (
+    <div className="bg-ink-card p-4">
+      <dt className="text-[10px] uppercase tracking-[0.16em] text-faint">{label}</dt>
+      <dd
+        className="mt-1.5 font-mono text-lg"
+        style={{ color: tone === "warn" ? "#fbbf24" : tone === "good" ? "#34d399" : undefined }}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+interface ShelfRow {
+  piece: AdminPiece;
+  stocked: number;
+  sold: number;
+  available: number;
+  odds: number;
+}
+
+function ShelfTable({
+  rows,
+  busy,
+  onChange,
+}: {
+  rows: ShelfRow[];
+  busy: boolean;
+  onChange: (changes: Change[], message: string) => void;
+}) {
+  if (rows.length === 0) {
+    return (
+      <p className="mt-8 rounded-2xl border border-dashed border-hairline p-12 text-center text-sm text-muted">
+        Nothing on this shelf yet. Stock a series above, or add pieces one at a time.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-5 overflow-x-auto">
+      <table className="w-full min-w-[46rem] border-separate border-spacing-y-1.5 text-sm">
+        <thead>
+          <tr className="text-left text-[10px] uppercase tracking-[0.16em] text-faint">
+            <th className="px-3 pb-1 font-medium">Piece</th>
+            <th className="px-3 pb-1 font-medium">Rarity</th>
+            <th className="px-3 pb-1 text-right font-medium">Left</th>
+            <th className="px-3 pb-1 text-right font-medium">Sold</th>
+            <th className="px-3 pb-1 text-right font-medium">Pull rate</th>
+            <th className="px-3 pb-1 text-right font-medium">Restock</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr
+              key={row.piece.id}
+              className={`bg-ink-card ${row.available === 0 ? "opacity-55" : ""}`}
+            >
+              <td className="rounded-l-xl px-3 py-2.5">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="grid size-10 shrink-0 place-items-center rounded-lg"
+                    style={{
+                      background: `radial-gradient(120% 90% at 50% 12%, ${row.piece.palette.wash}, #0b0b10 78%)`,
+                    }}
+                  >
+                    <BearbrickArt
+                      uid={`adm-${row.piece.id}`}
+                      palette={row.piece.palette}
+                      pattern={row.piece.pattern}
+                      className="h-8 w-auto"
+                      simple
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{row.piece.name}</p>
+                    <p className="truncate text-[11px] text-faint">{row.piece.setName}</p>
+                  </div>
+                </div>
+              </td>
+              <td className="px-3 py-2.5">
+                <RarityChip rarity={row.piece.rarity} />
+              </td>
+              <td className="px-3 py-2.5 text-right font-mono">
+                {row.available === 0 ? (
+                  <span className="text-[11px] uppercase tracking-[0.14em] text-faint">
+                    Sold out
+                  </span>
+                ) : (
+                  row.available
+                )}
+              </td>
+              <td className="px-3 py-2.5 text-right font-mono text-muted">{row.sold}</td>
+              <td className="px-3 py-2.5 text-right font-mono text-muted">
+                {row.available > 0 ? formatOdds(row.odds) : "—"}
+              </td>
+              <td className="rounded-r-xl px-3 py-2.5">
+                <div className="flex items-center justify-end gap-1.5">
+                  {[1, 5, 25].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        onChange(
+                          [{ pieceId: row.piece.id, op: "add", units: n }],
+                          `Added ${n} × ${row.piece.name}`,
+                        )
+                      }
+                      className="rounded-lg bg-white/8 px-2.5 py-1.5 font-mono text-[11px] transition-colors hover:bg-white/16 disabled:opacity-40"
+                    >
+                      +{n}
+                    </button>
+                  ))}
+                  {row.available > 0 && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        onChange(
+                          [{ pieceId: row.piece.id, op: "pull" }],
+                          `Pulled ${row.piece.name} from the shelf`,
+                        )
+                      }
+                      className="rounded-lg border border-hairline px-2.5 py-1.5 text-[11px] text-muted transition-colors hover:border-white/30 hover:text-chalk disabled:opacity-40"
+                    >
+                      Pull
+                    </button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+function AddPieces({
+  pieces,
+  busy,
+  onChange,
+  byId,
+}: {
+  pieces: AdminPiece[];
+  busy: boolean;
+  onChange: (changes: Change[], message: string) => void;
+  byId: Map<string, AdminPiece>;
+}) {
+  const [query, setQuery] = useState("");
+  const [rarity, setRarity] = useState<Rarity | "all">("all");
+
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return pieces
+      .filter((p) => rarity === "all" || p.rarity === rarity)
+      .filter(
+        (p) =>
+          q === "" ||
+          p.name.toLowerCase().includes(q) ||
+          p.setName.toLowerCase().includes(q),
+      )
+      .slice(0, 60);
+  }, [pieces, query, rarity]);
+
+  return (
+    <div className="mt-5">
+      <p className="text-xs text-muted">
+        Anything in the catalogue that is not already on this shelf. Adding a piece puts it
+        straight into the pool at the units you choose.
+      </p>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by name or series"
+          className="min-w-56 flex-1 rounded-xl border border-hairline bg-ink px-4 py-2.5 text-sm outline-none transition-colors focus:border-white/30"
+        />
+        <select
+          value={rarity}
+          onChange={(e) => setRarity(e.target.value as Rarity | "all")}
+          className="rounded-xl border border-hairline bg-ink-raised px-3 py-2.5 text-xs text-chalk outline-none focus:border-white/30"
+        >
+          <option value="all">All rarities</option>
+          {RARITY_ORDER.map((r) => (
+            <option key={r} value={r}>
+              {RARITY_LABEL[r]}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <p className="mt-3 text-xs text-faint">
+        {pieces.length.toLocaleString()} pieces available to stock
+        {matches.length < pieces.length ? ` · showing ${matches.length}` : ""}
+      </p>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        {matches.map((piece) => {
+          const suggested = UNITS_BY_RARITY[piece.scale][piece.rarity];
+          return (
+            <div
+              key={piece.id}
+              className="flex items-center gap-3 rounded-xl border border-hairline bg-ink-card p-3"
+            >
+              <div
+                className="grid size-11 shrink-0 place-items-center rounded-lg"
+                style={{
+                  background: `radial-gradient(120% 90% at 50% 12%, ${piece.palette.wash}, #0b0b10 78%)`,
+                }}
+              >
+                <BearbrickArt
+                  uid={`add-${piece.id}`}
+                  palette={piece.palette}
+                  pattern={piece.pattern}
+                  className="h-9 w-auto"
+                  simple
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-medium">{piece.name}</p>
+                <p className="truncate text-[11px] text-faint">{piece.setName}</p>
+              </div>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  onChange(
+                    [{ pieceId: piece.id, op: "set", units: suggested }],
+                    `Stocked ${suggested} × ${piece.name}`,
+                  )
+                }
+                className="shrink-0 rounded-lg bg-white/10 px-3 py-2 font-mono text-[11px] transition-colors hover:bg-white/16 disabled:opacity-40"
+                title={`Stock ${suggested} units`}
+              >
+                +{suggested}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {matches.length === 0 && (
+        <p className="mt-6 rounded-2xl border border-dashed border-hairline p-10 text-center text-sm text-muted">
+          {byId.size > 0 && pieces.length === 0
+            ? "Every piece at this scale is already on the shelf."
+            : "Nothing matches that search."}
+        </p>
+      )}
+    </div>
+  );
+}

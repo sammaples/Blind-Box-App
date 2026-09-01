@@ -63,6 +63,11 @@ function Footer() {
           against. Every order stores the seed it was drawn from.
         </p>
         <p>Demo build — checkout is simulated and nothing is charged.</p>
+        <p className="pt-1">
+          <Link href="/admin" className="transition-colors hover:text-muted">
+            Inventory console
+          </Link>
+        </p>
       </div>
     </footer>
   );

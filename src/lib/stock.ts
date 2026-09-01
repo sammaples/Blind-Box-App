@@ -1,15 +1,26 @@
 import "server-only";
 import { getPiece, getProduct } from "./catalog";
-import { stockedUnits } from "./inventory";
+import { seedStock } from "./inventory";
 import type { Db } from "./store";
 import { transact } from "./store";
-import type { PoolSnapshot, StockEntry } from "./types";
+import type { Piece, PoolSnapshot, StockEntry } from "./types";
 
 /**
- * Live availability. Inventory says how many units of each piece were ever put
- * into circulation; the database says how many have sold. What is left is the
- * pool a box draws from, and each piece's pull rate is its share of it.
+ * Live availability. The database holds how many units of each piece were ever
+ * put into circulation and how many have sold; what is left is the pool a box
+ * draws from, and each piece's pull rate is its share of it.
+ *
+ * Stock is edited from the admin console. An empty warehouse is seeded once
+ * from src/lib/inventory.ts and never again.
  */
+
+/** Seeds an untouched warehouse from the opening inventory, once. */
+function stockLevels(db: Db): Record<string, number> {
+  if (Object.keys(db.stock).length === 0 && Object.keys(db.sold).length === 0) {
+    for (const [pieceId, units] of seedStock()) db.stock[pieceId] = units;
+  }
+  return db.stock;
+}
 
 /** Units left of each piece belonging to a product, sold-out pieces dropped. */
 function availableUnits(db: Db, productId: string): Map<string, number> {
@@ -17,7 +28,7 @@ function availableUnits(db: Db, productId: string): Map<string, number> {
   const left = new Map<string, number>();
   if (!product) return left;
 
-  for (const [pieceId, stocked] of stockedUnits()) {
+  for (const [pieceId, stocked] of Object.entries(stockLevels(db))) {
     const piece = getPiece(pieceId);
     if (!piece || piece.scale !== product.scale) continue;
 
@@ -46,7 +57,7 @@ export async function shelfFor(productId: string): Promise<StockEntry[]> {
     const entries: Omit<StockEntry, "odds">[] = [];
     let remaining = 0;
 
-    for (const [pieceId, stocked] of stockedUnits()) {
+    for (const [pieceId, stocked] of Object.entries(stockLevels(db))) {
       const piece = getPiece(pieceId);
       if (!piece || piece.scale !== product.scale) continue;
 
@@ -100,5 +111,96 @@ export async function reserve(
     const reservation = { pieceId, seed, rollValue, poolSnapshot };
     write(db, reservation);
     return reservation;
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * Admin operations
+ * ------------------------------------------------------------------ */
+
+export type StockOp = "add" | "set" | "pull";
+
+export interface StockChange {
+  pieceId: string;
+  op: StockOp;
+  /** Units to add, or the new total. Ignored by "pull". */
+  units?: number;
+}
+
+export interface StockChangeResult {
+  pieceId: string;
+  stocked: number;
+  sold: number;
+  available: number;
+}
+
+/**
+ * Applies stock edits in one transaction.
+ *
+ * - `add`  puts more units into circulation.
+ * - `set`  makes the total exactly this, floored at what has already sold —
+ *          units that left the building cannot be un-shipped.
+ * - `pull` takes the remaining units off the shelf, leaving the sold history
+ *          intact so past orders still reconcile.
+ */
+export async function applyStockChanges(
+  changes: readonly StockChange[],
+): Promise<StockChangeResult[]> {
+  return transact((db) => {
+    const results: StockChangeResult[] = [];
+
+    for (const change of changes) {
+      const piece = getPiece(change.pieceId);
+      if (!piece) continue;
+
+      const sold = db.sold[change.pieceId] ?? 0;
+      const current = db.stock[change.pieceId] ?? 0;
+      const units = Number.isFinite(change.units) ? Math.floor(change.units!) : 0;
+
+      let next: number;
+      if (change.op === "add") next = current + Math.max(0, units);
+      else if (change.op === "set") next = Math.max(0, units);
+      else next = sold; // pull: nothing left available, history preserved
+
+      // Never below what has sold, or availability would go negative.
+      next = Math.max(next, sold);
+
+      if (next === 0) delete db.stock[change.pieceId];
+      else db.stock[change.pieceId] = next;
+
+      results.push({
+        pieceId: change.pieceId,
+        stocked: next,
+        sold,
+        available: next - sold,
+      });
+    }
+
+    return results;
+  });
+}
+
+export interface WarehouseRow {
+  piece: Piece;
+  stocked: number;
+  sold: number;
+  available: number;
+}
+
+/** Every piece the warehouse has a record of, stocked or sold out. */
+export async function warehouse(): Promise<WarehouseRow[]> {
+  return transact((db) => {
+    const levels = stockLevels(db);
+    const ids = new Set([...Object.keys(levels), ...Object.keys(db.sold)]);
+
+    const rows: WarehouseRow[] = [];
+    for (const pieceId of ids) {
+      const piece = getPiece(pieceId);
+      if (!piece) continue;
+      const stocked = levels[pieceId] ?? 0;
+      const sold = db.sold[pieceId] ?? 0;
+      rows.push({ piece, stocked, sold, available: Math.max(0, stocked - sold) });
+    }
+    return rows;
   });
 }

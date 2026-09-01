@@ -26,34 +26,41 @@ configure — no keys, no database, no image assets.
 
 ## Adding inventory
 
-**`src/lib/inventory.ts` is the only file you edit when new stock lands.**
+**Stock lives in the database and is managed at `/admin`.** No deploy, no code
+edit — the console is the restocking tool.
 
-```ts
-export const STOCKED_SERIES = [3, 12, 24, 38, 52];   // 100% shelf
-export const STOCK_ALL_400 = true;                    // 400% shelf
-export const EXTRA_UNITS = { "s7-secret-0": 1 };      // one-offs
-```
+- **Stock a whole series** in one click, which sets every piece in it to the
+  default unit count for its rarity. Applied as one batch, so a series never
+  lands half-stocked.
+- **Restock a piece** with +1 / +5 / +25 straight from the shelf table.
+- **Pull a piece** to take its remaining units off the shelf. Sales history
+  stays intact, so past orders still reconcile.
+- **Add a piece** that has never been stocked, from the full reference
+  catalogue.
 
-Add a series number to put that whole series on the shelf; remove one to pull
-it. `EXTRA_UNITS` handles single pieces arriving outside a drop, overrides the
-default unit count for one that did, and setting a piece to `0` keeps it out
-entirely. `UNITS_BY_RARITY` at the top of the file sets how many units a piece
-arrives with, by scale and rarity.
+`src/lib/inventory.ts` seeds the opening shelf the first time the app runs and
+is never consulted again. Editing it will not change a warehouse that has
+already been seeded — use the console.
 
-Everything downstream follows on its own: which pieces a box can contain, what
-each one's pull rate is, which series the shop offers as filters, and when a
-piece disappears because the last unit sold.
+### Getting into the console
+
+Set `ADMIN_PASSWORD` and the console asks for it. Leave it unset and the console
+is open in development, so you can try it with no setup, and refuses to load in
+production. An unprotected inventory editor on a public URL is not something
+anyone should get by accident.
 
 ### Pull rates are not set by hand
 
 A piece's rate is **its share of the units left on the shelf**. Stock six of
 something and it is exactly six times as likely as a piece you stocked one of.
 This means the published rates and the draw cannot disagree — they are the same
-arithmetic over the same numbers — and a restock moves both together.
+arithmetic over the same numbers — and a restock moves both at the same instant.
 
-The numbers only ever grow in the inventory file: it declares how many units
-have been put into circulation, and the database counts how many sold. What is
-left is the difference. So a restock is a bigger number, never a migration.
+Stock counts only ever grow: the database records how many units have been put
+into circulation and how many have sold, and what is left is the difference. So
+a restock is a bigger number, never a migration. Setting a total below what has
+already sold is floored at the sold count, because units that left the building
+cannot be un-shipped.
 
 ## How a pull works
 
@@ -88,7 +95,8 @@ shelf is a different shelf.
 ```
 src/
   lib/
-    inventory.ts   # WHAT IS IN STOCK — the file you edit
+    inventory.ts   # the opening shelf, used once to seed the warehouse
+    admin.ts       # who may read and change stock
     stock.ts       # live availability, odds, and atomic reservation
     catalog.ts     # the reference catalogue of every piece that exists,
                    # generated deterministically from the series and type
@@ -102,11 +110,13 @@ src/
     BearbrickArt.tsx  # the figures, drawn as vector art from palette + pattern
     BoxOpening.tsx    # the opening: shake, burst, rise, reveal
     SetBrowser.tsx    # the shelf, with each piece's rate and units left
+    AdminConsole.tsx  # restocking, pulling, and adding pieces
   app/
     page.tsx              # onboarding, shop, shelf
+    admin/                # the inventory console
     open/[orderId]/       # the opening experience
     collection/           # past pulls and their shipping status
-    api/                  # orders, reveal, ship, verify
+    api/                  # orders, reveal, ship, verify, admin
 ```
 
 ## What is stubbed
@@ -123,10 +133,9 @@ src/
   There is no carrier integration behind it.
 - **Accounts.** A collector is an httpOnly cookie, so pulls follow the browser
   rather than a login.
-- **Restocking.** Editing `inventory.ts` means a deploy. If stock changes often
-  enough to be annoying, move that file's contents into the database and give
-  it an admin screen — nothing else has to change, since everything already
-  reads availability through `stock.ts`.
+- **Admin accounts.** The console is one shared password, not per-user logins,
+  and it keeps no audit trail of who changed what. Fine for one or two people;
+  add real accounts before a team relies on it.
 
 ## Artwork
 
