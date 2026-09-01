@@ -53,38 +53,36 @@ export async function POST(request: Request) {
     );
   }
 
-  // The draw, the stock decrement and the order all land in one transaction,
-  // so the last unit of a piece can never be sold twice.
-  let order: Order | null = null;
+  // The draw, the stock decrement and the order write all land in one
+  // transaction, so the last unit of a piece can never be sold twice.
   const reservation = await reserve(
     product.id,
     (snapshot) => drawFrom(snapshot),
-    (db, { pieceId, seed, rollValue, poolSnapshot }) => {
-      order = {
-        id: `ord_${randomBytes(9).toString("hex")}`,
-        collectorId,
-        productId: product.id,
-        pieceId,
-        status: "paid",
-        createdAt: new Date().toISOString(),
-        revealedAt: null,
-        rollSeed: seed,
-        rollValue,
-        poolSnapshot,
-        email,
-        shipping: null,
-        trackingNumber: null,
-      };
-      db.orders.push(order);
-    },
+    ({ pieceId, seed, rollValue, poolSnapshot }): Order => ({
+      id: `ord_${randomBytes(9).toString("hex")}`,
+      collectorId,
+      productId: product.id,
+      pieceId,
+      status: "paid",
+      createdAt: new Date().toISOString(),
+      revealedAt: null,
+      rollSeed: seed,
+      rollValue,
+      poolSnapshot,
+      email,
+      shipping: null,
+      trackingNumber: null,
+    }),
   );
 
-  if (!reservation || !order) {
+  if (!reservation) {
     return NextResponse.json(
       { error: "This box is sold out. New inventory is on the way." },
       { status: 409 },
     );
   }
+  const order = reservation.order;
+
   if (email) await upsertCollector(collectorId, { email });
 
   // Deliberately returns no piece information.

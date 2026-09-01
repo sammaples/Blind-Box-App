@@ -1,137 +1,31 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
-import type { AuditEntry, Collector, Order } from "./types";
+import "server-only";
+import { backend } from "./db";
+import type { Collector, Order } from "./types";
 
 /**
- * A small JSON-file store. It is deliberately swappable: every read and write
- * in the app goes through the exported functions below, so moving to Postgres
- * later means reimplementing this file and nothing else.
+ * Collector and order persistence. Every call goes to the active backend, so
+ * which database is behind it is decided in one place (src/lib/db/index.ts)
+ * and nothing here or above needs to know.
  */
-
-interface Db {
-  collectors: Collector[];
-  orders: Order[];
-  /** Total units ever put into circulation, per piece. Managed from /admin. */
-  stock: Record<string, number>;
-  /** Units sold per piece. Subtracted from stocked units to get availability. */
-  sold: Record<string, number>;
-  /** Newest-first log of inventory edits made in the console. */
-  audit: AuditEntry[];
-}
-
-const DB_PATH = path.join(process.cwd(), "data", "db.json");
-const EMPTY: Db = { collectors: [], orders: [], stock: {}, sold: {}, audit: [] };
-
-/** Serialises writes so two concurrent purchases cannot clobber each other. */
-let queue: Promise<unknown> = Promise.resolve();
-
-function withLock<T>(fn: () => Promise<T>): Promise<T> {
-  const run = queue.then(fn, fn);
-  queue = run.catch(() => {});
-  return run;
-}
-
-async function read(): Promise<Db> {
-  try {
-    const raw = await fs.readFile(DB_PATH, "utf8");
-    const parsed = JSON.parse(raw) as Partial<Db>;
-    return {
-      collectors: parsed.collectors ?? [],
-      orders: parsed.orders ?? [],
-      stock: parsed.stock ?? {},
-      sold: parsed.sold ?? {},
-      audit: parsed.audit ?? [],
-    };
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") return { ...EMPTY };
-    throw err;
-  }
-}
-
-async function write(db: Db): Promise<void> {
-  await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
-  const tmp = `${DB_PATH}.${process.pid}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify(db, null, 2), "utf8");
-  await fs.rename(tmp, DB_PATH);
-}
-
-/**
- * Runs a read-modify-write against the whole database under the write lock.
- * Buying a box draws a piece and decrements its stock in one of these, so two
- * simultaneous buyers can never take the same last unit.
- */
-export async function transact<T>(fn: (db: Db) => T | Promise<T>): Promise<T> {
-  return mutate(fn);
-}
-
-export type { Db };
-
-async function mutate<T>(fn: (db: Db) => T | Promise<T>): Promise<T> {
-  return withLock(async () => {
-    const db = await read();
-    const result = await fn(db);
-    await write(db);
-    return result;
-  });
-}
-
-/* ---------------------------------- collectors --------------------------- */
-
-export async function getCollector(id: string): Promise<Collector | null> {
-  const db = await read();
-  return db.collectors.find((c) => c.id === id) ?? null;
-}
 
 export async function upsertCollector(
   id: string,
   patch: Partial<Omit<Collector, "id" | "createdAt">> = {},
 ): Promise<Collector> {
-  return mutate((db) => {
-    let collector = db.collectors.find((c) => c.id === id);
-    if (!collector) {
-      collector = {
-        id,
-        email: null,
-        displayName: null,
-        createdAt: new Date().toISOString(),
-        onboardedAt: null,
-      };
-      db.collectors.push(collector);
-    }
-    Object.assign(collector, patch);
-    return collector;
-  });
-}
-
-/* ------------------------------------ orders ----------------------------- */
-
-export async function createOrder(order: Order): Promise<Order> {
-  return mutate((db) => {
-    db.orders.push(order);
-    return order;
-  });
+  return backend().upsertCollector(id, patch);
 }
 
 export async function getOrder(id: string): Promise<Order | null> {
-  const db = await read();
-  return db.orders.find((o) => o.id === id) ?? null;
+  return backend().getOrder(id);
 }
 
 export async function listOrders(collectorId: string): Promise<Order[]> {
-  const db = await read();
-  return db.orders
-    .filter((o) => o.collectorId === collectorId)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return backend().listOrders(collectorId);
 }
 
 export async function updateOrder(
   id: string,
   patch: Partial<Omit<Order, "id" | "collectorId" | "pieceId">>,
 ): Promise<Order | null> {
-  return mutate((db) => {
-    const order = db.orders.find((o) => o.id === id);
-    if (!order) return null;
-    Object.assign(order, patch);
-    return order;
-  });
+  return backend().updateOrder(id, patch);
 }

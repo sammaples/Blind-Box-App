@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getPiece } from "@/lib/catalog";
 import { isAdmin } from "@/lib/admin";
 import { applyStockChanges, warehouse } from "@/lib/stock";
-import type { StockChange, StockOp } from "@/lib/stock";
+import type { AdminStockChange, StockOp } from "@/lib/stock";
 
 const OPS: readonly StockOp[] = ["add", "set", "pull"];
 
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const changes: StockChange[] = [];
+  const changes: AdminStockChange[] = [];
   for (const raw of body.changes as unknown[]) {
     if (typeof raw !== "object" || raw === null) continue;
     const { pieceId, op, units } = raw as Record<string, unknown>;

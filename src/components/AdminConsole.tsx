@@ -6,7 +6,7 @@ import { BearbrickArt } from "@/components/BearbrickArt";
 import { RarityChip } from "@/components/ui";
 import { formatOdds, RARITY_LABEL, RARITY_ORDER, seriesName } from "@/lib/catalog";
 import { UNITS_BY_RARITY } from "@/lib/inventory";
-import type { AuditEntry, Palette, PatternKind, Rarity, Scale } from "@/lib/types";
+import type { AuditBatch, Palette, PatternKind, Rarity, Scale } from "@/lib/types";
 
 /** The slice of a piece the console needs. */
 export interface AdminPiece {
@@ -41,11 +41,11 @@ export function AdminConsole({
 }: {
   pieces: AdminPiece[];
   stock: Levels;
-  audit: AuditEntry[];
+  audit: AuditBatch[];
   openAccess: boolean;
 }) {
   const [levels, setLevels] = useState<Levels>(stock);
-  const [log, setLog] = useState<AuditEntry[]>(audit);
+  const [log, setLog] = useState<AuditBatch[]>(audit);
   const [scale, setScale] = useState<Scale>("100%");
   const [tab, setTab] = useState<"shelf" | "add" | "log">("shelf");
   const [busy, setBusy] = useState(false);
@@ -81,7 +81,7 @@ export function AdminConsole({
       // Refresh the log so the change that just happened is visible in it.
       try {
         const res = await fetch("/api/admin/audit");
-        if (res.ok) setLog((await res.json()).audit as AuditEntry[]);
+        if (res.ok) setLog((await res.json()).audit as AuditBatch[]);
       } catch {
         // The edit itself succeeded; a stale log is not worth an error.
       }
@@ -591,45 +591,19 @@ function AddPieces({
 
 /* ------------------------------------------------------------------ */
 
-interface Batch {
-  batchId: string;
-  at: string;
-  op: "add" | "set" | "pull";
-  entries: AuditEntry[];
-  /** Net units in or out across the whole batch. */
-  delta: number;
-}
-
 /**
- * The inventory edit log. Entries are grouped by the click that made them, so
- * stocking a series reads as one line rather than fifteen. Sales are absent by
- * design — orders are already the record of those.
+ * The inventory edit log. Batches are summarised server-side, so a line always
+ * reports the true size of the click that made it — an inventory log that
+ * misstates what happened would be worse than no log at all.
  */
 function ChangeLog({
   entries,
   byId,
 }: {
-  entries: AuditEntry[];
+  entries: AuditBatch[];
   byId: Map<string, AdminPiece>;
 }) {
-  const batches = useMemo(() => {
-    const map = new Map<string, Batch>();
-    for (const entry of entries) {
-      const batch = map.get(entry.batchId) ?? {
-        batchId: entry.batchId,
-        at: entry.at,
-        op: entry.op,
-        entries: [],
-        delta: 0,
-      };
-      batch.entries.push(entry);
-      batch.delta += entry.after - entry.before;
-      map.set(entry.batchId, batch);
-    }
-    return [...map.values()];
-  }, [entries]);
-
-  if (batches.length === 0) {
+  if (entries.length === 0) {
     return (
       <p className="mt-8 rounded-2xl border border-dashed border-hairline p-12 text-center text-sm text-muted">
         No inventory changes yet. Stocking, restocking and pulling all land here.
@@ -640,37 +614,33 @@ function ChangeLog({
   return (
     <div className="mt-5">
       <p className="text-xs text-muted">
-        Every stock edit, newest first. Sales are not listed — the orders behind them
-        already account for those units.
+        Every stock edit, newest first, one line per change you made. Sales are not
+        listed — the orders behind them already account for those units.
       </p>
 
       <ol className="mt-4 space-y-2">
-        {batches.map((batch) => (
+        {entries.map((batch) => (
           <li
             key={batch.batchId}
             className="rounded-xl border border-hairline bg-ink-card p-4"
           >
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
               <p className="text-[13px] font-medium">{describe(batch, byId)}</p>
-              <time
-                dateTime={batch.at}
-                className="font-mono text-[11px] text-faint"
-                title={new Date(batch.at).toLocaleString()}
-              >
+              <time dateTime={batch.at} className="font-mono text-[11px] text-faint">
                 {new Date(batch.at).toLocaleString()}
               </time>
             </div>
 
             <p className="mt-1.5 font-mono text-[11px] text-muted">
               {batch.delta >= 0 ? "+" : ""}
-              {batch.delta.toLocaleString()} units across {batch.entries.length}{" "}
-              {batch.entries.length === 1 ? "piece" : "pieces"}
+              {batch.delta.toLocaleString()} units across {batch.pieceCount.toLocaleString()}{" "}
+              {batch.pieceCount === 1 ? "piece" : "pieces"}
             </p>
 
-            {batch.entries.length === 1 && (
+            {batch.single && (
               <p className="mt-1 font-mono text-[11px] text-faint">
-                {batch.entries[0].before} → {batch.entries[0].after} in circulation
-                {batch.entries[0].sold > 0 && ` · ${batch.entries[0].sold} already sold`}
+                {batch.single.before} → {batch.single.after} in circulation
+                {batch.single.sold > 0 && ` · ${batch.single.sold} already sold`}
               </p>
             )}
           </li>
@@ -680,33 +650,30 @@ function ChangeLog({
   );
 }
 
-/** A human sentence for a batch, derived from the entries themselves. */
-function describe(batch: Batch, byId: Map<string, AdminPiece>): string {
-  const pieces = batch.entries
-    .map((e) => byId.get(e.pieceId))
+/** A human sentence for a batch, derived from the summary. */
+function describe(batch: AuditBatch, byId: Map<string, AdminPiece>): string {
+  const pieces = batch.pieceIds
+    .map((id) => byId.get(id))
     .filter((p): p is AdminPiece => !!p);
 
-  if (pieces.length === 1) {
+  if (batch.pieceCount === 1 && pieces.length === 1) {
     const piece = pieces[0];
-    const entry = batch.entries[0];
     if (batch.op === "pull") return `Pulled ${piece.name}`;
     if (batch.op === "add") return `Restocked ${piece.name}`;
-    return entry.before === 0
+    return batch.single?.before === 0
       ? `Stocked ${piece.name}`
-      : `Set ${piece.name} to ${entry.after}`;
+      : `Set ${piece.name} to ${batch.single?.after ?? 0}`;
   }
 
-  // A batch that is entirely one series is almost always a series action.
+  const verb = batch.op === "pull" ? "Pulled" : batch.delta >= 0 ? "Stocked" : "Reduced";
+
+  // A batch whose sampled pieces all sit in one series, and whose size matches
+  // that series, is a series action — anything else is described by its size.
   const series = new Set(pieces.map((p) => p.series));
-  if (series.size === 1) {
+  if (series.size === 1 && pieces.length > 1) {
     const only = [...series][0];
-    if (only !== null) {
-      const verb =
-        batch.op === "pull" ? "Pulled" : batch.entries.every((e) => e.before === 0) ? "Stocked" : "Restocked";
-      return `${verb} Series ${only} · ${seriesName(only)}`;
-    }
+    if (only !== null) return `${verb} Series ${only} · ${seriesName(only)}`;
   }
 
-  const verb = batch.op === "pull" ? "Pulled" : "Stocked";
-  return `${verb} ${pieces.length} pieces`;
+  return `${verb} ${batch.pieceCount.toLocaleString()} pieces`;
 }

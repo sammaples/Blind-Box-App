@@ -1,0 +1,96 @@
+import type { AuditBatch, Collector, Order, PoolSnapshot, Scale } from "../types";
+
+/**
+ * The storage seam.
+ *
+ * Everything the app persists goes through this interface, so swapping the
+ * JSON file for a real database is one implementation rather than a rewrite.
+ * The operations are deliberately coarse: each one that must be atomic is a
+ * single call, not a read the caller is trusted to follow with a write.
+ */
+
+/** One piece's stock line. */
+export interface StockRow {
+  pieceId: string;
+  scale: Scale;
+  stocked: number;
+  sold: number;
+}
+
+export type StockOp = "add" | "set" | "pull";
+
+export interface StockChange {
+  pieceId: string;
+  /** Needed when the piece has no stock line yet. */
+  scale: Scale;
+  op: StockOp;
+  units?: number;
+}
+
+export interface StockChangeResult {
+  pieceId: string;
+  stocked: number;
+  sold: number;
+  available: number;
+}
+
+/** What a draw needs back from a reservation. */
+export interface Reservation {
+  pieceId: string;
+  seed: string;
+  rollValue: number;
+  poolSnapshot: PoolSnapshot;
+  order: Order;
+}
+
+/** Decides which piece comes off a shelf, given the shelf as it stands. */
+export type Draw = (snapshot: PoolSnapshot) => {
+  pieceId: string;
+  seed: string;
+  rollValue: number;
+};
+
+/** Builds the order record once the piece is known. */
+export type BuildOrder = (draw: {
+  pieceId: string;
+  seed: string;
+  rollValue: number;
+  poolSnapshot: PoolSnapshot;
+}) => Order;
+
+export interface Backend {
+  readonly name: string;
+
+  /** Puts the opening shelf in place, but only if nothing has happened yet. */
+  seed(units: ReadonlyMap<string, { scale: Scale; units: number }>): Promise<void>;
+
+  /* collectors */
+  upsertCollector(
+    id: string,
+    patch: Partial<Omit<Collector, "id" | "createdAt">>,
+  ): Promise<Collector>;
+
+  /* orders */
+  getOrder(id: string): Promise<Order | null>;
+  listOrders(collectorId: string): Promise<Order[]>;
+  updateOrder(
+    id: string,
+    patch: Partial<Omit<Order, "id" | "collectorId" | "pieceId">>,
+  ): Promise<Order | null>;
+
+  /* stock */
+  stockRows(): Promise<StockRow[]>;
+
+  /**
+   * Draws a piece from a shelf, takes its unit, and writes the order — all in
+   * one transaction, so the last unit of a piece can never be sold twice.
+   * Returns null when the shelf has nothing left.
+   */
+  reserve(scale: Scale, draw: Draw, build: BuildOrder): Promise<Reservation | null>;
+
+  /** Applies stock edits and records them in the change log, atomically. */
+  applyStockChanges(changes: readonly StockChange[]): Promise<StockChangeResult[]>;
+
+  /** The change log as batch summaries, newest first. */
+  recentAudit(limit: number): Promise<AuditBatch[]>;
+}

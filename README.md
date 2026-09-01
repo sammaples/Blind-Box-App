@@ -24,6 +24,18 @@ npm run dev        # http://localhost:3000
 `npm run build && npm start` for a production build. There is nothing to
 configure — no keys, no database, no image assets.
 
+### Running on Postgres
+
+```bash
+export DATABASE_URL=postgres://user:password@localhost:5432/blindbox
+npm start
+```
+
+That is the whole setup. The schema is applied on first use, and the warehouse
+seeds itself from `src/lib/inventory.ts`. With `DATABASE_URL` unset the app
+falls back to a JSON file at `data/db.json`, which is what lets the demo run
+with no database at all.
+
 ## Adding inventory
 
 **Stock lives in the database and is managed at `/admin`.** No deploy, no code
@@ -85,8 +97,15 @@ the reveal call, or anything else done in the browser cannot change the outcome.
 
 Because the draw, the stock decrement and the order write share one
 transaction, two simultaneous buyers can never take the same last unit.
-Verified by firing 750 parallel purchases at a 665-unit shelf: exactly 665 were
-accepted, 85 were correctly refused as sold out, and no piece oversold.
+Verified on both backends by firing 750 parallel purchases at a 665-unit shelf:
+exactly 665 were accepted, 85 were correctly refused as sold out, no piece
+oversold, and each piece stocked as a single unit sold exactly once.
+
+On Postgres the guarantee comes from the database rather than the process. The
+draw depends on the whole shelf, so `reserve` takes `SELECT … FOR UPDATE` over
+that shelf's rows: buyers of one shelf serialise, buyers of different shelves do
+not block each other. A `check (sold <= stocked)` constraint backs it up, and
+refuses an oversell even from raw SQL that bypasses the app entirely.
 
 ### Every roll can be replayed
 
@@ -109,7 +128,11 @@ src/
                    # tables; not the same thing as what is buyable
     draw.ts        # the weighted draw, and the replay used to verify one
     rng.ts         # seeded uniform + weighted pick
-    store.ts       # JSON-file persistence (swap this file for a database)
+    db/            # the storage seam: one interface, two implementations
+      types.ts     #   what the app needs persisted
+      json.ts      #   JSON file — zero setup, single process
+      postgres.ts  #   Postgres — schema, row locks, constraints
+    store.ts       # collector and order persistence, via the seam
     payments.ts    # payment provider seam; ships with a mock
     session.ts     # cookie-backed collector identity
   components/
@@ -131,10 +154,13 @@ src/
   implementation. Nothing is charged and no card details are collected or
   stored. Implement the interface against Stripe and swap the export at the
   bottom of that file; no caller changes.
-- **Persistence.** Orders and sold counts live in `data/db.json`, which is
-  gitignored. Fine for a demo, not for production traffic — reimplement
-  `src/lib/store.ts` against a real database. The transaction boundary in
-  `stock.ts` is already the right shape for `SELECT … FOR UPDATE`.
+- **Persistence.** With `DATABASE_URL` unset everything lives in
+  `data/db.json`, which is gitignored, serialised through one in-process lock,
+  and would corrupt if two Node processes shared it. That is a demo store, not
+  a production one — set `DATABASE_URL` and the same app runs on Postgres.
+- **Migrations.** The Postgres schema is applied with `create table if not
+  exists` on first use. That is enough for a schema that has never changed;
+  bring in a real migration tool before the first change to it.
 - **Fulfilment.** Shipping a box sets a status and a tracking number locally.
   There is no carrier integration behind it.
 - **Accounts.** A collector is an httpOnly cookie, so pulls follow the browser

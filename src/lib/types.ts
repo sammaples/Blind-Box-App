@@ -101,6 +101,25 @@ export interface AuditEntry {
   sold: number;
 }
 
+/**
+ * One click in the console, summarised. Summarising server-side matters: a
+ * client that only holds part of a batch would under-report its size, and an
+ * inventory log that misstates what happened is worse than none.
+ */
+export interface AuditBatch {
+  batchId: string;
+  at: string;
+  op: AuditEntry["op"];
+  /** How many pieces the batch touched, however many entries were fetched. */
+  pieceCount: number;
+  /** Net units in or out across the whole batch. */
+  delta: number;
+  /** A few of the pieces, for naming the batch. Not the whole list. */
+  pieceIds: string[];
+  /** Present only for a single-piece batch, where it is meaningful. */
+  single: { before: number; after: number; sold: number } | null;
+}
+
 /** The shelf as it stood at the moment an order was drawn, so the roll can be
  *  replayed later even after stock has moved on. */
 export type PoolSnapshot = ReadonlyArray<readonly [pieceId: string, units: number]>;
