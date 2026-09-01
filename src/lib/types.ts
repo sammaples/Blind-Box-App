@@ -1,0 +1,105 @@
+export type Rarity = "common" | "uncommon" | "rare" | "ultra" | "secret" | "grail";
+
+export type PatternKind =
+  | "solid"
+  | "split"
+  | "jelly"
+  | "stripes"
+  | "camo"
+  | "stars"
+  | "checker"
+  | "chrome"
+  | "drip"
+  | "gradient";
+
+export type Scale = "100%" | "400%";
+
+export interface Palette {
+  /** Main body colour. */
+  base: string;
+  /** Secondary colour used by multi-tone patterns. */
+  accent: string;
+  /** Face / detail colour. */
+  detail: string;
+  /** Background wash behind the figure on cards. */
+  wash: string;
+}
+
+export interface Piece {
+  id: string;
+  name: string;
+  /** e.g. "Series 12" or "400% Collection". */
+  setName: string;
+  /** Series number, when the piece belongs to a numbered series. */
+  series: number | null;
+  /** Type family: Basic, Jellybean, Artist, Secret, ... */
+  type: string;
+  scale: Scale;
+  rarity: Rarity;
+  pattern: PatternKind;
+  palette: Palette;
+  /** Relative draw weight inside its own pool. Never a probability by itself. */
+  weight: number;
+  blurb: string;
+}
+
+export interface PoolEntry {
+  piece: Piece;
+  /** Absolute probability of pulling this piece from the product, 0..1. */
+  odds: number;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  tagline: string;
+  description: string;
+  priceCents: number;
+  /** Short bullets shown on the product card. */
+  highlights: string[];
+  /** Accent colour used for the product's UI treatment. */
+  accent: string;
+  scale: Scale;
+}
+
+export type OrderStatus =
+  | "paid"
+  | "revealed"
+  | "packing"
+  | "shipped"
+  | "delivered";
+
+export interface ShippingAddress {
+  name: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  region: string;
+  postal: string;
+  country: string;
+}
+
+export interface Order {
+  id: string;
+  collectorId: string;
+  productId: string;
+  /** Piece decided server-side at purchase time. Never sent before reveal. */
+  pieceId: string;
+  status: OrderStatus;
+  createdAt: string;
+  revealedAt: string | null;
+  /** Server seed kept for audit / dispute resolution. */
+  rollSeed: string;
+  rollValue: number;
+  email: string | null;
+  shipping: ShippingAddress | null;
+  trackingNumber: string | null;
+}
+
+export interface Collector {
+  id: string;
+  email: string | null;
+  displayName: string | null;
+  createdAt: string;
+  onboardedAt: string | null;
+}

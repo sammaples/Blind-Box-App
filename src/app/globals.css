@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #08080b;
+  --color-ink-raised: #101015;
+  --color-ink-card: #131319;
+  --color-hairline: #26262f;
+  --color-chalk: #f5f5f7;
+  --color-muted: #8b8b99;
+  --color-faint: #5c5c6b;
+
+  --color-common: #94a3b8;
+  --color-uncommon: #34d399;
+  --color-rare: #60a5fa;
+  --color-ultra: #c084fc;
+  --color-secret: #fbbf24;
+  --color-grail: #fb7185;
+
+  --font-sans: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+
+  --ease-out-back: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-chalk);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* Ambient wash behind the whole app — keeps the black from going flat. */
+.ambient::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(60rem 40rem at 12% -10%, rgb(249 115 22 / 0.10), transparent 65%),
+    radial-gradient(52rem 36rem at 88% 4%, rgb(168 85 247 / 0.10), transparent 62%),
+    radial-gradient(46rem 34rem at 50% 108%, rgb(34 211 238 / 0.08), transparent 60%);
+}
+
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.hairline {
+  border: 1px solid var(--color-hairline);
+}
+
+/* Thin, unobtrusive scrollbars inside panels. */
+.scroll-slim {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-hairline) transparent;
+}
+.scroll-slim::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-slim::-webkit-scrollbar-thumb {
+  background: var(--color-hairline);
+  border-radius: 99px;
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+.shimmer-text {
+  background-size: 200% auto;
+  animation: shimmer 3.5s linear infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.float-soft {
+  animation: float-soft 5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float-soft,
+  .shimmer-text {
+    animation: none;
+  }
+}
+
+::selection {
+  background: rgb(249 115 22 / 0.3);
+}
