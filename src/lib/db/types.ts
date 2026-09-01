@@ -64,11 +64,34 @@ export interface Backend {
   /** Puts the opening shelf in place, but only if nothing has happened yet. */
   seed(units: ReadonlyMap<string, { scale: Scale; units: number }>): Promise<void>;
 
-  /* collectors */
+  /* collectors and accounts */
   upsertCollector(
     id: string,
     patch: Partial<Omit<Collector, "id" | "createdAt">>,
   ): Promise<Collector>;
+
+  /** The account for an email, created on first sign-in. */
+  accountForEmail(email: string): Promise<Collector>;
+
+  /**
+   * Issues a single-use sign-in token, replacing any the address already has
+   * so an old link in an inbox stops working once a new one is requested.
+   */
+  createLoginToken(input: {
+    tokenHash: string;
+    email: string;
+    expiresAt: string;
+  }): Promise<void>;
+
+  /**
+   * Redeems a token, returning the email it was issued for. Consuming and
+   * checking happen together, so the same link cannot be used twice even if
+   * it is opened twice at once.
+   */
+  consumeLoginToken(tokenHash: string, now: string): Promise<string | null>;
+
+  /** Moves a browser's pre-account orders onto the account it signed into. */
+  claimOrders(fromCollectorId: string, toCollectorId: string): Promise<number>;
 
   /* orders */
   getOrder(id: string): Promise<Order | null>;

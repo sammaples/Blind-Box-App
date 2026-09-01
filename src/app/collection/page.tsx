@@ -3,7 +3,7 @@ import { BearbrickArt } from "@/components/BearbrickArt";
 import { RarityChip } from "@/components/ui";
 import { formatOdds, getPiece, getProduct, RARITY_ORDER } from "@/lib/catalog";
 import { oddsFromSnapshot } from "@/lib/serialize";
-import { readCollectorId } from "@/lib/session";
+import { currentCollectorId } from "@/lib/auth";
 import { listOrders } from "@/lib/store";
 import type { Piece } from "@/lib/types";
 
@@ -18,7 +18,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default async function CollectionPage() {
-  const collectorId = await readCollectorId();
+  const collectorId = await currentCollectorId();
   const orders = collectorId ? await listOrders(collectorId) : [];
 
   const pulls = orders.flatMap((order) => {

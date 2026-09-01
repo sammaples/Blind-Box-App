@@ -18,7 +18,7 @@ const STEPS = [
   },
   {
     title: "We ship the real one",
-    body: "Whatever you pull is packed and posted to you. The digital pull is a receipt, not the product.",
+    body: "Sign in with your email so a pull can find its way to you, and whatever you get is packed and posted.",
     art: "ship",
   },
 ] as const;
@@ -46,11 +46,6 @@ export function Onboarding() {
     } catch {
       /* nothing to do */
     }
-    void fetch("/api/me", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: "{}",
-    }).catch(() => {});
   };
 
   const current = STEPS[step];

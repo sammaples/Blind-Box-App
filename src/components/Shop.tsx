@@ -5,11 +5,25 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PRODUCTS, RARITY_COLOR } from "@/lib/catalog";
 import type { Product, StockEntry } from "@/lib/types";
+import { useAccount } from "./AccountBar";
 import { Price, SectionLabel } from "./ui";
 
 /** The boxes on sale, plus the checkout sheet that seals one. */
 export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
   const [checkout, setCheckout] = useState<Product | null>(null);
+  const { account, signIn } = useAccount();
+
+  /**
+   * Buying needs an account, so an unsigned-in buyer is asked for one first
+   * rather than being let through and refused at the end.
+   */
+  const startCheckout = (product: Product) => {
+    if (!account) {
+      signIn("A box is a real object that has to reach you, so we need an account before you buy. No password — we email you a link.");
+      return;
+    }
+    setCheckout(product);
+  };
 
   return (
     <section id="shop" className="relative z-10 mx-auto w-full max-w-6xl px-5 sm:px-8">
@@ -27,7 +41,7 @@ export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
             product={product}
             shelf={shelves[product.id] ?? []}
             index={i}
-            onBuy={() => setCheckout(product)}
+            onBuy={() => startCheckout(product)}
           />
         ))}
       </div>
@@ -173,7 +187,7 @@ function CheckoutSheet({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const { account } = useAccount();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -185,7 +199,7 @@ function CheckoutSheet({
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ productId: product.id, email: email || undefined }),
+        body: JSON.stringify({ productId: product.id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Could not complete the purchase");
@@ -228,18 +242,12 @@ function CheckoutSheet({
 
             <p className="mt-4 text-sm leading-relaxed text-muted">{product.description}</p>
 
-            <label className="mt-5 block">
+            <div className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-hairline bg-ink px-4 py-3">
               <span className="text-[11px] uppercase tracking-[0.16em] text-faint">
-                Email for order updates (optional)
+                Buying as
               </span>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="mt-2 w-full rounded-xl border border-hairline bg-ink px-4 py-3 text-sm outline-none transition-colors focus:border-white/30"
-              />
-            </label>
+              <span className="truncate text-sm text-chalk">{account?.email}</span>
+            </div>
 
             <button
               type="button"

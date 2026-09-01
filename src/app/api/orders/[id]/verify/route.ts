@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getProduct } from "@/lib/catalog";
 import { verifyDraw } from "@/lib/draw";
 import { oddsFromSnapshot } from "@/lib/serialize";
-import { readCollectorId } from "@/lib/session";
+import { currentCollectorId } from "@/lib/auth";
 import { getOrder } from "@/lib/store";
 
 /**
@@ -15,7 +15,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const collectorId = await readCollectorId();
+  const collectorId = await currentCollectorId();
   const order = await getOrder(id);
 
   if (!order || !collectorId || order.collectorId !== collectorId) {

@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { publicOrder } from "@/lib/serialize";
-import { readCollectorId } from "@/lib/session";
+import { currentCollectorId } from "@/lib/auth";
 import { getOrder, updateOrder } from "@/lib/store";
 import type { ShippingAddress } from "@/lib/types";
 
@@ -36,7 +36,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const collectorId = await readCollectorId();
+  const collectorId = await currentCollectorId();
   const order = await getOrder(id);
 
   if (!order || !collectorId || order.collectorId !== collectorId) {

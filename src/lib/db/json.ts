@@ -19,18 +19,40 @@ import type {
  * processes pointed at the same file would corrupt each other.
  */
 
+interface LoginToken {
+  tokenHash: string;
+  email: string;
+  createdAt: string;
+  expiresAt: string;
+  consumedAt: string | null;
+}
+
 interface Db {
   collectors: Collector[];
+  loginTokens: LoginToken[];
   orders: Order[];
   stock: Record<string, { scale: Scale; stocked: number; sold: number }>;
   audit: AuditEntry[];
 }
 
-const EMPTY: Db = { collectors: [], orders: [], stock: {}, audit: [] };
+const EMPTY: Db = { collectors: [], loginTokens: [], orders: [], stock: {}, audit: [] };
 const AUDIT_LIMIT = 1000;
 
-export function createJsonBackend(file?: string): Backend {
-  const DB_PATH = file ?? path.join(process.cwd(), "data", "db.json");
+function blankCollector(id: string): Collector {
+  return {
+    id,
+    email: null,
+    displayName: null,
+    createdAt: new Date().toISOString(),
+    onboardedAt: null,
+    lastLoginAt: null,
+  };
+}
+
+export function createJsonBackend(): Backend {
+  // Statically scoped on purpose: a computed path makes the bundler trace the
+  // whole project into the server output.
+  const DB_PATH = path.join(process.cwd(), "data", "db.json");
 
   let queue: Promise<unknown> = Promise.resolve();
 
@@ -46,6 +68,7 @@ export function createJsonBackend(file?: string): Backend {
       const parsed = JSON.parse(raw) as Partial<Db>;
       return {
         collectors: parsed.collectors ?? [],
+        loginTokens: parsed.loginTokens ?? [],
         orders: parsed.orders ?? [],
         stock: parsed.stock ?? {},
         audit: parsed.audit ?? [],
@@ -89,17 +112,70 @@ export function createJsonBackend(file?: string): Backend {
       return transact((db) => {
         let collector = db.collectors.find((c) => c.id === id);
         if (!collector) {
-          collector = {
-            id,
-            email: null,
-            displayName: null,
-            createdAt: new Date().toISOString(),
-            onboardedAt: null,
-          };
+          collector = blankCollector(id);
           db.collectors.push(collector);
         }
         Object.assign(collector, patch);
         return collector;
+      });
+    },
+
+    async accountForEmail(email) {
+      const key = email.trim().toLowerCase();
+      return transact((db) => {
+        let account = db.collectors.find(
+          (c) => (c.email ?? "").toLowerCase() === key,
+        );
+        if (!account) {
+          account = blankCollector(`acc_${randomUUID().replace(/-/g, "").slice(0, 24)}`);
+          account.email = key;
+          db.collectors.push(account);
+        }
+        account.lastLoginAt = new Date().toISOString();
+        return account;
+      });
+    },
+
+    async createLoginToken({ tokenHash, email, expiresAt }) {
+      const key = email.trim().toLowerCase();
+      await transact((db) => {
+        // One live token per address: requesting a new link retires the old.
+        db.loginTokens = (db.loginTokens ?? []).filter(
+          (t) => t.email !== key || t.consumedAt !== null,
+        );
+        db.loginTokens.push({
+          tokenHash,
+          email: key,
+          createdAt: new Date().toISOString(),
+          expiresAt,
+          consumedAt: null,
+        });
+      });
+    },
+
+    async consumeLoginToken(tokenHash, now) {
+      return transact((db) => {
+        const tokens = db.loginTokens ?? [];
+        const token = tokens.find((t) => t.tokenHash === tokenHash);
+        if (!token || token.consumedAt !== null || token.expiresAt <= now) {
+          return null;
+        }
+        token.consumedAt = now;
+        return token.email;
+      });
+    },
+
+    async claimOrders(fromCollectorId, toCollectorId) {
+      if (fromCollectorId === toCollectorId) return 0;
+      return transact((db) => {
+        let moved = 0;
+        for (const order of db.orders) {
+          if (order.collectorId === fromCollectorId) {
+            order.collectorId = toCollectorId;
+            moved += 1;
+          }
+        }
+        return moved;
       });
     },
 

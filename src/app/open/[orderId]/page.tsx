@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { OpenExperience } from "@/components/OpenExperience";
 import { getPiece, getProduct } from "@/lib/catalog";
 import { publicOrder } from "@/lib/serialize";
-import { readCollectorId } from "@/lib/session";
+import { currentCollectorId } from "@/lib/auth";
 import { getOrder } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export default async function OpenPage({
   params: Promise<{ orderId: string }>;
 }) {
   const { orderId } = await params;
-  const collectorId = await readCollectorId();
+  const collectorId = await currentCollectorId();
   const order = await getOrder(orderId);
 
   if (!order || !collectorId || order.collectorId !== collectorId) {

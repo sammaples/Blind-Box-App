@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { AccountButton, AccountProvider } from "@/components/AccountBar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,9 +18,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className="ambient grain min-h-dvh antialiased">
-        <Header />
-        <main className="relative z-10">{children}</main>
-        <Footer />
+        <AccountProvider>
+          <Header />
+          <main className="relative z-10">{children}</main>
+          <Footer />
+        </AccountProvider>
       </body>
     </html>
   );
@@ -48,6 +51,9 @@ function Header() {
           >
             My pulls
           </Link>
+          <span className="ml-1.5">
+            <AccountButton />
+          </span>
         </nav>
       </div>
     </header>

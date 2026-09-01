@@ -4,14 +4,16 @@ import { getProduct } from "@/lib/catalog";
 import { drawFrom } from "@/lib/draw";
 import { payments } from "@/lib/payments";
 import { publicOrder } from "@/lib/serialize";
-import { requireCollectorId } from "@/lib/session";
+import { currentAccountId, currentCollectorId } from "@/lib/auth";
 import { reserve } from "@/lib/stock";
-import { listOrders, upsertCollector } from "@/lib/store";
+import { listOrders } from "@/lib/store";
 import type { Order } from "@/lib/types";
 
 /** The collector's own orders. Pieces are omitted until each one is revealed. */
 export async function GET() {
-  const collectorId = await requireCollectorId();
+  const collectorId = await currentCollectorId();
+  if (!collectorId) return NextResponse.json({ orders: [] });
+
   const orders = await listOrders(collectorId);
   return NextResponse.json({ orders: orders.map(publicOrder) });
 }
@@ -22,9 +24,18 @@ export async function GET() {
  * refreshing, re-requesting the reveal, or anything else done client-side.
  */
 export async function POST(request: Request) {
-  const collectorId = await requireCollectorId();
+  // Buying requires an account. A box is a physical item that has to reach a
+  // person, so an order can never be tied to nothing but a cookie that the
+  // buyer might clear before it ships.
+  const collectorId = await currentAccountId();
+  if (!collectorId) {
+    return NextResponse.json(
+      { error: "Sign in before buying a box" },
+      { status: 401 },
+    );
+  }
 
-  let body: { productId?: unknown; email?: unknown };
+  let body: { productId?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -36,11 +47,6 @@ export async function POST(request: Request) {
   if (!product) {
     return NextResponse.json({ error: "Unknown product" }, { status: 400 });
   }
-
-  const email =
-    typeof body.email === "string" && body.email.includes("@")
-      ? body.email.trim().slice(0, 200)
-      : null;
 
   const payment = await payments.charge({
     amountCents: product.priceCents,
@@ -69,7 +75,7 @@ export async function POST(request: Request) {
       rollSeed: seed,
       rollValue,
       poolSnapshot,
-      email,
+      email: null,
       shipping: null,
       trackingNumber: null,
     }),
@@ -82,8 +88,6 @@ export async function POST(request: Request) {
     );
   }
   const order = reservation.order;
-
-  if (email) await upsertCollector(collectorId, { email });
 
   // Deliberately returns no piece information.
   return NextResponse.json(

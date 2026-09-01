@@ -50,6 +50,7 @@ function toCollector(r: Row): Collector {
     displayName: (r.display_name as string | null) ?? null,
     createdAt: (r.created_at as Date).toISOString(),
     onboardedAt: r.onboarded_at ? (r.onboarded_at as Date).toISOString() : null,
+    lastLoginAt: r.last_login_at ? (r.last_login_at as Date).toISOString() : null,
   };
 }
 
@@ -179,6 +180,60 @@ export function createPostgresBackend(connectionString: string): Backend {
         ],
       );
       return toCollector(rows[0]);
+    },
+
+    async accountForEmail(email) {
+      const key = email.trim().toLowerCase();
+      // The unique index on lower(email) is what makes this a single account
+      // even if two links are opened at the same moment.
+      const { rows } = await query(
+        `insert into collectors (id, email, last_login_at)
+         values ($1, $2, now())
+         on conflict (lower(email)) where email is not null
+           do update set last_login_at = now()
+         returning *`,
+        [`acc_${randomUUID().replace(/-/g, "").slice(0, 24)}`, key],
+      );
+      return toCollector(rows[0]);
+    },
+
+    async createLoginToken({ tokenHash, email, expiresAt }) {
+      const key = email.trim().toLowerCase();
+      await withTx(async (client) => {
+        // One live token per address: requesting a new link retires the old.
+        await client.query(
+          "delete from login_tokens where lower(email) = $1 and consumed_at is null",
+          [key],
+        );
+        await client.query(
+          "insert into login_tokens (token_hash, email, expires_at) values ($1, $2, $3)",
+          [tokenHash, key, expiresAt],
+        );
+      });
+    },
+
+    async consumeLoginToken(tokenHash, now) {
+      // Checking and consuming in one statement: two simultaneous opens of the
+      // same link cannot both win, because only one update matches.
+      const { rows } = await query(
+        `update login_tokens
+            set consumed_at = $2
+          where token_hash = $1
+            and consumed_at is null
+            and expires_at > $2
+      returning email`,
+        [tokenHash, now],
+      );
+      return rows[0] ? (rows[0].email as string) : null;
+    },
+
+    async claimOrders(fromCollectorId, toCollectorId) {
+      if (fromCollectorId === toCollectorId) return 0;
+      const { rowCount } = await query(
+        "update orders set collector_id = $2 where collector_id = $1",
+        [fromCollectorId, toCollectorId],
+      );
+      return rowCount ?? 0;
     },
 
     async getOrder(id) {

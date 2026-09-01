@@ -104,6 +104,39 @@ a restock is a bigger number, never a migration. Setting a total below what has
 already sold is floored at the sold count, because units that left the building
 cannot be un-shipped.
 
+## Accounts
+
+**Buying requires an account.** A box is a physical object that has to reach a
+person, so an order can never be tied to nothing but a cookie the buyer might
+clear before it ships.
+
+Signing in is an emailed link — no passwords to store, reset or leak:
+
+1. You enter an email. A single-use token is issued, stored only as a hash, and
+   valid for fifteen minutes. Requesting a new link retires the previous one.
+2. Opening the link redeems the token and starts a session. Redeeming checks
+   and consumes in one step, so a link cannot be used twice even if it is
+   opened twice at once.
+3. The session is an httpOnly cookie signed with `AUTH_SECRET`.
+
+One account per address, compared case-insensitively and enforced by a unique
+index — not just by the code that reads it.
+
+A browser that collected anything before accounts existed has those orders
+moved onto the account the first time it signs in, so making an account never
+orphans a collection.
+
+### What sign-in needs configured
+
+- `AUTH_SECRET` — required in production. Without it the app refuses to sign
+  anyone in rather than falling back to the development key, which is published
+  in this repository. Generate one with `openssl rand -hex 32`.
+- **An email provider** — `src/lib/email.ts` is a seam that ships with a mock
+  logging links to the server console. Outside production it also returns the
+  link in the API response so the flow is playable with no setup. In production
+  without a real sender, sign-in refuses: telling someone to check their email
+  when nothing was sent is worse than an error.
+
 ## How a pull works
 
 1. **Purchase.** `POST /api/orders` charges through the payment provider seam,
@@ -158,7 +191,8 @@ src/
       postgres.ts  #   Postgres — schema, row locks, constraints
     store.ts       # collector and order persistence, via the seam
     payments.ts    # payment provider seam; ships with a mock
-    session.ts     # cookie-backed collector identity
+    auth.ts        # emailed sign-in links and the session cookie
+    email.ts       # email provider seam; ships with a mock
   components/
     BearbrickArt.tsx  # the figures, drawn as vector art from palette + pattern
     BoxOpening.tsx    # the opening: shake, burst, rise, reveal
@@ -169,7 +203,8 @@ src/
     admin/                # the inventory console
     open/[orderId]/       # the opening experience
     collection/           # past pulls and their shipping status
-    api/                  # orders, reveal, ship, verify, admin
+    auth/callback/        # opens a sign-in link
+    api/                  # orders, reveal, ship, verify, auth, admin
 ```
 
 ## What is stubbed
@@ -188,8 +223,10 @@ src/
   its app start is what handles that.
 - **Fulfilment.** Shipping a box sets a status and a tracking number locally.
   There is no carrier integration behind it.
-- **Accounts.** A collector is an httpOnly cookie, so pulls follow the browser
-  rather than a login.
+- **Sign-in hardening.** There is no rate limit on link requests, so a single
+  address can be mailed repeatedly. Sessions cannot be revoked centrally
+  either — signing out clears the cookie, but a stolen one stays valid until it
+  expires. Both want doing before this takes money.
 - **Admin accounts.** The console is one shared password, not per-user logins.
   The change log therefore records *what* changed and when, but never *who* —
   there is no identity to record. Fine for one or two people; add real accounts

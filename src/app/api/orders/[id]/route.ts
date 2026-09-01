@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { publicOrder } from "@/lib/serialize";
-import { readCollectorId } from "@/lib/session";
+import { currentCollectorId } from "@/lib/auth";
 import { getOrder } from "@/lib/store";
 
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const collectorId = await readCollectorId();
+  const collectorId = await currentCollectorId();
   const order = await getOrder(id);
 
   // Same response for "missing" and "not yours", so order ids cannot be probed.

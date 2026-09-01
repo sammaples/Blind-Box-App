@@ -142,10 +142,15 @@ export interface Order {
   trackingNumber: string | null;
 }
 
+/**
+ * A collector. One with a verified email is an account and can buy; one
+ * without is a browser that has only ever looked around.
+ */
 export interface Collector {
   id: string;
   email: string | null;
   displayName: string | null;
   createdAt: string;
   onboardedAt: string | null;
+  lastLoginAt: string | null;
 }
