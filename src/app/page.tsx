@@ -7,8 +7,8 @@ import { shelfFor } from "@/lib/stock";
 import type { StockEntry } from "@/lib/types";
 
 const STEPS = [
-  { n: "01", title: "Buy a sealed box", body: "Your piece is drawn and locked the moment you pay." },
-  { n: "02", title: "Open it", body: "A real opening, with the odds already on the table." },
+  { n: "01", title: "Choose a box", body: "Your piece is drawn and locked the moment you pay." },
+  { n: "02", title: "Open it", body: "Tap to open and reveal your prize." },
   { n: "03", title: "We ship it", body: "Add an address and the physical figure goes out to you." },
 ];
 
