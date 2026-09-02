@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { useScrollLock } from "@/lib/useScrollLock";
 
 export interface Account {
   id: string;
@@ -193,6 +194,7 @@ function SignInSheet({
   onClose: () => void;
   onSignedIn: () => void;
 }) {
+  useScrollLock(open);
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);

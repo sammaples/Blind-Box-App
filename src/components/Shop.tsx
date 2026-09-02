@@ -8,6 +8,7 @@ import type { Product, StockEntry } from "@/lib/types";
 import { boxGeometry } from "@/lib/boxShape";
 import { useAccount } from "./AccountBar";
 import { Price, SectionLabel } from "./ui";
+import { useScrollLock } from "@/lib/useScrollLock";
 
 /** The boxes on sale, plus the checkout sheet that seals one. */
 export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
@@ -206,6 +207,10 @@ function CheckoutSheet({
   const { account } = useAccount();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // The sheet is fixed to the bottom of the screen; this is what stops the
+  // shop sliding around behind it.
+  useScrollLock(product !== null);
 
   const buy = async () => {
     if (!product || busy) return;

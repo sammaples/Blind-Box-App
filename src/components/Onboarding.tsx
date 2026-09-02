@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useScrollLock } from "@/lib/useScrollLock";
 
 const KEY = "bb.onboarded.v1";
 
@@ -30,6 +31,8 @@ const STEPS = [
 export function Onboarding() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
+
+  useScrollLock(open);
 
   useEffect(() => {
     try {

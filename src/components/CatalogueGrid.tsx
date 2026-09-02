@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { PieceImage } from "@/components/PieceImage";
 import { formatOdds, RARITY_COLOR, RARITY_LABEL } from "@/lib/catalog";
+import { useScrollLock } from "@/lib/useScrollLock";
 import type { Rarity, Scale } from "@/lib/types";
 
 /**
@@ -243,6 +244,7 @@ function StockSheet({
   onArchive: (piece: GridPiece) => void;
 }) {
   const [amount, setAmount] = useState(1);
+  useScrollLock(true);
 
   const stocked = level?.stocked ?? 0;
   const sold = level?.sold ?? 0;

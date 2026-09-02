@@ -14,6 +14,7 @@ import type { Piece, Rarity, StockEntry } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
 import { PieceCard } from "./PieceCard";
 import { RarityChip, SectionLabel } from "./ui";
+import { useScrollLock } from "@/lib/useScrollLock";
 
 type Sort = "rarity" | "odds" | "name";
 
@@ -231,6 +232,8 @@ function PieceDetail({
   onClose: () => void;
 }) {
   const piece: Piece | undefined = entry?.piece;
+  useScrollLock(entry !== null);
+
   return (
     <AnimatePresence>
       {entry && piece && (
