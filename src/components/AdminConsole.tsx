@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { AddProduct, type NewProduct } from "@/components/AddProduct";
 import { PieceImage } from "@/components/PieceImage";
 import { RarityChip } from "@/components/ui";
 import { formatOdds, RARITY_LABEL, RARITY_ORDER } from "@/lib/catalog";
@@ -40,17 +41,26 @@ export function AdminConsole({
   pieces,
   stock,
   audit,
-  openAccess,
+  bootstrapAccess,
 }: {
   pieces: AdminPiece[];
   stock: Levels;
   audit: AuditBatch[];
-  openAccess: boolean;
+  bootstrapAccess: boolean;
 }) {
   const [levels, setLevels] = useState<Levels>(stock);
   const [log, setLog] = useState<AuditBatch[]>(audit);
+
+  // Stock is held in state so an edit shows up the instant it lands, but state
+  // seeded from a prop keeps its first value forever. Without this, a piece
+  // stocked as part of adding it — or any change made in another tab — reads as
+  // zero until a full page load, which looks exactly like a save that failed.
+  useEffect(() => setLevels(stock), [stock]);
+  useEffect(() => setLog(audit), [audit]);
   const [scale, setScale] = useState<Scale>("100%");
-  const [tab, setTab] = useState<"shelf" | "add" | "catalogue" | "log">("shelf");
+  // The catalogue opens first. Adding a product and stocking it are the two
+  // things done most often, and both start from a list of what already exists.
+  const [tab, setTab] = useState<"catalogue" | "shelf" | "add" | "log">("catalogue");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -183,11 +193,11 @@ export function AdminConsole({
         </div>
       </div>
 
-      {openAccess && (
+      {bootstrapAccess && (
         <p className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs leading-relaxed text-amber-200">
-          No <code className="font-mono">ADMIN_EMAILS</code> is set, so this console is
-          unlocked. That is fine locally; in production it refuses to load until you list
-          the addresses that should have it.
+          No <code className="font-mono">ADMIN_EMAILS</code> is set, so any signed-in
+          account reaches this console. Fine locally; in production it refuses to load
+          until you list the addresses that should have it.
         </p>
       )}
 
@@ -234,7 +244,7 @@ export function AdminConsole({
       )}
 
       {/* series shortcuts */}
-      {scale === "100%" && (
+      {scale === "100%" && seriesRows.length > 0 && (
         <section className="mt-8">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-faint">
             Stock a whole series
@@ -288,7 +298,7 @@ export function AdminConsole({
 
       {/* shelf / add tabs */}
       <div className="mt-9 flex gap-1 border-b border-hairline">
-        {(["shelf", "add", "catalogue", "log"] as const).map((t) => (
+        {(["catalogue", "shelf", "add", "log"] as const).map((t) => (
           <button
             key={t}
             type="button"
@@ -319,7 +329,9 @@ export function AdminConsole({
           byId={byId}
         />
       )}
-      {tab === "catalogue" && <Catalogue pieces={pieces} busy={busy} />}
+      {tab === "catalogue" && (
+        <Catalogue pieces={pieces} levels={levels} busy={busy} onChange={send} />
+      )}
       {tab === "log" && <ChangeLog entries={log} byId={byId} />}
     </div>
   );
@@ -692,13 +704,27 @@ interface ImportPreview {
  * today. Pieces arrive here by spreadsheet or one at a time, and a piece has to
  * exist here before any quantity of it can be stocked.
  */
-function Catalogue({ pieces, busy }: { pieces: AdminPiece[]; busy: boolean }) {
+function Catalogue({
+  pieces,
+  levels,
+  busy,
+  onChange,
+}: {
+  pieces: AdminPiece[];
+  levels: Levels;
+  busy: boolean;
+  onChange: (changes: Change[], message: string) => void;
+}) {
   const router = useRouter();
+  const [adding, setAdding] = useState(false);
+  const [open, setOpen] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  const [scaleFilter, setScaleFilter] = useState<Scale | "all">("all");
   const [csv, setCsv] = useState<string>("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
+  const [showImport, setShowImport] = useState(false);
   const [working, setWorking] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -707,6 +733,7 @@ function Catalogue({ pieces, busy }: { pieces: AdminPiece[]; busy: boolean }) {
     const q = query.trim().toLowerCase();
     return pieces
       .filter((p) => showArchived || !p.archived)
+      .filter((p) => scaleFilter === "all" || p.scale === scaleFilter)
       .filter(
         (p) =>
           q === "" ||
@@ -715,7 +742,7 @@ function Catalogue({ pieces, busy }: { pieces: AdminPiece[]; busy: boolean }) {
           p.id.toLowerCase().includes(q),
       )
       .slice(0, 120);
-  }, [pieces, query, showArchived]);
+  }, [pieces, query, showArchived, scaleFilter]);
 
   const post = async (path: string, body: unknown) => {
     const res = await fetch(path, {
@@ -797,126 +824,175 @@ function Catalogue({ pieces, busy }: { pieces: AdminPiece[]; busy: boolean }) {
     }
   };
 
+  /* --------------------------- adding a product -------------------------- */
+
+  if (adding) {
+    return (
+      <AddProduct
+        onCancel={() => setAdding(false)}
+        onSaved={(product: NewProduct) => {
+          setAdding(false);
+          setNote(`${product.name} is in the catalogue.`);
+          setError(null);
+          // Show it: a new product landing on page four of an unfiltered list
+          // looks exactly like a save that did not happen.
+          setQuery(product.name);
+          setScaleFilter(product.scale);
+          setOpen(product.id);
+          router.refresh();
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="mt-5 space-y-8">
-      {/* upload */}
-      <section className="rounded-2xl border border-hairline bg-ink-card p-5">
-        <h3 className="text-sm font-semibold">Upload a catalogue</h3>
-        <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-muted">
-          A CSV with a header row. <span className="text-chalk">name</span> and{" "}
-          <span className="text-chalk">scale</span> are required;{" "}
-          <span className="text-chalk">set</span>, <span className="text-chalk">series</span>,{" "}
-          <span className="text-chalk">rarity</span>, <span className="text-chalk">image</span>,{" "}
-          <span className="text-chalk">notes</span> and{" "}
-          <span className="text-chalk">quantity</span> are optional. Include a quantity and
-          the piece goes straight onto the shelf. Re-uploading a sheet updates pieces rather
-          than duplicating them, so a corrected export is safe to send again.
-        </p>
+    <div className="mt-5 space-y-6">
+      {/* the one button this page exists for */}
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            setAdding(true);
+            setNote(null);
+            setError(null);
+          }}
+          className="rounded-full bg-chalk px-5 py-2.5 text-[13px] font-semibold text-ink"
+        >
+          + Add product
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowImport((v) => !v)}
+          className="rounded-full border border-hairline px-5 py-2.5 text-[13px] text-muted transition-colors hover:border-white/30 hover:text-chalk"
+        >
+          {showImport ? "Hide bulk import" : "Import a spreadsheet"}
+        </button>
+        <span className="text-[11px] text-faint">
+          {pieces.filter((p) => !p.archived).length} live ·{" "}
+          {pieces.filter((p) => p.archived).length} archived
+        </span>
+      </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <label className="cursor-pointer rounded-xl bg-white/10 px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-white/16">
-            Choose a CSV
-            <input
-              type="file"
-              accept=".csv,text/csv"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void readFile(file);
-                e.target.value = "";
-              }}
-            />
-          </label>
-          <a
-            href="/catalogue-template.csv"
-            download
-            className="rounded-xl border border-hairline px-4 py-2.5 text-[13px] text-muted transition-colors hover:border-white/30 hover:text-chalk"
-          >
-            Download the template
-          </a>
-          {fileName && <span className="font-mono text-xs text-faint">{fileName}</span>}
-        </div>
+      {/* bulk import, folded away until wanted */}
+      {showImport && (
+        <section className="rounded-2xl border border-hairline bg-ink-card p-5">
+          <h3 className="text-sm font-semibold">Upload a catalogue</h3>
+          <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-muted">
+            A CSV with a header row. <span className="text-chalk">name</span> and{" "}
+            <span className="text-chalk">scale</span> are required;{" "}
+            <span className="text-chalk">set</span>, <span className="text-chalk">series</span>,{" "}
+            <span className="text-chalk">rarity</span>, <span className="text-chalk">image</span>,{" "}
+            <span className="text-chalk">notes</span> and{" "}
+            <span className="text-chalk">quantity</span> are optional. Include a quantity and
+            the piece goes straight onto the shelf. Re-uploading a sheet updates pieces rather
+            than duplicating them, so a corrected export is safe to send again.
+          </p>
 
-        {preview && (
-          <div className="mt-5 rounded-xl border border-hairline bg-ink p-4">
-            <p className="text-[11px] uppercase tracking-[0.16em] text-faint">
-              Before importing
-            </p>
-            <p className="mt-2 text-sm">
-              <span className="font-mono text-chalk">{preview.accepted}</span> pieces read
-              {preview.withQuantity > 0 && (
-                <>
-                  , <span className="font-mono text-chalk">{preview.withQuantity}</span> with
-                  a quantity
-                </>
-              )}
-              .
-            </p>
-            <p className="mt-1 text-xs text-faint">
-              Columns understood: {preview.columns.join(", ")}
-            </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <label className="cursor-pointer rounded-xl bg-white/10 px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-white/16">
+              Choose a CSV
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void readFile(file);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            <a
+              href="/catalogue-template.csv"
+              download
+              className="rounded-xl border border-hairline px-4 py-2.5 text-[13px] text-muted transition-colors hover:border-white/30 hover:text-chalk"
+            >
+              Download the template
+            </a>
+            {fileName && <span className="font-mono text-xs text-faint">{fileName}</span>}
+          </div>
 
-            {preview.sample.length > 0 && (
-              <ul className="mt-3 space-y-1">
-                {preview.sample.map((row) => (
-                  <li key={row.id} className="font-mono text-[11px] text-muted">
-                    {row.name} · {row.scale} · {row.rarity}
-                    {row.quantity !== null && ` · ${row.quantity} units`}
-                    {row.hasImage && " · photo"}
-                  </li>
-                ))}
-                {preview.accepted > preview.sample.length && (
-                  <li className="text-[11px] text-faint">
-                    …and {preview.accepted - preview.sample.length} more
-                  </li>
+          {preview && (
+            <div className="mt-5 rounded-xl border border-hairline bg-ink p-4">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-faint">
+                Before importing
+              </p>
+              <p className="mt-2 text-sm">
+                <span className="font-mono text-chalk">{preview.accepted}</span> pieces read
+                {preview.withQuantity > 0 && (
+                  <>
+                    , <span className="font-mono text-chalk">{preview.withQuantity}</span> with
+                    a quantity
+                  </>
                 )}
-              </ul>
-            )}
+                .
+              </p>
+              <p className="mt-1 text-xs text-faint">
+                Columns understood: {preview.columns.join(", ")}
+              </p>
 
-            {preview.errors.length > 0 && (
-              <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-amber-300">
-                  {preview.errors.length} rows need attention
-                </p>
-                <ul className="mt-2 space-y-1">
-                  {preview.errors.slice(0, 6).map((message) => (
-                    <li key={message} className="text-[11px] leading-relaxed text-amber-200/90">
-                      {message}
+              {preview.sample.length > 0 && (
+                <ul className="mt-3 space-y-1">
+                  {preview.sample.map((row) => (
+                    <li key={row.id} className="font-mono text-[11px] text-muted">
+                      {row.name} · {row.scale} · {row.rarity}
+                      {row.quantity !== null && ` · ${row.quantity} units`}
+                      {row.hasImage && " · photo"}
                     </li>
                   ))}
-                  {preview.errors.length > 6 && (
-                    <li className="text-[11px] text-amber-200/70">
-                      …and {preview.errors.length - 6} more
+                  {preview.accepted > preview.sample.length && (
+                    <li className="text-[11px] text-faint">
+                      …and {preview.accepted - preview.sample.length} more
                     </li>
                   )}
                 </ul>
-              </div>
-            )}
+              )}
 
-            <div className="mt-4 flex gap-2">
-              <button
-                type="button"
-                disabled={working || preview.accepted === 0}
-                onClick={() => void commit()}
-                className="rounded-xl bg-chalk px-5 py-2.5 text-[13px] font-semibold text-ink disabled:opacity-50"
-              >
-                {working ? "Importing…" : `Import ${preview.accepted} pieces`}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setPreview(null);
-                  setCsv("");
-                  setFileName(null);
-                }}
-                className="rounded-xl border border-hairline px-5 py-2.5 text-[13px] text-muted transition-colors hover:border-white/30 hover:text-chalk"
-              >
-                Cancel
-              </button>
+              {preview.errors.length > 0 && (
+                <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-amber-300">
+                    {preview.errors.length} rows need attention
+                  </p>
+                  <ul className="mt-2 space-y-1">
+                    {preview.errors.slice(0, 6).map((message) => (
+                      <li key={message} className="text-[11px] leading-relaxed text-amber-200/90">
+                        {message}
+                      </li>
+                    ))}
+                    {preview.errors.length > 6 && (
+                      <li className="text-[11px] text-amber-200/70">
+                        …and {preview.errors.length - 6} more
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+
+              <div className="mt-4 flex gap-2">
+                <button
+                  type="button"
+                  disabled={working || preview.accepted === 0}
+                  onClick={() => void commit()}
+                  className="rounded-xl bg-chalk px-5 py-2.5 text-[13px] font-semibold text-ink disabled:opacity-50"
+                >
+                  {working ? "Importing…" : `Import ${preview.accepted} pieces`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPreview(null);
+                    setCsv("");
+                    setFileName(null);
+                  }}
+                  className="rounded-xl border border-hairline px-5 py-2.5 text-[13px] text-muted transition-colors hover:border-white/30 hover:text-chalk"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
-          </div>
-        )}
-      </section>
+          )}
+        </section>
+      )}
 
       {(note || error) && (
         <p
@@ -939,6 +1015,22 @@ function Catalogue({ pieces, busy }: { pieces: AdminPiece[]; busy: boolean }) {
             placeholder="Search the catalogue"
             className="min-w-56 flex-1 rounded-xl border border-hairline bg-ink px-4 py-2.5 text-sm outline-none transition-colors focus:border-white/30"
           />
+          <div className="flex gap-1 rounded-xl border border-hairline p-1">
+            {(["all", "100%", "400%"] as const).map((choice) => (
+              <button
+                key={choice}
+                type="button"
+                onClick={() => setScaleFilter(choice)}
+                className={`rounded-lg px-3 py-1.5 text-[12px] transition-colors ${
+                  scaleFilter === choice
+                    ? "bg-white/12 text-chalk"
+                    : "text-muted hover:text-chalk"
+                }`}
+              >
+                {choice === "all" ? "Both boxes" : choice}
+              </button>
+            ))}
+          </div>
           <label className="flex items-center gap-2 text-xs text-muted">
             <input
               type="checkbox"
@@ -955,7 +1047,8 @@ function Catalogue({ pieces, busy }: { pieces: AdminPiece[]; busy: boolean }) {
               The catalogue is empty, so there is nothing to sell yet.
             </p>
             <p className="mt-1 text-xs text-faint">
-              Upload a CSV above, or load the demo set to see how it all behaves.
+              Add your first product above, upload a CSV, or load the demo set to see how
+              it all behaves.
             </p>
             <button
               type="button"
@@ -966,43 +1059,222 @@ function Catalogue({ pieces, busy }: { pieces: AdminPiece[]; busy: boolean }) {
               Load the demo catalogue
             </button>
           </div>
+        ) : matches.length === 0 ? (
+          <p className="mt-4 rounded-2xl border border-dashed border-hairline p-12 text-center text-sm text-muted">
+            Nothing in the catalogue matches that.
+          </p>
         ) : (
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <div className="mt-4 space-y-2">
             {matches.map((piece) => (
-              <div
+              <CatalogueRow
                 key={piece.id}
-                className={`flex items-center gap-3 rounded-xl border border-hairline bg-ink-card p-3 ${
-                  piece.archived ? "opacity-50" : ""
-                }`}
-              >
-                <div
-                  className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg"
-                  style={{
-                    background: `radial-gradient(120% 90% at 50% 12%, ${piece.palette.wash}, #0b0b10 78%)`,
-                  }}
-                >
-                  <PieceImage piece={piece} className="h-10 w-auto" simple />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium">{piece.name}</p>
-                  <p className="truncate text-[11px] text-faint">
-                    {piece.setName || "—"} · {piece.scale} · {RARITY_LABEL[piece.rarity]}
-                    {piece.imageUrl ? "" : " · no photo"}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  disabled={busy || working}
-                  onClick={() => void archive(piece)}
-                  className="shrink-0 rounded-lg border border-hairline px-3 py-1.5 text-[11px] text-muted transition-colors hover:border-white/30 hover:text-chalk disabled:opacity-40"
-                >
-                  {piece.archived ? "Restore" : "Archive"}
-                </button>
-              </div>
+                piece={piece}
+                level={levels[piece.id] ?? null}
+                open={open === piece.id}
+                busy={busy || working}
+                onToggle={() => setOpen((id) => (id === piece.id ? null : piece.id))}
+                onArchive={() => void archive(piece)}
+                onChange={onChange}
+              />
             ))}
+            {matches.length === 120 && (
+              <p className="pt-2 text-center text-[11px] text-faint">
+                Showing the first 120. Search to narrow it down.
+              </p>
+            )}
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+/**
+ * One catalogue entry, and — once opened — the control that puts units of it on
+ * the shelf.
+ *
+ * Stocking lives here rather than on its own screen because "which of these do
+ * I have in hand today" is a question you answer while looking at the list. The
+ * number beside each row is what the shop is selling right now, so it has to
+ * move the moment the change lands, not on the next page load.
+ */
+function CatalogueRow({
+  piece,
+  level,
+  open,
+  busy,
+  onToggle,
+  onArchive,
+  onChange,
+}: {
+  piece: AdminPiece;
+  level: { stocked: number; sold: number } | null;
+  open: boolean;
+  busy: boolean;
+  onToggle: () => void;
+  onArchive: () => void;
+  onChange: (changes: Change[], message: string) => void;
+}) {
+  const [amount, setAmount] = useState("1");
+
+  const stocked = level?.stocked ?? 0;
+  const sold = level?.sold ?? 0;
+  const available = Math.max(0, stocked - sold);
+
+  const units = Math.trunc(Number(amount));
+  const valid = Number.isFinite(units) && units > 0;
+
+  const add = () => {
+    if (!valid) return;
+    onChange(
+      [{ pieceId: piece.id, op: "add", units }],
+      `Added ${units} × ${piece.name} — ${available + units} available`,
+    );
+    setAmount("1");
+  };
+
+  return (
+    <div
+      className={`rounded-xl border bg-ink-card transition-colors ${
+        open ? "border-white/25" : "border-hairline"
+      } ${piece.archived ? "opacity-60" : ""}`}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 p-3 text-left"
+      >
+        <div
+          className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg"
+          style={{
+            background: `radial-gradient(120% 90% at 50% 12%, ${piece.palette.wash}, #0b0b10 78%)`,
+          }}
+        >
+          <PieceImage piece={piece} className="h-10 w-auto" simple />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[13px] font-medium">{piece.name}</p>
+          <p className="truncate text-[11px] text-faint">
+            {piece.setName || "—"} · {piece.scale} · {RARITY_LABEL[piece.rarity]}
+            {piece.imageUrl ? "" : " · no photo"}
+            {piece.archived ? " · archived" : ""}
+          </p>
+        </div>
+
+        <div className="shrink-0 text-right">
+          <p
+            className={`font-mono text-[13px] ${
+              available > 0 ? "text-chalk" : "text-faint"
+            }`}
+          >
+            {available}
+          </p>
+          <p className="text-[10px] uppercase tracking-wider text-faint">available</p>
+        </div>
+
+        <span
+          className={`shrink-0 text-faint transition-transform ${open ? "rotate-90" : ""}`}
+          aria-hidden
+        >
+          ›
+        </span>
+      </button>
+
+      {open && (
+        <div className="border-t border-hairline p-3.5">
+          {piece.archived ? (
+            <p className="text-xs leading-relaxed text-muted">
+              This piece is archived, so it cannot be stocked or pulled. Restore it first.
+            </p>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-end gap-3">
+                <label className="block">
+                  <span className="block text-[11px] font-medium uppercase tracking-wider text-faint">
+                    Units to add
+                  </span>
+                  <input
+                    type="number"
+                    min={1}
+                    inputMode="numeric"
+                    value={amount}
+                    disabled={busy}
+                    onChange={(e) => setAmount(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        add();
+                      }
+                    }}
+                    className="mt-1.5 w-24 rounded-lg border border-hairline bg-ink px-3 py-2 text-right font-mono text-[13px] outline-none transition-colors focus:border-white/30 disabled:opacity-40"
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  disabled={busy || !valid}
+                  onClick={add}
+                  className="rounded-lg bg-chalk px-5 py-2 text-[13px] font-semibold text-ink transition-opacity disabled:opacity-40"
+                >
+                  Add to shelf
+                </button>
+
+                {[6, 12, 24].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setAmount(String(n))}
+                    className="rounded-lg border border-hairline px-3 py-2 text-[12px] text-muted transition-colors hover:border-white/30 hover:text-chalk disabled:opacity-40"
+                  >
+                    {n}
+                  </button>
+                ))}
+
+                {available > 0 && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      onChange(
+                        [{ pieceId: piece.id, op: "pull" }],
+                        `Pulled ${piece.name} off the shelf`,
+                      )
+                    }
+                    className="ml-auto rounded-lg border border-hairline px-3 py-2 text-[12px] text-muted transition-colors hover:border-rose-400/40 hover:text-rose-300 disabled:opacity-40"
+                  >
+                    Pull from shelf
+                  </button>
+                )}
+              </div>
+
+              <p className="mt-3 text-[11px] text-faint">
+                {stocked === 0 ? (
+                  "Never stocked. Adding units is what puts it in the draw."
+                ) : (
+                  <>
+                    <span className="font-mono text-muted">{stocked}</span> stocked ·{" "}
+                    <span className="font-mono text-muted">{sold}</span> sold ·{" "}
+                    <span className="font-mono text-muted">{available}</span> available.
+                    Sold units are the floor — stock can never be set below them.
+                  </>
+                )}
+              </p>
+            </>
+          )}
+
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onArchive}
+            className="mt-3 text-[11px] text-faint underline underline-offset-4 transition-colors hover:text-muted disabled:opacity-40"
+          >
+            {piece.archived ? "Restore to the catalogue" : "Archive this product"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -41,6 +41,13 @@ export interface StockChangeResult {
   available: number;
 }
 
+/** An uploaded photo, held as bytes rather than a link to someone else's host. */
+export interface StoredImage {
+  id: string;
+  contentType: string;
+  bytes: Uint8Array;
+}
+
 /** What a draw needs back from a reservation. */
 export interface Reservation {
   pieceId: string;
@@ -118,6 +125,12 @@ export interface Backend {
   savePieces(pieces: readonly Piece[]): Promise<void>;
   /** Archives or restores a piece without losing the orders that pulled it. */
   setPieceArchived(pieceId: string, archived: boolean): Promise<Piece | null>;
+
+  /* product photos */
+  /** Stores an uploaded photo under an id the app issued. */
+  putImage(image: StoredImage): Promise<void>;
+  /** Reads one back for serving. Null when there is no such image. */
+  getImage(id: string): Promise<StoredImage | null>;
 
   /* stock */
   stockRows(): Promise<StockRow[]>;

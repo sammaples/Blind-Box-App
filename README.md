@@ -118,12 +118,35 @@ a restock is a bigger number, never a migration. Setting a total below what has
 already sold is floored at the sold count, because units that left the building
 cannot be un-shipped.
 
+### Adding a product
+
+**Catalogue → + Add product** is the whole listing flow: pick which blind box
+the piece belongs to, give it a title, and choose a photo. The photo uploads
+immediately and appears in the form, so a wrong file is obvious before anything
+is saved. Fill in **Units in hand** and the piece goes onto the shelf in the
+same click; leave it blank and it sits in the catalogue, listed but not yet
+pullable.
+
+Photos are stored as bytes the shop owns and served from `/api/images/:id`. The
+file type is read from the file's own leading bytes rather than from what the
+browser claims, and SVG is refused outright — it is XML that can carry script,
+and these are served from the same origin as the session cookie.
+
+### Stocking what you have
+
+Stock is managed by hand, because being in stock on every series at once is not
+how this works. Open a product in the catalogue and it expands to a quantity
+box: type a number, press **Add to shelf**, and the count beside the row moves
+straight away — as do the published pull rates, since a rate is only ever a
+piece's share of the units left. **Pull from shelf** takes the rest of a piece's
+units back out of the draw without touching what has already sold.
+
 ### Starting from nothing
 
 A fresh shop has an empty catalogue and sells nothing, which is correct — there
-is no invented stock to sell. Upload a CSV, or press **Load the demo catalogue**
-to fill it with 780 generated pieces so you can see the whole thing working
-before your own photography exists.
+is no invented stock to sell. Add products one at a time, upload a CSV, or press
+**Load the demo catalogue** to fill it with 780 generated pieces so you can see
+the whole thing working before your own photography exists.
 
 ## Admin accounts
 
@@ -138,8 +161,14 @@ ADMIN_EMAILS=you@yourdomain.com,partner@yourdomain.com
 An account is promoted the next time it signs in, so a newly listed address
 needs one fresh sign-in. Removing an address revokes admin the same way.
 
-With `ADMIN_EMAILS` unset the console is open in development, so it can be tried
-with no setup, and refuses to load in production.
+`/admin` shows a sign-in form to anyone who is not signed in, and every
+`/api/admin/*` route answers 401 — the console is not a page that renders and
+then hides its buttons. A signed-in account that is not on the list is told
+exactly that, rather than being sent back to sign in again.
+
+With `ADMIN_EMAILS` unset the console refuses to load in production, and in
+development treats any signed-in account as the owner so the app can be tried
+without configuring anything. Signing in is still required either way.
 
 ## How a pull works
 

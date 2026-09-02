@@ -49,6 +49,23 @@ function sameString(a: string, b: string): boolean {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
+/**
+ * A destination to land on after signing in.
+ *
+ * Only this site's own paths are allowed. An open redirect on the end of a
+ * sign-in link is worth more to an attacker than most bugs: the link is one
+ * the recipient was expecting, from a domain they trust, and it can be aimed
+ * anywhere. `//host` and `/\\host` are rejected too — browsers read both as
+ * "another origin", not as a path.
+ */
+export function safeNext(input: unknown, fallback = "/"): string {
+  if (typeof input !== "string") return fallback;
+  const value = input.trim();
+  if (!value.startsWith("/")) return fallback;
+  if (value.startsWith("//") || value.startsWith("/\\")) return fallback;
+  return value.slice(0, 300);
+}
+
 export function normaliseEmail(input: unknown): string | null {
   if (typeof input !== "string") return null;
   const value = input.trim().toLowerCase();

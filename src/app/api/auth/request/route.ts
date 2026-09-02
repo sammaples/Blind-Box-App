@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { issueLoginToken, normaliseEmail } from "@/lib/auth";
+import { issueLoginToken, normaliseEmail, safeNext } from "@/lib/auth";
 import {
   canRevealLinkInResponse,
   canSendLoginLinks,
@@ -13,7 +13,7 @@ import {
  * cannot be used to find out who has one.
  */
 export async function POST(request: Request) {
-  let body: { email?: unknown };
+  let body: { email?: unknown; next?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -40,7 +40,12 @@ export async function POST(request: Request) {
   }
 
   const token = await issueLoginToken(address);
-  const url = new URL(`/auth/callback?token=${token}`, request.url).toString();
+  // Where to land afterwards, so a link opened to reach the inventory console
+  // does not drop the admin on the shop's front page.
+  const link = new URL("/auth/callback", request.url);
+  link.searchParams.set("token", token);
+  link.searchParams.set("next", safeNext(body.next));
+  const url = link.toString();
 
   try {
     await sender.sendLoginLink({ to: address, url });

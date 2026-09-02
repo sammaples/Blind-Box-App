@@ -9,6 +9,7 @@ import type {
   Piece,
   Scale,
 } from "../types";
+import { contentTypeFor, isImageId } from "../images";
 import type {
   Backend,
   BuildOrder,
@@ -17,6 +18,7 @@ import type {
   StockChange,
   StockChangeResult,
   StockRow,
+  StoredImage,
 } from "./types";
 
 /**
@@ -69,6 +71,10 @@ export function createJsonBackend(): Backend {
   // Statically scoped on purpose: a computed path makes the bundler trace the
   // whole project into the server output.
   const DB_PATH = path.join(process.cwd(), "data", "db.json");
+  // Photos live beside the database as ordinary files, not base64 inside it.
+  // db.json is rewritten in full on every order; a few megabytes of image data
+  // riding along with each of those writes would be the slowest thing here.
+  const IMAGE_DIR = path.join(process.cwd(), "data", "images");
 
   let queue: Promise<unknown> = Promise.resolve();
 
@@ -239,6 +245,27 @@ export function createJsonBackend(): Backend {
         piece.archived = archived;
         return piece;
       });
+    },
+
+    async putImage({ id, bytes }: StoredImage) {
+      // An id becomes a path here, so an unvetted one is a way to write
+      // anywhere on disk. Ids are issued by this app and checked on the way in
+      // and the way out.
+      if (!isImageId(id)) throw new Error("Not an image id this app issued");
+      await fs.mkdir(IMAGE_DIR, { recursive: true });
+      await fs.writeFile(path.join(IMAGE_DIR, id), bytes);
+    },
+
+    async getImage(id) {
+      const contentType = isImageId(id) ? contentTypeFor(id) : null;
+      if (!contentType) return null;
+      try {
+        const bytes = await fs.readFile(path.join(IMAGE_DIR, id));
+        return { id, contentType, bytes };
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
+        throw err;
+      }
     },
 
     async setAdmin(accountId, isAdmin) {

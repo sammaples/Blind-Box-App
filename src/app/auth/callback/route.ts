@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { redeemLoginToken, startSession } from "@/lib/auth";
+import { redeemLoginToken, safeNext, startSession } from "@/lib/auth";
 
 /**
  * Opens a sign-in link. Redeeming is single-use, so a link that has already
@@ -12,11 +12,13 @@ export async function GET(request: Request) {
 
   const account = token ? await redeemLoginToken(token) : null;
   if (!account) {
-    return NextResponse.redirect(new URL("/?signin=expired", url.origin));
+    const retry = new URL(safeNext(url.searchParams.get("next")), url.origin);
+    retry.searchParams.set("signin", "expired");
+    return NextResponse.redirect(retry);
   }
 
   const claimed = await startSession(account);
-  const destination = new URL("/", url.origin);
+  const destination = new URL(safeNext(url.searchParams.get("next")), url.origin);
   destination.searchParams.set("signin", "ok");
   if (claimed > 0) destination.searchParams.set("claimed", String(claimed));
 

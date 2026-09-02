@@ -9,6 +9,7 @@ import {
   SCALES,
   setPieceArchived,
 } from "@/lib/pieces";
+import { applyStockChanges } from "@/lib/stock";
 import type { Rarity, Scale } from "@/lib/types";
 
 /** The whole catalogue, archived pieces included. */
@@ -64,6 +65,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "That is not a rarity" }, { status: 400 });
   }
 
+  // A quantity is optional, but when it comes it has to be a real count —
+  // silently reading NaN as zero would quietly unstock a piece.
+  let quantity: number | null = null;
+  if (body.quantity !== undefined && body.quantity !== null && body.quantity !== "") {
+    quantity = Number(body.quantity);
+    if (!Number.isFinite(quantity) || quantity < 0) {
+      return NextResponse.json(
+        { error: "Units must be a number of zero or more" },
+        { status: 400 },
+      );
+    }
+    quantity = Math.trunc(quantity);
+  }
+
   const piece = buildPiece({
     id: typeof body.id === "string" ? body.id : undefined,
     name,
@@ -79,5 +94,17 @@ export async function POST(request: Request) {
   });
 
   await savePieces([piece]);
-  return NextResponse.json({ piece });
+
+  // Listing a product and putting the box of them on the shelf is usually one
+  // errand, so the form can do both. Stock has to follow the save: there is
+  // nothing to attach units to until the piece exists.
+  let stock = null;
+  if (quantity !== null) {
+    const [applied] = await applyStockChanges([
+      { pieceId: piece.id, op: "set", units: quantity },
+    ]);
+    stock = applied ?? null;
+  }
+
+  return NextResponse.json({ piece, stock });
 }

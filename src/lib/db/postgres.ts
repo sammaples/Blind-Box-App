@@ -18,6 +18,7 @@ import type {
   StockChange,
   StockChangeResult,
   StockRow,
+  StoredImage,
 } from "./types";
 
 /**
@@ -367,6 +368,30 @@ export function createPostgresBackend(connectionString: string): Backend {
         [pieceId, archived],
       );
       return rows[0] ? toPiece(rows[0]) : null;
+    },
+
+    async putImage({ id, contentType, bytes }: StoredImage) {
+      await query(
+        `insert into product_images (id, content_type, bytes)
+         values ($1, $2, $3)
+         on conflict (id) do update set
+           content_type = excluded.content_type,
+           bytes        = excluded.bytes`,
+        [id, contentType, Buffer.from(bytes)],
+      );
+    },
+
+    async getImage(id) {
+      const { rows } = await query(
+        "select id, content_type, bytes from product_images where id = $1",
+        [id],
+      );
+      if (!rows[0]) return null;
+      return {
+        id: rows[0].id as string,
+        contentType: rows[0].content_type as string,
+        bytes: rows[0].bytes as Buffer,
+      };
     },
 
     async setAdmin(accountId, isAdmin) {

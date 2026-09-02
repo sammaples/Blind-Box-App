@@ -8,6 +8,8 @@ npm-debug.log*
 .env*
 !.env.example
 data/*.json
+# Uploaded product photos: shop data, not source.
+data/images/
 !data/.gitkeep
 .vercel
 next-env.d.ts

@@ -11,16 +11,19 @@ import type { Collector } from "./types";
  * addresses that should have it in ADMIN_EMAILS; an account is promoted the
  * next time it signs in.
  *
- * With ADMIN_EMAILS unset the console is open in development, so it can be
- * tried with no setup, and refuses to load in production. An unprotected
- * inventory editor on a public URL should never be the accidental default.
+ * With ADMIN_EMAILS unset the console refuses to load in production, and in
+ * development treats the first signed-in account as the owner so the app can
+ * be tried without configuring anything. Note what that fallback does *not*
+ * do: it never lets a signed-out visitor in. Signing in is the floor in every
+ * mode, because "convenient in development" is how an unprotected inventory
+ * editor ends up on a public URL.
  */
 
-export type AdminMode = "accounts" | "open" | "disabled";
+export type AdminMode = "accounts" | "bootstrap" | "disabled";
 
 export function adminMode(): AdminMode {
   if (adminEmails().size > 0) return "accounts";
-  return process.env.NODE_ENV === "production" ? "disabled" : "open";
+  return process.env.NODE_ENV === "production" ? "disabled" : "bootstrap";
 }
 
 /** The addresses allowed to administer the shop, lowercased. */
@@ -54,15 +57,31 @@ export async function syncAdmin(account: Collector): Promise<Collector> {
   return { ...account, isAdmin: expected };
 }
 
-/** Whether the current request may read or change the shop's inventory. */
-export async function isAdmin(): Promise<boolean> {
+/**
+ * Why the current request may or may not administer the shop.
+ *
+ * The reason is returned, not just a yes or no, because the console has to
+ * tell someone what to do next — "sign in" and "that account is not an admin"
+ * are different problems with different fixes, and answering the second with
+ * the first is how people end up convinced the sign-in is broken.
+ */
+export type AdminCheck =
+  | { ok: true }
+  | { ok: false; reason: "disabled" | "signed-out" | "not-admin" };
+
+export async function checkAdmin(): Promise<AdminCheck> {
   const mode = adminMode();
-  if (mode === "disabled") return false;
-  if (mode === "open") return true;
+  if (mode === "disabled") return { ok: false, reason: "disabled" };
 
   const accountId = await currentAccountId();
-  if (!accountId) return false;
+  if (!accountId) return { ok: false, reason: "signed-out" };
 
   const account = await backend().upsertCollector(accountId, {});
-  return account.isAdmin === true;
+  if (mode === "bootstrap" || account.isAdmin === true) return { ok: true };
+  return { ok: false, reason: "not-admin" };
+}
+
+/** Whether the current request may read or change the shop's inventory. */
+export async function isAdmin(): Promise<boolean> {
+  return (await checkAdmin()).ok;
 }

@@ -1,48 +1,27 @@
 import Link from "next/link";
 import { AdminConsole } from "@/components/AdminConsole";
-import { adminMode, isAdmin } from "@/lib/admin";
+import { AdminSignIn } from "@/components/AdminSignIn";
+import { adminMode, checkAdmin } from "@/lib/admin";
 import { allPieces } from "@/lib/pieces";
 import { recentAudit, warehouse } from "@/lib/stock";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Inventory — Blind Box" };
+export const metadata = {
+  title: "Inventory — Blind Box",
+  // Nothing here should be indexed even if the URL leaks.
+  robots: { index: false, follow: false },
+};
 
 export default async function AdminPage() {
   const mode = adminMode();
+  const access = await checkAdmin();
 
-  if (mode === "disabled") {
-    return (
-      <Shell>
-        <h1 className="text-2xl font-semibold tracking-tight">Console is switched off</h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted">
-          List the addresses that should administer this shop in{" "}
-          <code className="font-mono text-chalk">ADMIN_EMAILS</code> and restart. Without
-          that, the console refuses to load in production rather than leaving inventory
-          editable by anyone who finds the URL.
-        </p>
-      </Shell>
-    );
-  }
-
-  if (!(await isAdmin())) {
-    return (
-      <Shell>
-        <h1 className="text-2xl font-semibold tracking-tight">Not your shop</h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted">
-          The inventory console is limited to admin accounts. Sign in with an address
-          listed in <code className="font-mono text-chalk">ADMIN_EMAILS</code>, then come
-          back — admin is applied at sign-in, so a newly listed address needs one fresh
-          sign-in before it takes effect.
-        </p>
-        <Link
-          href="/"
-          className="mt-6 inline-block rounded-full bg-chalk px-6 py-3 text-sm font-semibold text-ink"
-        >
-          Back to the shop
-        </Link>
-      </Shell>
-    );
+  if (!access.ok) {
+    // The three reasons need three different answers. Telling someone to sign
+    // in when they already are, or offering a sign-in form for a console that
+    // is switched off entirely, sends them round a loop that cannot end.
+    return <Shell>{denial(access.reason, mode === "bootstrap")}</Shell>;
   }
 
   const [rows, audit, catalogue] = await Promise.all([
@@ -71,8 +50,54 @@ export default async function AdminPage() {
       }))}
       stock={stock}
       audit={audit}
-      openAccess={mode === "open"}
+      bootstrapAccess={mode === "bootstrap"}
     />
+  );
+}
+
+function denial(
+  reason: "disabled" | "signed-out" | "not-admin",
+  bootstrap: boolean,
+): React.ReactNode {
+  if (reason === "signed-out") return <AdminSignIn devHint={bootstrap} />;
+
+  if (reason === "disabled") {
+    return (
+      <>
+        <h1 className="text-2xl font-semibold tracking-tight">Console is switched off</h1>
+        <p className="mt-3 text-sm leading-relaxed text-muted">
+          List the addresses that should administer this shop in{" "}
+          <code className="font-mono text-chalk">ADMIN_EMAILS</code> and restart. Without
+          that, the console refuses to load in production rather than leaving inventory
+          editable by anyone who finds the URL.
+        </p>
+        <BackHome />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <h1 className="text-2xl font-semibold tracking-tight">Not an admin account</h1>
+      <p className="mt-3 text-sm leading-relaxed text-muted">
+        You are signed in, but this address is not on the admin list. Add it to{" "}
+        <code className="font-mono text-chalk">ADMIN_EMAILS</code> and sign in once more
+        — admin is applied at sign-in, so a newly listed address needs one fresh sign-in
+        before it takes effect.
+      </p>
+      <BackHome />
+    </>
+  );
+}
+
+function BackHome() {
+  return (
+    <Link
+      href="/"
+      className="mt-6 inline-block rounded-full bg-chalk px-6 py-3 text-sm font-semibold text-ink"
+    >
+      Back to the shop
+    </Link>
   );
 }
 
