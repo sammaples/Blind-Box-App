@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useMemo, useState } from "react";
 import { formatOdds, oddsAsOneIn, RARITY_COLOR, RARITY_LABEL } from "@/lib/catalog";
+import { boxGeometry } from "@/lib/boxShape";
 import type { Piece, Product } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
 import { RarityChip } from "./ui";
@@ -218,19 +219,12 @@ function BlindBox({
   reducedMotion: boolean;
   onOpen: () => void;
 }) {
-  const S = 190;
-  const half = S / 2;
+  const box = boxGeometry(140);
 
-  const face = (transform: string, shade: number) => ({
-    position: "absolute" as const,
-    width: S,
-    height: S,
-    left: 0,
-    top: 0,
-    transform,
+  const face = (name: Parameters<typeof box.face>[0], shade: number) => ({
+    ...box.face(name),
     background: `linear-gradient(150deg, color-mix(in srgb, ${accent} 30%, #17171d) 0%, #0e0e13 62%)`,
     boxShadow: `inset 0 0 0 1px rgb(255 255 255 / 0.07), inset 0 0 60px rgb(0 0 0 / ${shade})`,
-    backfaceVisibility: "hidden" as const,
   });
 
   const shaking = stage === "shaking";
@@ -242,7 +236,7 @@ function BlindBox({
       onClick={onOpen}
       aria-label="Open the blind box"
       className="absolute cursor-pointer rounded-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-white/60"
-      style={{ width: S, height: S, transformStyle: "preserve-3d" }}
+      style={{ width: box.width, height: box.height, transformStyle: "preserve-3d" }}
       initial={{ rotateX: -14, rotateY: -26 }}
       animate={
         burst
@@ -266,35 +260,34 @@ function BlindBox({
       exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.25 } }}
     >
       {/* four sides + floor */}
-      <div style={face(`translateZ(${half}px)`, 0.25)}>
+      <div style={face("front", 0.25)}>
         <BoxFront accent={accent} lit={shaking || burst} />
       </div>
-      <div style={face(`rotateY(180deg) translateZ(${half}px)`, 0.55)} />
-      <div style={face(`rotateY(-90deg) translateZ(${half}px)`, 0.45)} />
-      <div style={face(`rotateY(90deg) translateZ(${half}px)`, 0.5)} />
-      <div style={face(`rotateX(-90deg) translateZ(${half}px)`, 0.6)} />
+      <div style={face("back", 0.55)} />
+      <div style={face("left", 0.45)} />
+      <div style={face("right", 0.5)} />
+      <div style={face("bottom", 0.6)} />
 
-      {/* lid, which leaves in a hurry */}
-      <motion.div
+      {/*
+        The lid. Its transform is written out rather than animated by the
+        motion library: the top face is already rotated and pushed out along
+        its own Z, so "up" for the lid is more translateZ, not translateY, and
+        composing that with an animated transform is easy to get subtly wrong.
+      */}
+      <div
         style={{
-          ...face(`rotateX(90deg) translateZ(${half}px)`, 0.15),
-          transformOrigin: "center",
+          ...face("top", 0.15),
+          transform: burst
+            ? `rotateX(90deg) translateZ(${box.height / 2 + box.height}px) rotate(38deg)`
+            : `rotateX(90deg) translateZ(${box.height / 2}px)`,
+          opacity: burst ? 0 : 1,
+          transition: reducedMotion
+            ? "none"
+            : "transform 0.5s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.5s",
+          background: `linear-gradient(150deg, color-mix(in srgb, ${accent} 46%, #1a1a20) 0%, #101016 70%)`,
+          boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.1)",
         }}
-        animate={
-          burst
-            ? { y: -260, opacity: 0, rotateZ: 38 }
-            : { y: 0, opacity: 1, rotateZ: 0 }
-        }
-        transition={{ duration: 0.5, ease: [0.2, 0.8, 0.3, 1] }}
-      >
-        <div
-          className="size-full"
-          style={{
-            background: `linear-gradient(150deg, color-mix(in srgb, ${accent} 46%, #1a1a20) 0%, #101016 70%)`,
-            boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.1)",
-          }}
-        />
-      </motion.div>
+      />
 
       {/* seam light escaping as it rattles */}
       <motion.div
@@ -304,7 +297,7 @@ function BlindBox({
           height: 10,
           top: -6,
           background: accent,
-          transform: `translateZ(${half + 1}px)`,
+          transform: `translateZ(${box.width / 2 + 1}px)`,
         }}
         animate={{ opacity: burst ? 1 : shaking ? [0.15, 0.75, 0.2] : 0 }}
         transition={{ duration: 0.5, repeat: shaking ? Infinity : 0 }}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PRODUCTS, RARITY_COLOR } from "@/lib/catalog";
 import type { Product, StockEntry } from "@/lib/types";
+import { boxGeometry } from "@/lib/boxShape";
 import { useAccount } from "./AccountBar";
 import { Price, SectionLabel } from "./ui";
 
@@ -81,7 +82,7 @@ function ProductCard({
         style={{ background: product.accent }}
       />
 
-      <div className="relative flex h-40 items-center justify-center">
+      <div className="relative flex h-44 items-center justify-center">
         <ProductBox accent={product.accent} />
       </div>
 
@@ -135,6 +136,11 @@ function ProductCard({
 }
 
 function ProductBox({ accent }: { accent: string }) {
+  const box = boxGeometry(62);
+
+  const faceBackground = (shade: number) =>
+    `linear-gradient(150deg, color-mix(in srgb, ${accent} ${shade}%, #17171d), #0d0d12 70%)`;
+
   return (
     <motion.div
       className="relative"
@@ -143,32 +149,42 @@ function ProductBox({ accent }: { accent: string }) {
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
     >
       <motion.div
-        className="relative size-28"
-        style={{ transformStyle: "preserve-3d" }}
+        className="relative"
+        style={{
+          width: box.width,
+          height: box.height,
+          transformStyle: "preserve-3d",
+        }}
         initial={{ rotateX: -16, rotateY: -24 }}
         animate={{ rotateY: [-24, -14, -24] }}
         transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
       >
-        {[
-          "translateZ(56px)",
-          "rotateY(90deg) translateZ(56px)",
-          "rotateX(90deg) translateZ(56px)",
-        ].map((transform, i) => (
-          <div
-            key={transform}
-            className="absolute inset-0"
-            style={{
-              transform,
-              background: `linear-gradient(150deg, color-mix(in srgb, ${accent} ${
-                34 - i * 10
-              }%, #17171d), #0d0d12 70%)`,
-              boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.08)",
-            }}
-          />
-        ))}
+        {/* Only the three faces a 3/4 view can see. */}
         <div
-          className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center"
-          style={{ transform: "translateZ(57px) translateY(-50%)" }}
+          style={{
+            ...box.face("front"),
+            background: faceBackground(34),
+            boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.08)",
+          }}
+        />
+        <div
+          style={{
+            ...box.face("right"),
+            background: faceBackground(24),
+            boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.08)",
+          }}
+        />
+        <div
+          style={{
+            ...box.face("top"),
+            background: faceBackground(14),
+            boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.08)",
+          }}
+        />
+
+        <div
+          className="absolute inset-x-0 top-1/2 flex justify-center"
+          style={{ transform: `translateZ(${box.width / 2 + 1}px) translateY(-50%)` }}
         >
           <span className="text-2xl font-bold" style={{ color: accent }}>
             ?
