@@ -41,7 +41,18 @@ export async function POST(request: Request) {
 
   const token = await issueLoginToken(address);
   const url = new URL(`/auth/callback?token=${token}`, request.url).toString();
-  await sender.sendLoginLink({ to: address, url });
+
+  try {
+    await sender.sendLoginLink({ to: address, url });
+  } catch (err) {
+    // Never answer "check your email" for a message that failed to send. The
+    // token simply expires unused; asking again issues a fresh one.
+    console.error("[auth] could not send a sign-in link:", err);
+    return NextResponse.json(
+      { error: "We could not send that email just now. Please try again." },
+      { status: 502 },
+    );
+  }
 
   return NextResponse.json({
     ok: true,

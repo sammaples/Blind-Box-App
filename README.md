@@ -131,11 +131,21 @@ orphans a collection.
 - `AUTH_SECRET` — required in production. Without it the app refuses to sign
   anyone in rather than falling back to the development key, which is published
   in this repository. Generate one with `openssl rand -hex 32`.
-- **An email provider** — `src/lib/email.ts` is a seam that ships with a mock
-  logging links to the server console. Outside production it also returns the
-  link in the API response so the flow is playable with no setup. In production
-  without a real sender, sign-in refuses: telling someone to check their email
-  when nothing was sent is worse than an error.
+- **An email provider.** Set `RESEND_API_KEY` and `EMAIL_FROM` together and
+  sign-in links are sent for real, through
+  [Resend](https://resend.com). Set neither and `src/lib/email.ts` falls back to
+  a mock that logs the link to the server console; outside production it also
+  returns the link in the API response, so the flow is playable with no setup at
+  all. In production without a real sender, sign-in refuses — telling someone to
+  check their email when nothing was sent is worse than an error.
+
+  `EMAIL_FROM` has to be an address on a **domain you have verified with
+  Resend**, which means adding their DNS records. An unverified domain is the
+  usual first failure: Resend returns 403, the visitor gets "we could not send
+  that email just now", and the reason is named in the server log.
+
+  To use a different sender, write another `EmailProvider` and pick it in
+  `chooseProvider` — nothing else changes.
 
 ## How a pull works
 
