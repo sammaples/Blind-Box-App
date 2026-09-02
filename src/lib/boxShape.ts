@@ -3,11 +3,14 @@ import type { CSSProperties } from "react";
 /**
  * The shape of a blind box.
  *
- * Boxes are twice as tall as they are wide and deep — a square cross-section
- * and a 2:1 height. Keeping the proportion here means the box on a product
- * card and the one you open are the same object at different sizes.
+ * Boxes have a square cross-section and stand 11 units tall for every 7 wide.
+ * Keeping the proportion here means the box on a product card and the one you
+ * open are the same object at different sizes.
+ *
+ * 11/7 does not divide evenly, so callers pass a width that is a multiple of
+ * seven and get whole pixels back.
  */
-export const BOX_HEIGHT_RATIO = 2;
+export const BOX_HEIGHT_RATIO = 11 / 7;
 
 export type BoxFace = "front" | "back" | "left" | "right" | "top" | "bottom";
 

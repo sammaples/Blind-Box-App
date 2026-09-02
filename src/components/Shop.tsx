@@ -82,7 +82,7 @@ function ProductCard({
         style={{ background: product.accent }}
       />
 
-      <div className="relative flex h-44 items-center justify-center">
+      <div className="relative flex h-40 items-center justify-center">
         <ProductBox accent={product.accent} />
       </div>
 
@@ -136,7 +136,7 @@ function ProductCard({
 }
 
 function ProductBox({ accent }: { accent: string }) {
-  const box = boxGeometry(62);
+  const box = boxGeometry(63);
 
   const faceBackground = (shade: number) =>
     `linear-gradient(150deg, color-mix(in srgb, ${accent} ${shade}%, #17171d), #0d0d12 70%)`;
