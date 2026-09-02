@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPiece } from "@/lib/catalog";
+import { pieceMap } from "@/lib/pieces";
 import { isAdmin } from "@/lib/admin";
 import { applyStockChanges, warehouse } from "@/lib/stock";
 import type { AdminStockChange, StockOp } from "@/lib/stock";
@@ -48,12 +48,13 @@ export async function POST(request: Request) {
     );
   }
 
+  const pieces = await pieceMap();
   const changes: AdminStockChange[] = [];
   for (const raw of body.changes as unknown[]) {
     if (typeof raw !== "object" || raw === null) continue;
     const { pieceId, op, units } = raw as Record<string, unknown>;
 
-    if (typeof pieceId !== "string" || !getPiece(pieceId)) {
+    if (typeof pieceId !== "string" || !pieces.has(pieceId)) {
       return NextResponse.json(
         { error: `No piece with the id ${String(pieceId)}` },
         { status: 400 },

@@ -1,6 +1,7 @@
 import "server-only";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { syncAdmin } from "./admin";
 import { backend } from "./db";
 import type { Collector } from "./types";
 
@@ -76,7 +77,10 @@ export async function redeemLoginToken(token: string): Promise<Collector | null>
     new Date().toISOString(),
   );
   if (!email) return null;
-  return backend().accountForEmail(email);
+
+  const account = await backend().accountForEmail(email);
+  // Admin follows ADMIN_EMAILS, applied at sign-in rather than by hand.
+  return syncAdmin(account);
 }
 
 /* -------------------------------- sessions ------------------------------- */

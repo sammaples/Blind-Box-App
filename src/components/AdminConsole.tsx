@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { BearbrickArt } from "@/components/BearbrickArt";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { PieceImage } from "@/components/PieceImage";
 import { RarityChip } from "@/components/ui";
-import { formatOdds, RARITY_LABEL, RARITY_ORDER, seriesName } from "@/lib/catalog";
+import { formatOdds, RARITY_LABEL, RARITY_ORDER } from "@/lib/catalog";
 import { UNITS_BY_RARITY } from "@/lib/inventory";
 import type { AuditBatch, Palette, PatternKind, Rarity, Scale } from "@/lib/types";
 
@@ -18,6 +19,8 @@ export interface AdminPiece {
   rarity: Rarity;
   pattern: PatternKind;
   palette: Palette;
+  imageUrl: string | null;
+  archived: boolean;
 }
 
 type Levels = Record<string, { stocked: number; sold: number }>;
@@ -47,7 +50,7 @@ export function AdminConsole({
   const [levels, setLevels] = useState<Levels>(stock);
   const [log, setLog] = useState<AuditBatch[]>(audit);
   const [scale, setScale] = useState<Scale>("100%");
-  const [tab, setTab] = useState<"shelf" | "add" | "log">("shelf");
+  const [tab, setTab] = useState<"shelf" | "add" | "catalogue" | "log">("shelf");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -121,10 +124,19 @@ export function AdminConsole({
 
   const seriesRows = useMemo(() => {
     if (scale !== "100%") return [];
-    const map = new Map<number, { total: number; stocked: number; available: number }>();
+    const map = new Map<
+      number,
+      { label: string; total: number; stocked: number; available: number }
+    >();
     for (const piece of pieces) {
-      if (piece.scale !== "100%" || piece.series === null) continue;
-      const row = map.get(piece.series) ?? { total: 0, stocked: 0, available: 0 };
+      if (piece.scale !== "100%" || piece.series === null || piece.archived) continue;
+      const row = map.get(piece.series) ?? {
+        // Whatever the shop calls this set, not a name invented here.
+        label: piece.setName || `Series ${piece.series}`,
+        total: 0,
+        stocked: 0,
+        available: 0,
+      };
       row.total += 1;
       const level = levels[piece.id];
       if (level) {
@@ -169,25 +181,13 @@ export function AdminConsole({
             move with it, because a rate is just a piece&apos;s share of the units left.
           </p>
         </div>
-        {!openAccess && (
-          <button
-            type="button"
-            onClick={async () => {
-              await fetch("/api/admin/session", { method: "DELETE" });
-              window.location.reload();
-            }}
-            className="rounded-full border border-hairline px-4 py-2 text-xs text-muted transition-colors hover:border-white/30 hover:text-chalk"
-          >
-            Sign out
-          </button>
-        )}
       </div>
 
       {openAccess && (
         <p className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs leading-relaxed text-amber-200">
-          No <code className="font-mono">ADMIN_PASSWORD</code> is set, so this console is
-          unlocked. That is fine locally; in production it refuses to load until you set
-          one.
+          No <code className="font-mono">ADMIN_EMAILS</code> is set, so this console is
+          unlocked. That is fine locally; in production it refuses to load until you list
+          the addresses that should have it.
         </p>
       )}
 
@@ -253,7 +253,7 @@ export function AdminConsole({
                   {String(row.series).padStart(2, "0")}
                 </p>
                 <p className="mt-0.5 truncate text-[11px] text-muted">
-                  {seriesName(row.series)}
+                  {row.label}
                 </p>
                 <p className="mt-2 font-mono text-[11px] text-faint">
                   {row.available > 0
@@ -288,7 +288,7 @@ export function AdminConsole({
 
       {/* shelf / add tabs */}
       <div className="mt-9 flex gap-1 border-b border-hairline">
-        {(["shelf", "add", "log"] as const).map((t) => (
+        {(["shelf", "add", "catalogue", "log"] as const).map((t) => (
           <button
             key={t}
             type="button"
@@ -302,8 +302,10 @@ export function AdminConsole({
             {t === "shelf"
               ? `On the shelf (${shelf.length})`
               : t === "add"
-                ? "Add a piece"
-                : `Change log (${log.length})`}
+                ? "Stock a piece"
+                : t === "catalogue"
+                  ? `Catalogue (${pieces.length})`
+                  : `Change log (${log.length})`}
           </button>
         ))}
       </div>
@@ -311,12 +313,13 @@ export function AdminConsole({
       {tab === "shelf" && <ShelfTable rows={shelf} busy={busy} onChange={send} />}
       {tab === "add" && (
         <AddPieces
-          pieces={pieces.filter((p) => p.scale === scale && !levels[p.id])}
+          pieces={pieces.filter((p) => p.scale === scale && !p.archived && !levels[p.id])}
           busy={busy}
           onChange={send}
           byId={byId}
         />
       )}
+      {tab === "catalogue" && <Catalogue pieces={pieces} busy={busy} />}
       {tab === "log" && <ChangeLog entries={log} byId={byId} />}
     </div>
   );
@@ -398,13 +401,7 @@ function ShelfTable({
                       background: `radial-gradient(120% 90% at 50% 12%, ${row.piece.palette.wash}, #0b0b10 78%)`,
                     }}
                   >
-                    <BearbrickArt
-                      uid={`adm-${row.piece.id}`}
-                      palette={row.piece.palette}
-                      pattern={row.piece.pattern}
-                      className="h-8 w-auto"
-                      simple
-                    />
+                    <PieceImage piece={row.piece} className="h-8 w-auto" simple />
                   </div>
                   <div className="min-w-0">
                     <p className="truncate font-medium">{row.piece.name}</p>
@@ -430,6 +427,7 @@ function ShelfTable({
               </td>
               <td className="rounded-r-xl px-3 py-2.5">
                 <div className="flex items-center justify-end gap-1.5">
+                  <QuantityBox row={row} busy={busy} onChange={onChange} />
                   {[1, 5, 25].map((n) => (
                     <button
                       key={n}
@@ -547,13 +545,7 @@ function AddPieces({
                   background: `radial-gradient(120% 90% at 50% 12%, ${piece.palette.wash}, #0b0b10 78%)`,
                 }}
               >
-                <BearbrickArt
-                  uid={`add-${piece.id}`}
-                  palette={piece.palette}
-                  pattern={piece.pattern}
-                  className="h-9 w-auto"
-                  simple
-                />
+                <PieceImage piece={piece} className="h-9 w-auto" simple />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-medium">{piece.name}</p>
@@ -672,8 +664,395 @@ function describe(batch: AuditBatch, byId: Map<string, AdminPiece>): string {
   const series = new Set(pieces.map((p) => p.series));
   if (series.size === 1 && pieces.length > 1) {
     const only = [...series][0];
-    if (only !== null) return `${verb} Series ${only} · ${seriesName(only)}`;
+    if (only !== null) return `${verb} Series ${only}`;
   }
 
   return `${verb} ${batch.pieceCount.toLocaleString()} pieces`;
+}
+
+/* ------------------------------------------------------------------ */
+
+interface ImportPreview {
+  columns: string[];
+  accepted: number;
+  withQuantity: number;
+  errors: string[];
+  sample: {
+    id: string;
+    name: string;
+    scale: string;
+    rarity: string;
+    quantity: number | null;
+    hasImage: boolean;
+  }[];
+}
+
+/**
+ * The shop's own catalogue: what it sells, as opposed to what is on the shelf
+ * today. Pieces arrive here by spreadsheet or one at a time, and a piece has to
+ * exist here before any quantity of it can be stocked.
+ */
+function Catalogue({ pieces, busy }: { pieces: AdminPiece[]; busy: boolean }) {
+  const router = useRouter();
+  const [query, setQuery] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
+  const [csv, setCsv] = useState<string>("");
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [preview, setPreview] = useState<ImportPreview | null>(null);
+  const [working, setWorking] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return pieces
+      .filter((p) => showArchived || !p.archived)
+      .filter(
+        (p) =>
+          q === "" ||
+          p.name.toLowerCase().includes(q) ||
+          p.setName.toLowerCase().includes(q) ||
+          p.id.toLowerCase().includes(q),
+      )
+      .slice(0, 120);
+  }, [pieces, query, showArchived]);
+
+  const post = async (path: string, body: unknown) => {
+    const res = await fetch(path, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error ?? "That did not work");
+    return data;
+  };
+
+  const readFile = async (file: File) => {
+    setError(null);
+    setNote(null);
+    const text = await file.text();
+    setCsv(text);
+    setFileName(file.name);
+    setWorking(true);
+    try {
+      // Always previewed first: an import that silently rewrites a live shop
+      // is not something to discover afterwards.
+      setPreview((await post("/api/admin/catalog/import", { csv: text, dryRun: true })) as ImportPreview);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not read that file");
+      setPreview(null);
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const commit = async () => {
+    setWorking(true);
+    setError(null);
+    try {
+      const data = await post("/api/admin/catalog/import", { csv });
+      setNote(
+        `Imported ${data.imported} pieces` +
+          (data.stocked ? `, and set stock on ${data.stocked} of them.` : "."),
+      );
+      setPreview(null);
+      setCsv("");
+      setFileName(null);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not import that file");
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const archive = async (piece: AdminPiece) => {
+    setWorking(true);
+    setError(null);
+    try {
+      await post("/api/admin/catalog", {
+        action: piece.archived ? "restore" : "archive",
+        pieceId: piece.id,
+      });
+      setNote(`${piece.archived ? "Restored" : "Archived"} ${piece.name}.`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That did not work");
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const loadDemo = async () => {
+    setWorking(true);
+    try {
+      const data = await post("/api/admin/catalog", { action: "loadDemo" });
+      setNote(`Loaded ${data.loaded} demo pieces. Replace them with your own when ready.`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That did not work");
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  return (
+    <div className="mt-5 space-y-8">
+      {/* upload */}
+      <section className="rounded-2xl border border-hairline bg-ink-card p-5">
+        <h3 className="text-sm font-semibold">Upload a catalogue</h3>
+        <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-muted">
+          A CSV with a header row. <span className="text-chalk">name</span> and{" "}
+          <span className="text-chalk">scale</span> are required;{" "}
+          <span className="text-chalk">set</span>, <span className="text-chalk">series</span>,{" "}
+          <span className="text-chalk">rarity</span>, <span className="text-chalk">image</span>,{" "}
+          <span className="text-chalk">notes</span> and{" "}
+          <span className="text-chalk">quantity</span> are optional. Include a quantity and
+          the piece goes straight onto the shelf. Re-uploading a sheet updates pieces rather
+          than duplicating them, so a corrected export is safe to send again.
+        </p>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <label className="cursor-pointer rounded-xl bg-white/10 px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-white/16">
+            Choose a CSV
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void readFile(file);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          <a
+            href="/catalogue-template.csv"
+            download
+            className="rounded-xl border border-hairline px-4 py-2.5 text-[13px] text-muted transition-colors hover:border-white/30 hover:text-chalk"
+          >
+            Download the template
+          </a>
+          {fileName && <span className="font-mono text-xs text-faint">{fileName}</span>}
+        </div>
+
+        {preview && (
+          <div className="mt-5 rounded-xl border border-hairline bg-ink p-4">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-faint">
+              Before importing
+            </p>
+            <p className="mt-2 text-sm">
+              <span className="font-mono text-chalk">{preview.accepted}</span> pieces read
+              {preview.withQuantity > 0 && (
+                <>
+                  , <span className="font-mono text-chalk">{preview.withQuantity}</span> with
+                  a quantity
+                </>
+              )}
+              .
+            </p>
+            <p className="mt-1 text-xs text-faint">
+              Columns understood: {preview.columns.join(", ")}
+            </p>
+
+            {preview.sample.length > 0 && (
+              <ul className="mt-3 space-y-1">
+                {preview.sample.map((row) => (
+                  <li key={row.id} className="font-mono text-[11px] text-muted">
+                    {row.name} · {row.scale} · {row.rarity}
+                    {row.quantity !== null && ` · ${row.quantity} units`}
+                    {row.hasImage && " · photo"}
+                  </li>
+                ))}
+                {preview.accepted > preview.sample.length && (
+                  <li className="text-[11px] text-faint">
+                    …and {preview.accepted - preview.sample.length} more
+                  </li>
+                )}
+              </ul>
+            )}
+
+            {preview.errors.length > 0 && (
+              <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-amber-300">
+                  {preview.errors.length} rows need attention
+                </p>
+                <ul className="mt-2 space-y-1">
+                  {preview.errors.slice(0, 6).map((message) => (
+                    <li key={message} className="text-[11px] leading-relaxed text-amber-200/90">
+                      {message}
+                    </li>
+                  ))}
+                  {preview.errors.length > 6 && (
+                    <li className="text-[11px] text-amber-200/70">
+                      …and {preview.errors.length - 6} more
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                disabled={working || preview.accepted === 0}
+                onClick={() => void commit()}
+                className="rounded-xl bg-chalk px-5 py-2.5 text-[13px] font-semibold text-ink disabled:opacity-50"
+              >
+                {working ? "Importing…" : `Import ${preview.accepted} pieces`}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPreview(null);
+                  setCsv("");
+                  setFileName(null);
+                }}
+                className="rounded-xl border border-hairline px-5 py-2.5 text-[13px] text-muted transition-colors hover:border-white/30 hover:text-chalk"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {(note || error) && (
+        <p
+          className={`rounded-xl px-4 py-3 text-xs ${
+            error
+              ? "border border-rose-500/30 bg-rose-500/10 text-rose-300"
+              : "border border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+          }`}
+        >
+          {error ?? note}
+        </p>
+      )}
+
+      {/* the catalogue itself */}
+      <section>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search the catalogue"
+            className="min-w-56 flex-1 rounded-xl border border-hairline bg-ink px-4 py-2.5 text-sm outline-none transition-colors focus:border-white/30"
+          />
+          <label className="flex items-center gap-2 text-xs text-muted">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+            />
+            Show archived
+          </label>
+        </div>
+
+        {pieces.length === 0 ? (
+          <div className="mt-4 rounded-2xl border border-dashed border-hairline p-12 text-center">
+            <p className="text-sm text-muted">
+              The catalogue is empty, so there is nothing to sell yet.
+            </p>
+            <p className="mt-1 text-xs text-faint">
+              Upload a CSV above, or load the demo set to see how it all behaves.
+            </p>
+            <button
+              type="button"
+              disabled={working}
+              onClick={() => void loadDemo()}
+              className="mt-4 rounded-full border border-hairline px-5 py-2.5 text-[13px] text-muted transition-colors hover:border-white/30 hover:text-chalk disabled:opacity-50"
+            >
+              Load the demo catalogue
+            </button>
+          </div>
+        ) : (
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {matches.map((piece) => (
+              <div
+                key={piece.id}
+                className={`flex items-center gap-3 rounded-xl border border-hairline bg-ink-card p-3 ${
+                  piece.archived ? "opacity-50" : ""
+                }`}
+              >
+                <div
+                  className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg"
+                  style={{
+                    background: `radial-gradient(120% 90% at 50% 12%, ${piece.palette.wash}, #0b0b10 78%)`,
+                  }}
+                >
+                  <PieceImage piece={piece} className="h-10 w-auto" simple />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-medium">{piece.name}</p>
+                  <p className="truncate text-[11px] text-faint">
+                    {piece.setName || "—"} · {piece.scale} · {RARITY_LABEL[piece.rarity]}
+                    {piece.imageUrl ? "" : " · no photo"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={busy || working}
+                  onClick={() => void archive(piece)}
+                  className="shrink-0 rounded-lg border border-hairline px-3 py-1.5 text-[11px] text-muted transition-colors hover:border-white/30 hover:text-chalk disabled:opacity-40"
+                >
+                  {piece.archived ? "Restore" : "Archive"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+
+/**
+ * Sets an exact number of units. The quick buttons beside it are for topping
+ * up; this is for "I counted them, there are nineteen".
+ */
+function QuantityBox({
+  row,
+  busy,
+  onChange,
+}: {
+  row: ShelfRow;
+  busy: boolean;
+  onChange: (changes: Change[], message: string) => void;
+}) {
+  const [value, setValue] = useState(String(row.stocked));
+
+  // Follow the row when stock moves for any other reason.
+  useEffect(() => setValue(String(row.stocked)), [row.stocked]);
+
+  const commit = () => {
+    const units = Number(value);
+    if (!Number.isFinite(units) || units < 0 || Math.trunc(units) === row.stocked) {
+      setValue(String(row.stocked));
+      return;
+    }
+    onChange(
+      [{ pieceId: row.piece.id, op: "set", units: Math.trunc(units) }],
+      `Set ${row.piece.name} to ${Math.trunc(units)} units`,
+    );
+  };
+
+  return (
+    <input
+      type="number"
+      min={0}
+      inputMode="numeric"
+      value={value}
+      disabled={busy}
+      aria-label={`Units of ${row.piece.name}`}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+        if (e.key === "Escape") setValue(String(row.stocked));
+      }}
+      className="w-16 rounded-lg border border-hairline bg-ink px-2 py-1.5 text-right font-mono text-[11px] outline-none transition-colors focus:border-white/30 disabled:opacity-40"
+    />
+  );
 }

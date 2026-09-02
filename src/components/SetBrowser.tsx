@@ -11,7 +11,7 @@ import {
   seriesName,
 } from "@/lib/catalog";
 import type { Piece, Rarity, StockEntry } from "@/lib/types";
-import { BearbrickArt } from "./BearbrickArt";
+import { PieceImage } from "./PieceImage";
 import { PieceCard } from "./PieceCard";
 import { RarityChip, SectionLabel } from "./ui";
 
@@ -257,12 +257,9 @@ function PieceDetail({
                 background: `radial-gradient(120% 90% at 50% 10%, ${piece.palette.wash}, #0b0b10 76%)`,
               }}
             >
-              <BearbrickArt
-                uid={`detail-${piece.id}`}
-                palette={piece.palette}
-                pattern={piece.pattern}
+              <PieceImage
+                piece={piece}
                 className="h-56 w-auto drop-shadow-[0_18px_30px_rgba(0,0,0,0.6)]"
-                title={piece.name}
               />
             </div>
             <div className="space-y-4 p-6">

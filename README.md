@@ -60,36 +60,50 @@ of the code running at once. Instead it checks its tables exist and, if they do
 not, fails with the command to run. A database migrated while the app is
 already running recovers on the next request, without a restart.
 
-## Adding inventory
+## Your catalogue
 
-**Stock lives in the database and is managed at `/admin`.** No deploy, no code
-edit — the console is the restocking tool.
+**The shop sells the pieces you upload.** Nothing is generated: the catalogue is
+data you own, managed at `/admin`.
 
-- **Stock a whole series** in one click, which sets every piece in it to the
-  default unit count for its rarity. Applied as one batch, so a series never
-  lands half-stocked.
-- **Restock a piece** with +1 / +5 / +25 straight from the shelf table.
-- **Pull a piece** to take its remaining units off the shelf. Sales history
-  stays intact, so past orders still reconcile.
-- **Add a piece** that has never been stocked, from the full reference
-  catalogue.
-- **Read the change log** of every stock edit, newest first, grouped by the
-  click that made it — so stocking a series is one line, not fifteen. Each
-  entry records the units before and after, which is what lets you explain why
-  a shelf looks the way it does. Sales are deliberately absent: the orders
-  behind them are already the record of those units. The log keeps the most
-  recent 1,000 edits.
+### Uploading it
 
-`src/lib/inventory.ts` seeds the opening shelf the first time the app runs and
-is never consulted again. Editing it will not change a warehouse that has
-already been seeded — use the console.
+The Catalogue tab takes a CSV with a header row. Only two columns are required:
 
-### Getting into the console
+| column | required | notes |
+| --- | --- | --- |
+| `name` | yes | |
+| `scale` | yes | `100%` or `400%` — `100` and `400` also work |
+| `set` | no | whatever you call the set, e.g. "Series 47" |
+| `series` | no | a number, used to group the shelf |
+| `rarity` | no | common, uncommon, rare, ultra, secret, grail |
+| `image` | no | a photo URL, `http(s)` or site-relative |
+| `notes` | no | shown on the piece's detail sheet |
+| `quantity` | no | **stocks the piece in the same upload** |
 
-Set `ADMIN_PASSWORD` and the console asks for it. Leave it unset and the console
-is open in development, so you can try it with no setup, and refuses to load in
-production. An unprotected inventory editor on a public URL is not something
-anyone should get by accident.
+Header names are matched loosely, so `Name`, `Set Name`, `Size`, `Tier`,
+`Photo`, `QTY` and `Description` all land where you would expect. A template is
+downloadable from the console.
+
+Every upload is **previewed before it commits**: how many rows were read, which
+columns were understood, a sample, and a line-numbered complaint about anything
+rejected. A bad row is skipped rather than failing the whole file.
+
+Re-uploading updates pieces rather than duplicating them — pieces are keyed by
+`id`, which is derived from the name unless you supply your own. So a corrected
+export is safe to send again, and an `id` column of your own SKUs makes that
+exact.
+
+### Stocking it
+
+Uploading with a `quantity` puts pieces straight on the shelf. After that,
+the shelf table has an exact-quantity box for "I counted them, there are
+nineteen", quick +1/+5/+25 buttons for topping up, and Pull for taking the rest
+off the shelf.
+
+**Archiving** a piece withdraws it: it leaves the shop and can no longer be
+drawn, while its stock record and its past orders survive, so restoring it
+brings it back as it was. Verified by draining a whole shelf and confirming an
+archived piece was never once pulled.
 
 ### Pull rates are not set by hand
 
@@ -104,48 +118,28 @@ a restock is a bigger number, never a migration. Setting a total below what has
 already sold is floored at the sold count, because units that left the building
 cannot be un-shipped.
 
-## Accounts
+### Starting from nothing
 
-**Buying requires an account.** A box is a physical object that has to reach a
-person, so an order can never be tied to nothing but a cookie the buyer might
-clear before it ships.
+A fresh shop has an empty catalogue and sells nothing, which is correct — there
+is no invented stock to sell. Upload a CSV, or press **Load the demo catalogue**
+to fill it with 780 generated pieces so you can see the whole thing working
+before your own photography exists.
 
-Signing in is an emailed link — no passwords to store, reset or leak:
+## Admin accounts
 
-1. You enter an email. A single-use token is issued, stored only as a hash, and
-   valid for fifteen minutes. Requesting a new link retires the previous one.
-2. Opening the link redeems the token and starts a session. Redeeming checks
-   and consumes in one step, so a link cannot be used twice even if it is
-   opened twice at once.
-3. The session is an httpOnly cookie signed with `AUTH_SECRET`.
+Admin is a property of an account, reached through the same emailed sign-in as
+everyone else — there is no second password to share or leak. List the addresses
+in `ADMIN_EMAILS`:
 
-One account per address, compared case-insensitively and enforced by a unique
-index — not just by the code that reads it.
+```bash
+ADMIN_EMAILS=you@yourdomain.com,partner@yourdomain.com
+```
 
-A browser that collected anything before accounts existed has those orders
-moved onto the account the first time it signs in, so making an account never
-orphans a collection.
+An account is promoted the next time it signs in, so a newly listed address
+needs one fresh sign-in. Removing an address revokes admin the same way.
 
-### What sign-in needs configured
-
-- `AUTH_SECRET` — required in production. Without it the app refuses to sign
-  anyone in rather than falling back to the development key, which is published
-  in this repository. Generate one with `openssl rand -hex 32`.
-- **An email provider.** Set `RESEND_API_KEY` and `EMAIL_FROM` together and
-  sign-in links are sent for real, through
-  [Resend](https://resend.com). Set neither and `src/lib/email.ts` falls back to
-  a mock that logs the link to the server console; outside production it also
-  returns the link in the API response, so the flow is playable with no setup at
-  all. In production without a real sender, sign-in refuses — telling someone to
-  check their email when nothing was sent is worse than an error.
-
-  `EMAIL_FROM` has to be an address on a **domain you have verified with
-  Resend**, which means adding their DNS records. An unverified domain is the
-  usual first failure: Resend returns 403, the visitor gets "we could not send
-  that email just now", and the reason is named in the server log.
-
-  To use a different sender, write another `EmailProvider` and pick it in
-  `chooseProvider` — nothing else changes.
+With `ADMIN_EMAILS` unset the console is open in development, so it can be tried
+with no setup, and refuses to load in production.
 
 ## How a pull works
 
@@ -187,7 +181,9 @@ shelf is a different shelf.
 ```
 src/
   lib/
-    inventory.ts   # the opening shelf, used once to seed the warehouse
+    pieces.ts      # the shop's own catalogue, from the database
+    csv.ts         # catalogue import: parsing, aliasing, per-row validation
+    inventory.ts   # default quantities the console offers when stocking
     admin.ts       # who may read and change stock
     stock.ts       # live availability, odds, and atomic reservation
     catalog.ts     # the reference catalogue of every piece that exists,
@@ -237,10 +233,12 @@ src/
   address can be mailed repeatedly. Sessions cannot be revoked centrally
   either — signing out clears the cookie, but a stolen one stays valid until it
   expires. Both want doing before this takes money.
-- **Admin accounts.** The console is one shared password, not per-user logins.
-  The change log therefore records *what* changed and when, but never *who* —
-  there is no identity to record. Fine for one or two people; add real accounts
-  before a team relies on it, at which point the log gains an author column.
+- **Change log authorship.** Admin is now a real account, but the change log
+  still records only *what* changed and when. Adding the account id to each
+  entry is a small change worth making before more than one person is editing.
+- **Photo hosting.** Pieces reference an image URL; there is no upload-a-file
+  path, so photos need to live somewhere already. A URL that fails to load
+  falls back to the generated art rather than showing a broken image.
 
 ## Artwork
 

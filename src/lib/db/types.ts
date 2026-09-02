@@ -1,4 +1,11 @@
-import type { AuditBatch, Collector, Order, PoolSnapshot, Scale } from "../types";
+import type {
+  AuditBatch,
+  Collector,
+  Order,
+  Piece,
+  PoolSnapshot,
+  Scale,
+} from "../types";
 
 /**
  * The storage seam.
@@ -93,6 +100,9 @@ export interface Backend {
   /** Moves a browser's pre-account orders onto the account it signed into. */
   claimOrders(fromCollectorId: string, toCollectorId: string): Promise<number>;
 
+  /** Grants or revokes admin on an account. */
+  setAdmin(accountId: string, isAdmin: boolean): Promise<void>;
+
   /* orders */
   getOrder(id: string): Promise<Order | null>;
   listOrders(collectorId: string): Promise<Order[]>;
@@ -100,6 +110,14 @@ export interface Backend {
     id: string,
     patch: Partial<Omit<Order, "id" | "collectorId" | "pieceId">>,
   ): Promise<Order | null>;
+
+  /* catalogue */
+  /** Every piece the shop knows about, archived ones included. */
+  listPieces(): Promise<Piece[]>;
+  /** Creates or updates pieces by id, in one transaction. */
+  savePieces(pieces: readonly Piece[]): Promise<void>;
+  /** Archives or restores a piece without losing the orders that pulled it. */
+  setPieceArchived(pieceId: string, archived: boolean): Promise<Piece | null>;
 
   /* stock */
   stockRows(): Promise<StockRow[]>;

@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { formatOdds, oddsAsOneIn } from "@/lib/catalog";
 import type { Piece } from "@/lib/types";
-import { BearbrickArt } from "./BearbrickArt";
+import { PieceImage } from "./PieceImage";
 import { RarityChip } from "./ui";
 
 /** One tile on the shelf: the art, the name, the pull rate, and what is left. */
@@ -38,12 +38,9 @@ export function PieceCard({
           background: `radial-gradient(120% 90% at 50% 12%, ${piece.palette.wash}, #0b0b10 78%)`,
         }}
       >
-        <BearbrickArt
-          uid={piece.id}
-          palette={piece.palette}
-          pattern={piece.pattern}
+        <PieceImage
+          piece={piece}
           className="h-[7.5rem] w-auto drop-shadow-[0_10px_20px_rgba(0,0,0,0.55)] transition-transform duration-300 group-hover:scale-[1.06]"
-          title={piece.name}
         />
       </div>
 

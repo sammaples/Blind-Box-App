@@ -1,7 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { AuditBatch, AuditEntry, Collector, Order, Scale } from "../types";
+import type {
+  AuditBatch,
+  AuditEntry,
+  Collector,
+  Order,
+  Piece,
+  Scale,
+} from "../types";
 import type {
   Backend,
   BuildOrder,
@@ -29,13 +36,21 @@ interface LoginToken {
 
 interface Db {
   collectors: Collector[];
+  pieces: Piece[];
   loginTokens: LoginToken[];
   orders: Order[];
   stock: Record<string, { scale: Scale; stocked: number; sold: number }>;
   audit: AuditEntry[];
 }
 
-const EMPTY: Db = { collectors: [], loginTokens: [], orders: [], stock: {}, audit: [] };
+const EMPTY: Db = {
+  collectors: [],
+  pieces: [],
+  loginTokens: [],
+  orders: [],
+  stock: {},
+  audit: [],
+};
 const AUDIT_LIMIT = 1000;
 
 function blankCollector(id: string): Collector {
@@ -46,6 +61,7 @@ function blankCollector(id: string): Collector {
     createdAt: new Date().toISOString(),
     onboardedAt: null,
     lastLoginAt: null,
+    isAdmin: false,
   };
 }
 
@@ -68,6 +84,7 @@ export function createJsonBackend(): Backend {
       const parsed = JSON.parse(raw) as Partial<Db>;
       return {
         collectors: parsed.collectors ?? [],
+        pieces: parsed.pieces ?? [],
         loginTokens: parsed.loginTokens ?? [],
         orders: parsed.orders ?? [],
         stock: parsed.stock ?? {},
@@ -200,6 +217,37 @@ export function createJsonBackend(): Backend {
       });
     },
 
+    async listPieces() {
+      const db = await read();
+      return db.pieces;
+    },
+
+    async savePieces(pieces) {
+      await transact((db) => {
+        for (const piece of pieces) {
+          const index = db.pieces.findIndex((p) => p.id === piece.id);
+          if (index >= 0) db.pieces[index] = { ...db.pieces[index], ...piece };
+          else db.pieces.push(piece);
+        }
+      });
+    },
+
+    async setPieceArchived(pieceId, archived) {
+      return transact((db) => {
+        const piece = db.pieces.find((p) => p.id === pieceId);
+        if (!piece) return null;
+        piece.archived = archived;
+        return piece;
+      });
+    },
+
+    async setAdmin(accountId, isAdmin) {
+      await transact((db) => {
+        const account = db.collectors.find((c) => c.id === accountId);
+        if (account) account.isAdmin = isAdmin;
+      });
+    },
+
     async stockRows(): Promise<StockRow[]> {
       const db = await read();
       return Object.entries(db.stock).map(([pieceId, row]) => ({
@@ -212,8 +260,14 @@ export function createJsonBackend(): Backend {
 
     async reserve(scale, draw: Draw, build: BuildOrder): Promise<Reservation | null> {
       return transact((db) => {
+        const archived = new Set(
+          db.pieces.filter((p) => p.archived).map((p) => p.id),
+        );
         const available = Object.entries(db.stock)
-          .filter(([, row]) => row.scale === scale && row.stocked > row.sold)
+          .filter(
+            ([pieceId, row]) =>
+              row.scale === scale && row.stocked > row.sold && !archived.has(pieceId),
+          )
           .map(([pieceId, row]) => [pieceId, row.stocked - row.sold] as const)
           .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
 
@@ -221,7 +275,7 @@ export function createJsonBackend(): Backend {
 
         const { pieceId, seed, rollValue } = draw(available);
         const row = db.stock[pieceId];
-        if (!row || row.stocked <= row.sold) return null;
+        if (!row || row.stocked <= row.sold || archived.has(pieceId)) return null;
 
         row.sold += 1;
         const order = build({ pieceId, seed, rollValue, poolSnapshot: available });

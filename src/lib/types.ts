@@ -41,6 +41,10 @@ export interface Piece {
   /** Relative draw weight inside its own pool. Never a probability by itself. */
   weight: number;
   blurb: string;
+  /** A real photograph, when one has been uploaded. Falls back to vector art. */
+  imageUrl: string | null;
+  /** Set when the piece has been removed from the catalogue. */
+  archived: boolean;
 }
 
 /** A piece on the shelf: how many were stocked, how many are left, and the
@@ -153,4 +157,5 @@ export interface Collector {
   createdAt: string;
   onboardedAt: string | null;
   lastLoginAt: string | null;
+  isAdmin: boolean;
 }

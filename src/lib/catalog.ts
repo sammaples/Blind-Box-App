@@ -324,6 +324,8 @@ function buildPiece(seriesNo: number, spec: TypeSpec, index: number): Piece {
     palette: paletteFor(theme.hue, spec, key),
     weight: spec.weights[index],
     blurb: pick(BLURBS[spec.type] ?? BLURBS.Basic, key),
+    imageUrl: null,
+    archived: false,
   };
 }
 
@@ -417,6 +419,8 @@ export const BIG_PIECES: readonly Piece[] = BIG_SPECS.map((spec, i) => ({
   }, `big-${spec.name}`),
   weight: spec.weight,
   blurb: spec.blurb,
+  imageUrl: null,
+  archived: false,
 }));
 
 /* ------------------------------------------------------------------ *

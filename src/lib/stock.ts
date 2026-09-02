@@ -1,8 +1,8 @@
 import "server-only";
-import { getPiece, getProduct } from "./catalog";
+import { getProduct } from "./catalog";
 import { backend } from "./db";
 import type { BuildOrder, Draw, StockChange } from "./db/types";
-import { seedStock } from "./inventory";
+import { pieceMap } from "./pieces";
 import type { AuditBatch, Piece, StockEntry } from "./types";
 
 /**
@@ -14,31 +14,6 @@ import type { AuditBatch, Piece, StockEntry } from "./types";
  * from src/lib/inventory.ts and never again.
  */
 
-let seeded: Promise<void> | null = null;
-
-/**
- * Seeds an untouched warehouse from the opening inventory, once per process.
- *
- * A failed attempt clears itself rather than being cached: a database that is
- * briefly unreachable, or not yet migrated, must not leave the process unable
- * to serve a shelf for the rest of its life.
- */
-function ensureSeeded(): Promise<void> {
-  seeded ??= (async () => {
-    const units = new Map<string, { scale: Piece["scale"]; units: number }>();
-    for (const [pieceId, count] of seedStock()) {
-      const piece = getPiece(pieceId);
-      if (piece) units.set(pieceId, { scale: piece.scale, units: count });
-    }
-    await backend().seed(units);
-  })().catch((err: unknown) => {
-    seeded = null;
-    throw err;
-  });
-
-  return seeded;
-}
-
 export interface WarehouseRow {
   piece: Piece;
   stocked: number;
@@ -48,13 +23,15 @@ export interface WarehouseRow {
 
 /** Every piece the warehouse has a record of, stocked or sold out. */
 export async function warehouse(): Promise<WarehouseRow[]> {
-  await ensureSeeded();
-  const rows = await backend().stockRows();
+  const [rows, pieces] = await Promise.all([backend().stockRows(), pieceMap()]);
 
   const out: WarehouseRow[] = [];
   for (const row of rows) {
-    const piece = getPiece(row.pieceId);
-    if (!piece) continue;
+    // Archived pieces leave the shelf entirely: withdrawing a piece has to
+    // mean it cannot be sold, not merely that it is hidden. Their stock rows
+    // survive, so restoring one brings it back exactly as it was.
+    const piece = pieces.get(row.pieceId);
+    if (!piece || piece.archived) continue;
     out.push({
       piece,
       stocked: row.stocked,
@@ -98,7 +75,6 @@ export async function unitsLeft(productId: string): Promise<number> {
 export async function reserve(productId: string, draw: Draw, build: BuildOrder) {
   const product = getProduct(productId);
   if (!product) return null;
-  await ensureSeeded();
   return backend().reserve(product.scale, draw, build);
 }
 
@@ -124,11 +100,11 @@ export interface AdminStockChange {
  *          intact so past orders still reconcile.
  */
 export async function applyStockChanges(changes: readonly AdminStockChange[]) {
-  await ensureSeeded();
+  const pieces = await pieceMap();
 
   const resolved: StockChange[] = [];
   for (const change of changes) {
-    const piece = getPiece(change.pieceId);
+    const piece = pieces.get(change.pieceId);
     if (!piece) continue;
     resolved.push({ ...change, scale: piece.scale });
   }
@@ -140,6 +116,5 @@ export const AUDIT_LIMIT = 1000;
 
 /** The most recent inventory edits as batch summaries, newest first. */
 export async function recentAudit(limit = 60): Promise<AuditBatch[]> {
-  await ensureSeeded();
   return backend().recentAudit(Math.max(1, Math.min(limit, AUDIT_LIMIT)));
 }

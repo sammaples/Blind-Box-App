@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { findPiece } from "@/lib/pieces";
 import { publicOrder } from "@/lib/serialize";
 import { currentCollectorId } from "@/lib/auth";
 import { getOrder, updateOrder } from "@/lib/store";
@@ -20,13 +21,16 @@ export async function POST(
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
-  if (order.status === "paid") {
-    const revealed = await updateOrder(order.id, {
-      status: "revealed",
-      revealedAt: new Date().toISOString(),
-    });
-    if (revealed) return NextResponse.json({ order: publicOrder(revealed) });
-  }
+  const revealed =
+    order.status === "paid"
+      ? ((await updateOrder(order.id, {
+          status: "revealed",
+          revealedAt: new Date().toISOString(),
+        })) ?? order)
+      : order;
 
-  return NextResponse.json({ order: publicOrder(order) });
+  // The piece travels with the response: the catalogue lives in the database
+  // now, so the browser has no way to look one up for itself.
+  const piece = await findPiece(revealed.pieceId);
+  return NextResponse.json({ order: publicOrder(revealed), piece });
 }

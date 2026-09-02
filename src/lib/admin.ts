@@ -1,68 +1,68 @@
 import "server-only";
-import { createHmac, timingSafeEqual } from "node:crypto";
-import { cookies } from "next/headers";
+import { currentAccountId } from "./auth";
+import { backend } from "./db";
+import type { Collector } from "./types";
 
 /**
  * Admin access.
  *
- * Set ADMIN_PASSWORD and the console asks for it. Leave it unset and the
- * console is open in development (so you can try it with no setup) and refuses
- * to load in production — an unprotected inventory editor on a public URL is
- * not a default anyone should get by accident.
+ * Admin is a property of an account, reached through the same emailed sign-in
+ * as everyone else — there is no second password to share or leak. List the
+ * addresses that should have it in ADMIN_EMAILS; an account is promoted the
+ * next time it signs in.
+ *
+ * With ADMIN_EMAILS unset the console is open in development, so it can be
+ * tried with no setup, and refuses to load in production. An unprotected
+ * inventory editor on a public URL should never be the accidental default.
  */
 
-const COOKIE = "bb_admin";
-
-export type AdminMode = "password" | "open" | "disabled";
+export type AdminMode = "accounts" | "open" | "disabled";
 
 export function adminMode(): AdminMode {
-  if (process.env.ADMIN_PASSWORD) return "password";
+  if (adminEmails().size > 0) return "accounts";
   return process.env.NODE_ENV === "production" ? "disabled" : "open";
 }
 
-/** The cookie value proving a correct password, derived from the password. */
-function token(password: string): string {
-  return createHmac("sha256", password).update("bb-admin-v1").digest("hex");
+/** The addresses allowed to administer the shop, lowercased. */
+export function adminEmails(): Set<string> {
+  return new Set(
+    (process.env.ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((value) => value.trim().toLowerCase())
+      .filter((value) => value !== ""),
+  );
 }
 
-function sameToken(a: string, b: string): boolean {
-  const left = Buffer.from(a);
-  const right = Buffer.from(b);
-  return left.length === right.length && timingSafeEqual(left, right);
+/** Whether this address should hold admin, by configuration. */
+export function shouldBeAdmin(email: string | null): boolean {
+  if (!email) return false;
+  return adminEmails().has(email.trim().toLowerCase());
 }
 
-export function checkPassword(candidate: unknown): boolean {
-  const expected = process.env.ADMIN_PASSWORD;
-  if (!expected || typeof candidate !== "string") return false;
-  return sameToken(token(candidate), token(expected));
+/**
+ * Brings an account's admin flag in line with ADMIN_EMAILS. Called on sign-in,
+ * so adding or removing an address takes effect the next time they sign in
+ * rather than needing a database edit.
+ */
+export async function syncAdmin(account: Collector): Promise<Collector> {
+  if (adminMode() !== "accounts") return account;
+
+  const expected = shouldBeAdmin(account.email);
+  if (expected === account.isAdmin) return account;
+
+  await backend().setAdmin(account.id, expected);
+  return { ...account, isAdmin: expected };
 }
 
-export async function grantSession(): Promise<void> {
-  const password = process.env.ADMIN_PASSWORD;
-  if (!password) return;
-  const jar = await cookies();
-  jar.set(COOKIE, token(password), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 12,
-  });
-}
-
-export async function revokeSession(): Promise<void> {
-  const jar = await cookies();
-  jar.delete(COOKIE);
-}
-
-/** Whether the current request may read or change inventory. */
+/** Whether the current request may read or change the shop's inventory. */
 export async function isAdmin(): Promise<boolean> {
   const mode = adminMode();
   if (mode === "disabled") return false;
   if (mode === "open") return true;
 
-  const jar = await cookies();
-  const present = jar.get(COOKIE)?.value;
-  const expected = token(process.env.ADMIN_PASSWORD!);
-  return !!present && sameToken(present, expected);
+  const accountId = await currentAccountId();
+  if (!accountId) return false;
+
+  const account = await backend().upsertCollector(accountId, {});
+  return account.isAdmin === true;
 }

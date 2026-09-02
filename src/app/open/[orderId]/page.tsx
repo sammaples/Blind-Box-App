@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { OpenExperience } from "@/components/OpenExperience";
-import { getPiece, getProduct } from "@/lib/catalog";
+import { getProduct } from "@/lib/catalog";
+import { findPiece } from "@/lib/pieces";
 import { publicOrder } from "@/lib/serialize";
 import { currentCollectorId } from "@/lib/auth";
 import { getOrder } from "@/lib/store";
@@ -26,7 +27,7 @@ export default async function OpenPage({
 
   const view = publicOrder(order);
   // Sealed orders hand the client nothing; the piece only arrives on reveal.
-  const piece = view.pieceId ? (getPiece(view.pieceId) ?? null) : null;
+  const piece = view.pieceId ? await findPiece(view.pieceId) : null;
 
   return (
     <>

@@ -2,15 +2,9 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useMemo, useState } from "react";
-import {
-  formatOdds,
-  getPiece,
-  oddsAsOneIn,
-  RARITY_COLOR,
-  RARITY_LABEL,
-} from "@/lib/catalog";
+import { formatOdds, oddsAsOneIn, RARITY_COLOR, RARITY_LABEL } from "@/lib/catalog";
 import type { Piece, Product } from "@/lib/types";
-import { BearbrickArt } from "./BearbrickArt";
+import { PieceImage } from "./PieceImage";
 import { RarityChip } from "./ui";
 
 type Stage = "sealed" | "shaking" | "burst" | "reveal";
@@ -61,7 +55,8 @@ export function BoxOpening({
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Could not open this box");
 
-      const pulled = data.order?.pieceId ? getPiece(data.order.pieceId) : null;
+      // The piece comes back with the reveal; the catalogue is server-side.
+      const pulled = (data.piece ?? null) as Piece | null;
       if (!pulled) throw new Error("This order is missing its piece");
 
       await settle;
@@ -147,14 +142,11 @@ export function BoxOpening({
                 animate={{ opacity: 0.22, scaleY: 1 }}
                 transition={{ duration: 1.1 }}
               />
-              <BearbrickArt
-                uid={`reveal-${piece.id}`}
-                palette={piece.palette}
-                pattern={piece.pattern}
+              <PieceImage
+                piece={piece}
                 className={`relative h-72 w-auto drop-shadow-[0_24px_40px_rgba(0,0,0,0.65)] sm:h-80 ${
                   reducedMotion ? "" : "float-soft"
                 }`}
-                title={piece.name}
               />
             </motion.div>
           )}

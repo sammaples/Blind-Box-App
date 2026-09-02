@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { BearbrickArt } from "@/components/BearbrickArt";
+import { PieceImage } from "@/components/PieceImage";
 import { RarityChip } from "@/components/ui";
-import { formatOdds, getPiece, getProduct, RARITY_ORDER } from "@/lib/catalog";
+import { formatOdds, getProduct, RARITY_ORDER } from "@/lib/catalog";
+import { pieceMap } from "@/lib/pieces";
 import { oddsFromSnapshot } from "@/lib/serialize";
 import { currentCollectorId } from "@/lib/auth";
 import { listOrders } from "@/lib/store";
@@ -20,10 +21,11 @@ const STATUS_LABEL: Record<string, string> = {
 export default async function CollectionPage() {
   const collectorId = await currentCollectorId();
   const orders = collectorId ? await listOrders(collectorId) : [];
+  const pieces = await pieceMap();
 
   const pulls = orders.flatMap((order) => {
     if (order.status === "paid") return [];
-    const piece = getPiece(order.pieceId);
+    const piece = pieces.get(order.pieceId);
     if (!piece) return [];
     // The rate this piece had on the shelf it came off, not on today's shelf.
     const odds = oddsFromSnapshot(order.poolSnapshot ?? [], order.pieceId);
@@ -149,13 +151,7 @@ function PullRow({
           background: `radial-gradient(120% 90% at 50% 12%, ${piece.palette.wash}, #0b0b10 78%)`,
         }}
       >
-        <BearbrickArt
-          uid={`coll-${piece.id}`}
-          palette={piece.palette}
-          pattern={piece.pattern}
-          className="h-20 w-auto"
-          title={piece.name}
-        />
+        <PieceImage piece={piece} className="h-20 w-auto" />
       </div>
 
       <div className="min-w-0 flex-1">

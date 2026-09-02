@@ -1,6 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
-import type { AuditBatch, AuditEntry, Collector, Order, Scale } from "../types";
+import type {
+  AuditBatch,
+  AuditEntry,
+  Collector,
+  Order,
+  PatternKind,
+  Piece,
+  Rarity,
+  Scale,
+} from "../types";
 import type {
   Backend,
   BuildOrder,
@@ -51,6 +60,7 @@ function toCollector(r: Row): Collector {
     createdAt: (r.created_at as Date).toISOString(),
     onboardedAt: r.onboarded_at ? (r.onboarded_at as Date).toISOString() : null,
     lastLoginAt: r.last_login_at ? (r.last_login_at as Date).toISOString() : null,
+    isAdmin: r.is_admin === true,
   };
 }
 
@@ -89,6 +99,45 @@ function toBatch(r: Row): AuditBatch {
             sold: Number(r.sold),
           }
         : null,
+  };
+}
+
+/**
+ * Uploaded pieces have a photograph and no generated artwork, so the fields the
+ * vector fallback needs are derived rather than stored — a shop should not have
+ * to pick an SVG pattern for a figure it has a picture of.
+ */
+function toPiece(r: Row): Piece {
+  const rarity = r.rarity as Rarity;
+  const palettes: Record<Rarity, { base: string; accent: string }> = {
+    common: { base: "hsl(210 12% 62%)", accent: "hsl(210 14% 44%)" },
+    uncommon: { base: "hsl(160 45% 52%)", accent: "hsl(160 40% 36%)" },
+    rare: { base: "hsl(214 72% 62%)", accent: "hsl(214 60% 44%)" },
+    ultra: { base: "hsl(276 62% 66%)", accent: "hsl(276 52% 48%)" },
+    secret: { base: "hsl(43 88% 58%)", accent: "hsl(38 76% 44%)" },
+    grail: { base: "hsl(350 82% 66%)", accent: "hsl(350 66% 48%)" },
+  };
+  const tone = palettes[rarity] ?? palettes.common;
+
+  return {
+    id: r.id as string,
+    name: r.name as string,
+    setName: (r.set_name as string) || "",
+    series: r.series === null || r.series === undefined ? null : Number(r.series),
+    type: "",
+    scale: r.scale as Scale,
+    rarity,
+    pattern: "solid" as PatternKind,
+    palette: {
+      base: tone.base,
+      accent: tone.accent,
+      detail: "hsl(210 20% 96%)",
+      wash: "hsl(220 24% 11%)",
+    },
+    weight: 1,
+    blurb: (r.notes as string) ?? "",
+    imageUrl: (r.image_url as string | null) ?? null,
+    archived: r.archived_at !== null && r.archived_at !== undefined,
   };
 }
 
@@ -271,6 +320,62 @@ export function createPostgresBackend(connectionString: string): Backend {
       return rows[0] ? toOrder(rows[0]) : null;
     },
 
+    async listPieces() {
+      const { rows } = await query("select * from catalog_pieces order by name");
+      return rows.map(toPiece);
+    },
+
+    async savePieces(pieces) {
+      await withTx(async (client) => {
+        for (const p of pieces) {
+          await client.query(
+            `insert into catalog_pieces
+               (id, name, set_name, series, scale, rarity, image_url, notes, archived_at)
+             values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+             on conflict (id) do update set
+               name       = excluded.name,
+               set_name   = excluded.set_name,
+               series     = excluded.series,
+               scale      = excluded.scale,
+               rarity     = excluded.rarity,
+               image_url  = excluded.image_url,
+               notes      = excluded.notes,
+               updated_at = now()`,
+            [
+              p.id,
+              p.name,
+              p.setName,
+              p.series,
+              p.scale,
+              p.rarity,
+              p.imageUrl,
+              p.blurb,
+              p.archived ? new Date().toISOString() : null,
+            ],
+          );
+        }
+      });
+    },
+
+    async setPieceArchived(pieceId, archived) {
+      const { rows } = await query(
+        `update catalog_pieces
+            set archived_at = case when $2 then now() else null end,
+                updated_at = now()
+          where id = $1
+      returning *`,
+        [pieceId, archived],
+      );
+      return rows[0] ? toPiece(rows[0]) : null;
+    },
+
+    async setAdmin(accountId, isAdmin) {
+      await query("update collectors set is_admin = $2 where id = $1", [
+        accountId,
+        isAdmin,
+      ]);
+    },
+
     async stockRows(): Promise<StockRow[]> {
       const { rows } = await query("select * from stock");
       return rows.map((r) => ({
@@ -287,11 +392,16 @@ export function createPostgresBackend(connectionString: string): Backend {
         // the length of the transaction. Buyers of one shelf serialise; buyers
         // of different shelves do not block each other.
         const { rows } = await client.query(
-          `select piece_id, stocked - sold as available
-             from stock
-            where scale = $1 and stocked > sold
-            order by piece_id
-              for update`,
+          // Joined to the catalogue so an archived piece can never be drawn.
+          // Locking is FOR UPDATE OF s: the draw needs the stock rows held,
+          // not the catalogue, which must stay editable meanwhile.
+          `select s.piece_id, s.stocked - s.sold as available
+             from stock s
+             join catalog_pieces c
+               on c.id = s.piece_id and c.archived_at is null
+            where s.scale = $1 and s.stocked > s.sold
+            order by s.piece_id
+              for update of s`,
           [scale],
         );
         if (rows.length === 0) return null;
@@ -302,7 +412,13 @@ export function createPostgresBackend(connectionString: string): Backend {
         const { pieceId, seed, rollValue } = draw(snapshot);
 
         const taken = await client.query(
-          "update stock set sold = sold + 1 where piece_id = $1 and stocked > sold",
+          `update stock set sold = sold + 1
+            where piece_id = $1
+              and stocked > sold
+              and exists (
+                select 1 from catalog_pieces c
+                 where c.id = stock.piece_id and c.archived_at is null
+              )`,
           [pieceId],
         );
         if (taken.rowCount === 0) return null;

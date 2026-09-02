@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { AdminConsole } from "@/components/AdminConsole";
-import { AdminLogin } from "@/components/AdminLogin";
 import { adminMode, isAdmin } from "@/lib/admin";
-import { ALL_PIECES } from "@/lib/catalog";
+import { allPieces } from "@/lib/pieces";
 import { recentAudit, warehouse } from "@/lib/stock";
 
 export const dynamic = "force-dynamic";
@@ -17,9 +16,10 @@ export default async function AdminPage() {
       <Shell>
         <h1 className="text-2xl font-semibold tracking-tight">Console is switched off</h1>
         <p className="mt-3 text-sm leading-relaxed text-muted">
-          Set an <code className="font-mono text-chalk">ADMIN_PASSWORD</code> environment
-          variable and restart to enable it. Without one, the console refuses to load in
-          production rather than leaving inventory editable by anyone who finds the URL.
+          List the addresses that should administer this shop in{" "}
+          <code className="font-mono text-chalk">ADMIN_EMAILS</code> and restart. Without
+          that, the console refuses to load in production rather than leaving inventory
+          editable by anyone who finds the URL.
         </p>
       </Shell>
     );
@@ -28,20 +28,36 @@ export default async function AdminPage() {
   if (!(await isAdmin())) {
     return (
       <Shell>
-        <AdminLogin />
+        <h1 className="text-2xl font-semibold tracking-tight">Not your shop</h1>
+        <p className="mt-3 text-sm leading-relaxed text-muted">
+          The inventory console is limited to admin accounts. Sign in with an address
+          listed in <code className="font-mono text-chalk">ADMIN_EMAILS</code>, then come
+          back — admin is applied at sign-in, so a newly listed address needs one fresh
+          sign-in before it takes effect.
+        </p>
+        <Link
+          href="/"
+          className="mt-6 inline-block rounded-full bg-chalk px-6 py-3 text-sm font-semibold text-ink"
+        >
+          Back to the shop
+        </Link>
       </Shell>
     );
   }
 
-  const [rows, audit] = await Promise.all([warehouse(), recentAudit()]);
+  const [rows, audit, catalogue] = await Promise.all([
+    warehouse(),
+    recentAudit(),
+    allPieces(),
+  ]);
   const stock = Object.fromEntries(
     rows.map((row) => [row.piece.id, { stocked: row.stocked, sold: row.sold }]),
   );
 
   return (
     <AdminConsole
-      // The full reference catalogue, so anything can be brought onto a shelf.
-      pieces={ALL_PIECES.map((p) => ({
+      // The shop's own catalogue, uploaded and edited here.
+      pieces={catalogue.map((p) => ({
         id: p.id,
         name: p.name,
         setName: p.setName,
@@ -50,6 +66,8 @@ export default async function AdminPage() {
         rarity: p.rarity,
         pattern: p.pattern,
         palette: p.palette,
+        imageUrl: p.imageUrl,
+        archived: p.archived,
       }))}
       stock={stock}
       audit={audit}
