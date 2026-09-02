@@ -41,6 +41,7 @@ export function PieceCard({
         <PieceImage
           piece={piece}
           className="h-[7.5rem] w-auto drop-shadow-[0_10px_20px_rgba(0,0,0,0.55)] transition-transform duration-300 group-hover:scale-[1.06]"
+          thumb
         />
       </div>
 

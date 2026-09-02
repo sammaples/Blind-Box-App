@@ -132,6 +132,37 @@ file type is read from the file's own leading bytes rather than from what the
 browser claims, and SVG is refused outright — it is XML that can carry script,
 and these are served from the same origin as the session cookie.
 
+### What happens to an uploaded photo
+
+A phone camera produces a 4000-pixel, six-megabyte JPEG; the shop draws it at
+about 200 pixels. Every upload is resized once on the way in, and the original
+is not kept:
+
+| | in | out |
+|---|---|---|
+| phone photo | 4032×3024, 6.2 MB | 1400×1050 WebP, 188 KB |
+| already web-sized | 280×280, 24 KB | untouched |
+
+Quality is the constraint, not the file size. Nothing is ever enlarged, the
+resample is Lanczos 3, and the re-encode is WebP at quality 90 — measured
+against a lossless downscale of the same photo, quality 90 scores 35.1 dB PSNR
+at 132 KB while quality 95 costs 285 KB for 36.1 dB. That extra decibel is not
+visible; the doubled page weight is. If a file needed no resizing and our
+encode came out no smaller, the upload is kept as it arrived.
+
+Three details that are easy to get wrong and were: the EXIF orientation flag is
+applied before it is discarded, or every portrait photo taken on a phone arrives
+on its side; animated GIFs keep all their frames rather than collapsing to a
+still; and a decoded-pixel ceiling refuses the small PNG that expands to 40,000
+pixels square, which is otherwise a way to take the server's memory with one
+upload.
+
+A second, 320-pixel rendition is stored alongside for list views — the catalogue
+draws up to 120 photos at 48 pixels each — and is skipped when the photo was
+already small enough for it to be a duplicate. Metadata is not carried across,
+so the GPS coordinates a phone writes into a photo do not end up published with
+a picture taken at home.
+
 ### Stocking what you have
 
 Stock is managed by hand, because being in stock on every series at once is not

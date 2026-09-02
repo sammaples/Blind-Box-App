@@ -151,7 +151,7 @@ function PullRow({
           background: `radial-gradient(120% 90% at 50% 12%, ${piece.palette.wash}, #0b0b10 78%)`,
         }}
       >
-        <PieceImage piece={piece} className="h-20 w-auto" />
+        <PieceImage piece={piece} className="h-20 w-auto" thumb />
       </div>
 
       <div className="min-w-0 flex-1">

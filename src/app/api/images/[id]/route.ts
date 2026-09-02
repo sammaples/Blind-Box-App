@@ -1,5 +1,5 @@
 import { backend } from "@/lib/db";
-import { isImageId } from "@/lib/images";
+import { baseIdFor, isImageId } from "@/lib/images";
 
 /**
  * Serves an uploaded product photo.
@@ -22,7 +22,14 @@ export async function GET(
   const { id } = await params;
   if (!isImageId(id)) return new Response("Not found", { status: 404 });
 
-  const image = await backend().getImage(id);
+  let image = await backend().getImage(id);
+
+  // A thumbnail that was never made falls back to the full photo. Listings
+  // uploaded before thumbnails existed have only one rendition, and showing
+  // those a little larger than needed beats showing a broken image.
+  const base = baseIdFor(id);
+  if (!image && base !== id) image = await backend().getImage(base);
+
   if (!image) return new Response("Not found", { status: 404 });
 
   return new Response(new Uint8Array(image.bytes), {

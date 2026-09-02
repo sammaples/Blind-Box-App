@@ -28,6 +28,26 @@ const SCALE_CHOICES: { scale: Scale; label: string; note: string; accent: string
   },
 ];
 
+/** What the server did to the file, so the resize is not a silent change. */
+interface ResizeReport {
+  width: number;
+  height: number;
+  bytes: number;
+  source: { width: number; height: number; bytes: number };
+}
+
+function describeResize({ width, height, bytes, source }: ResizeReport): string {
+  const size = (n: number) =>
+    n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.round(n / 1024)} KB`;
+
+  const resized = width !== source.width || height !== source.height;
+  const dimensions = resized
+    ? `${source.width}×${source.height} → ${width}×${height}`
+    : `${width}×${height}, already web-sized`;
+
+  return `${dimensions} · ${size(source.bytes)} → ${size(bytes)}`;
+}
+
 export interface NewProduct {
   id: string;
   name: string;
@@ -50,6 +70,7 @@ export function AddProduct({
   const [quantity, setQuantity] = useState("");
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [resize, setResize] = useState<ResizeReport | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,9 +86,11 @@ export function AddProduct({
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "That photo would not upload");
       setImageUrl(data.url as string);
+      setResize(data as ResizeReport);
     } catch (err) {
       setError(err instanceof Error ? err.message : "That photo would not upload");
       setImageUrl(null);
+      setResize(null);
     } finally {
       setUploading(false);
     }
@@ -206,16 +229,26 @@ export function AddProduct({
             {imageUrl && (
               <button
                 type="button"
-                onClick={() => setImageUrl(null)}
+                onClick={() => {
+                  setImageUrl(null);
+                  setResize(null);
+                }}
                 className="rounded-lg border border-hairline px-3 py-2 text-[12px] text-muted transition-colors hover:border-white/30 hover:text-chalk"
               >
                 Clear
               </button>
             )}
           </div>
-          <p className="mt-2 text-[11px] leading-relaxed text-faint">
-            JPEG, PNG, GIF or WebP. Without one the shop draws the piece instead.
-          </p>
+          {resize ? (
+            <p className="mt-2 text-[11px] leading-relaxed text-faint">
+              {describeResize(resize)}
+            </p>
+          ) : (
+            <p className="mt-2 text-[11px] leading-relaxed text-faint">
+              JPEG, PNG, GIF or WebP. Large photos are resized for the web; the
+              original is not kept.
+            </p>
+          )}
         </div>
 
         {/* details */}

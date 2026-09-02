@@ -413,7 +413,7 @@ function ShelfTable({
                       background: `radial-gradient(120% 90% at 50% 12%, ${row.piece.palette.wash}, #0b0b10 78%)`,
                     }}
                   >
-                    <PieceImage piece={row.piece} className="h-8 w-auto" simple />
+                    <PieceImage piece={row.piece} className="h-8 w-auto" simple thumb />
                   </div>
                   <div className="min-w-0">
                     <p className="truncate font-medium">{row.piece.name}</p>
@@ -557,7 +557,7 @@ function AddPieces({
                   background: `radial-gradient(120% 90% at 50% 12%, ${piece.palette.wash}, #0b0b10 78%)`,
                 }}
               >
-                <PieceImage piece={piece} className="h-9 w-auto" simple />
+                <PieceImage piece={piece} className="h-9 w-auto" simple thumb />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-medium">{piece.name}</p>
@@ -1151,7 +1151,7 @@ function CatalogueRow({
             background: `radial-gradient(120% 90% at 50% 12%, ${piece.palette.wash}, #0b0b10 78%)`,
           }}
         >
-          <PieceImage piece={piece} className="h-10 w-auto" simple />
+          <PieceImage piece={piece} className="h-10 w-auto" simple thumb />
         </div>
 
         <div className="min-w-0 flex-1">
