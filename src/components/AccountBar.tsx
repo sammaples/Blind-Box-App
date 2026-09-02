@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
@@ -8,6 +9,8 @@ import type { ReactNode } from "react";
 export interface Account {
   id: string;
   email: string | null;
+  /** Whether this account may reach the inventory console. */
+  isAdmin: boolean;
 }
 
 interface AccountState {
@@ -100,6 +103,49 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * The way into the inventory console from inside the app.
+ *
+ * Shown only to accounts that can actually use it — an owner should not have to
+ * remember a URL to restock, and everyone else should not be invited to a door
+ * that will refuse them. It is the console's own answer being asked here, not a
+ * second guess at it, so this can never offer a link that then rejects you.
+ *
+ * On a phone it keeps the icon and drops the word, because the header has three
+ * other things in it and 360 pixels to fit them in.
+ */
+export function AdminLink() {
+  const { account } = useAccount();
+  if (!account?.isAdmin) return null;
+
+  return (
+    <Link
+      href="/admin"
+      title="Inventory console"
+      className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-muted transition-colors hover:bg-white/8 hover:text-chalk sm:px-3"
+    >
+      <svg viewBox="0 0 16 16" aria-hidden className="size-4">
+        <path
+          d="M2 5.2 8 2l6 3.2v5.6L8 14l-6-3.2V5.2Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M2 5.2 8 8.4l6-3.2M8 8.4V14"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <span className="hidden sm:inline">Inventory</span>
+      <span className="sr-only sm:hidden">Inventory console</span>
+    </Link>
+  );
+}
+
 /** Header control: sign in, or the address you are signed in as. */
 export function AccountButton() {
   const { account, loading, signIn, signOut } = useAccount();
@@ -126,7 +172,7 @@ export function AccountButton() {
       <button
         type="button"
         onClick={() => void signOut()}
-        className="rounded-full border border-hairline px-3 py-1.5 text-xs text-muted transition-colors hover:border-white/30 hover:text-chalk"
+        className="whitespace-nowrap rounded-full border border-hairline px-3 py-1.5 text-xs text-muted transition-colors hover:border-white/30 hover:text-chalk"
       >
         Sign out
       </button>

@@ -166,11 +166,20 @@ a picture taken at home.
 ### Stocking what you have
 
 Stock is managed by hand, because being in stock on every series at once is not
-how this works. Open a product in the catalogue and it expands to a quantity
-box: type a number, press **Add to shelf**, and the count beside the row moves
-straight away — as do the published pull rates, since a rate is only ever a
-piece's share of the units left. **Pull from shelf** takes the rest of a piece's
-units back out of the draw without touching what has already sold.
+how this works. The catalogue is a wall of product shots — two to a row on a
+phone, four on a desktop — each carrying the two facts that matter: how rare the
+piece is, and whether it is currently in the pool. Tap one and a sheet opens
+with a quantity stepper and the arithmetic already done: *adding 12 puts this
+piece at 28.6% of the 100% shelf*. The count moves the moment the change lands,
+and so do the published rates, since a rate is only ever a piece's share of the
+units left. **Take out of the pool** removes a piece's remaining units from the
+draw without touching what has already sold, and **Set exact count** is there
+for "I recounted the shelf and there are nineteen".
+
+The console is reachable from inside the app: admin accounts get an
+**Inventory** link in the header. Everyone else does not see it, and would be
+refused at the door anyway — it is the console's own access check being asked,
+not a second guess at it.
 
 ### Starting from nothing
 

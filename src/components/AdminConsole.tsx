@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AddProduct, type NewProduct } from "@/components/AddProduct";
+import { CatalogueGrid } from "@/components/CatalogueGrid";
 import { PieceImage } from "@/components/PieceImage";
 import { RarityChip } from "@/components/ui";
 import { formatOdds, RARITY_LABEL, RARITY_ORDER } from "@/lib/catalog";
@@ -179,16 +180,21 @@ export function AdminConsole({
   };
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 py-10 sm:px-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 sm:py-10">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl">
           <Link href="/" className="text-xs text-faint transition-colors hover:text-muted">
             ← Back to the shop
           </Link>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight">Inventory</h1>
-          <p className="mt-1.5 text-sm text-muted">
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
+            Inventory
+          </h1>
+          <p className="mt-1.5 hidden text-sm text-muted sm:block">
             Stock is the product. Change what is on a shelf and the published pull rates
             move with it, because a rate is just a piece&apos;s share of the units left.
+          </p>
+          <p className="mt-1.5 text-[13px] text-muted sm:hidden">
+            Stock is the product — change it and the pull rates move with it.
           </p>
         </div>
       </div>
@@ -220,7 +226,7 @@ export function AdminConsole({
         ))}
       </div>
 
-      <dl className="mt-5 grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-4">
+      <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-4">
         <Stat label="Pieces in stock" value={inStock.toLocaleString()} />
         <Stat label="Units available" value={unitsLeft.toLocaleString()} />
         <Stat label="Units sold" value={unitsSold.toLocaleString()} />
@@ -259,11 +265,13 @@ export function AdminConsole({
                 key={row.series}
                 className="w-40 shrink-0 rounded-xl border border-hairline bg-ink-card p-3"
               >
-                <p className="font-mono text-xs">
-                  {String(row.series).padStart(2, "0")}
-                </p>
-                <p className="mt-0.5 truncate text-[11px] text-muted">
-                  {row.label}
+                {/* The set's own name leads; the number is only worth repeating
+                    when the name is not already "Series 12". */}
+                <p className="truncate text-[12px] font-medium">{row.label}</p>
+                <p className="mt-0.5 truncate text-[11px] text-faint">
+                  {row.label === `Series ${row.series}`
+                    ? `${row.total} piece${row.total === 1 ? "" : "s"}`
+                    : `Series ${row.series} · ${row.total} piece${row.total === 1 ? "" : "s"}`}
                 </p>
                 <p className="mt-2 font-mono text-[11px] text-faint">
                   {row.available > 0
@@ -297,13 +305,13 @@ export function AdminConsole({
       )}
 
       {/* shelf / add tabs */}
-      <div className="mt-9 flex gap-1 border-b border-hairline">
+      <div className="mt-7 flex gap-1 overflow-x-auto border-b border-hairline sm:mt-9">
         {(["catalogue", "shelf", "add", "log"] as const).map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`-mb-px border-b-2 px-4 py-2.5 text-[13px] font-medium transition-colors ${
+            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-[13px] font-medium transition-colors sm:px-4 ${
               tab === t
                 ? "border-chalk text-chalk"
                 : "border-transparent text-muted hover:text-chalk"
@@ -347,10 +355,10 @@ function Stat({
   tone?: "good" | "warn";
 }) {
   return (
-    <div className="bg-ink-card p-4">
+    <div className="bg-ink-card p-3 sm:p-4">
       <dt className="text-[10px] uppercase tracking-[0.16em] text-faint">{label}</dt>
       <dd
-        className="mt-1.5 font-mono text-lg"
+        className="mt-1 font-mono text-base sm:mt-1.5 sm:text-lg"
         style={{ color: tone === "warn" ? "#fbbf24" : tone === "good" ? "#34d399" : undefined }}
       >
         {value}
@@ -856,7 +864,7 @@ function Catalogue({
             setNote(null);
             setError(null);
           }}
-          className="rounded-full bg-chalk px-5 py-2.5 text-[13px] font-semibold text-ink"
+          className="w-full rounded-full bg-chalk px-5 py-3 text-[14px] font-semibold text-ink sm:w-auto sm:py-2.5 sm:text-[13px]"
         >
           + Add product
         </button>
@@ -1008,12 +1016,12 @@ function Catalogue({
 
       {/* the catalogue itself */}
       <section>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search the catalogue"
-            className="min-w-56 flex-1 rounded-xl border border-hairline bg-ink px-4 py-2.5 text-sm outline-none transition-colors focus:border-white/30"
+            className="w-full rounded-xl border border-hairline bg-ink px-4 py-2.5 text-sm outline-none transition-colors focus:border-white/30 sm:min-w-56 sm:flex-1"
           />
           <div className="flex gap-1 rounded-xl border border-hairline p-1">
             {(["all", "100%", "400%"] as const).map((choice) => (
@@ -1031,7 +1039,7 @@ function Catalogue({
               </button>
             ))}
           </div>
-          <label className="flex items-center gap-2 text-xs text-muted">
+          <label className="flex items-center gap-2 py-1 text-xs text-muted">
             <input
               type="checkbox"
               checked={showArchived}
@@ -1064,21 +1072,17 @@ function Catalogue({
             Nothing in the catalogue matches that.
           </p>
         ) : (
-          <div className="mt-4 space-y-2">
-            {matches.map((piece) => (
-              <CatalogueRow
-                key={piece.id}
-                piece={piece}
-                level={levels[piece.id] ?? null}
-                open={open === piece.id}
-                busy={busy || working}
-                onToggle={() => setOpen((id) => (id === piece.id ? null : piece.id))}
-                onArchive={() => void archive(piece)}
-                onChange={onChange}
-              />
-            ))}
+          <div className="mt-4">
+            <CatalogueGrid
+              pieces={matches}
+              levels={levels}
+              busy={busy || working}
+              onChange={onChange}
+              onArchive={(piece) => void archive(piece)}
+              focus={open}
+            />
             {matches.length === 120 && (
-              <p className="pt-2 text-center text-[11px] text-faint">
+              <p className="pt-4 text-center text-[11px] text-faint">
                 Showing the first 120. Search to narrow it down.
               </p>
             )}
@@ -1088,197 +1092,6 @@ function Catalogue({
     </div>
   );
 }
-
-/**
- * One catalogue entry, and — once opened — the control that puts units of it on
- * the shelf.
- *
- * Stocking lives here rather than on its own screen because "which of these do
- * I have in hand today" is a question you answer while looking at the list. The
- * number beside each row is what the shop is selling right now, so it has to
- * move the moment the change lands, not on the next page load.
- */
-function CatalogueRow({
-  piece,
-  level,
-  open,
-  busy,
-  onToggle,
-  onArchive,
-  onChange,
-}: {
-  piece: AdminPiece;
-  level: { stocked: number; sold: number } | null;
-  open: boolean;
-  busy: boolean;
-  onToggle: () => void;
-  onArchive: () => void;
-  onChange: (changes: Change[], message: string) => void;
-}) {
-  const [amount, setAmount] = useState("1");
-
-  const stocked = level?.stocked ?? 0;
-  const sold = level?.sold ?? 0;
-  const available = Math.max(0, stocked - sold);
-
-  const units = Math.trunc(Number(amount));
-  const valid = Number.isFinite(units) && units > 0;
-
-  const add = () => {
-    if (!valid) return;
-    onChange(
-      [{ pieceId: piece.id, op: "add", units }],
-      `Added ${units} × ${piece.name} — ${available + units} available`,
-    );
-    setAmount("1");
-  };
-
-  return (
-    <div
-      className={`rounded-xl border bg-ink-card transition-colors ${
-        open ? "border-white/25" : "border-hairline"
-      } ${piece.archived ? "opacity-60" : ""}`}
-    >
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        className="flex w-full items-center gap-3 p-3 text-left"
-      >
-        <div
-          className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg"
-          style={{
-            background: `radial-gradient(120% 90% at 50% 12%, ${piece.palette.wash}, #0b0b10 78%)`,
-          }}
-        >
-          <PieceImage piece={piece} className="h-10 w-auto" simple thumb />
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-medium">{piece.name}</p>
-          <p className="truncate text-[11px] text-faint">
-            {piece.setName || "—"} · {piece.scale} · {RARITY_LABEL[piece.rarity]}
-            {piece.imageUrl ? "" : " · no photo"}
-            {piece.archived ? " · archived" : ""}
-          </p>
-        </div>
-
-        <div className="shrink-0 text-right">
-          <p
-            className={`font-mono text-[13px] ${
-              available > 0 ? "text-chalk" : "text-faint"
-            }`}
-          >
-            {available}
-          </p>
-          <p className="text-[10px] uppercase tracking-wider text-faint">available</p>
-        </div>
-
-        <span
-          className={`shrink-0 text-faint transition-transform ${open ? "rotate-90" : ""}`}
-          aria-hidden
-        >
-          ›
-        </span>
-      </button>
-
-      {open && (
-        <div className="border-t border-hairline p-3.5">
-          {piece.archived ? (
-            <p className="text-xs leading-relaxed text-muted">
-              This piece is archived, so it cannot be stocked or pulled. Restore it first.
-            </p>
-          ) : (
-            <>
-              <div className="flex flex-wrap items-end gap-3">
-                <label className="block">
-                  <span className="block text-[11px] font-medium uppercase tracking-wider text-faint">
-                    Units to add
-                  </span>
-                  <input
-                    type="number"
-                    min={1}
-                    inputMode="numeric"
-                    value={amount}
-                    disabled={busy}
-                    onChange={(e) => setAmount(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        add();
-                      }
-                    }}
-                    className="mt-1.5 w-24 rounded-lg border border-hairline bg-ink px-3 py-2 text-right font-mono text-[13px] outline-none transition-colors focus:border-white/30 disabled:opacity-40"
-                  />
-                </label>
-
-                <button
-                  type="button"
-                  disabled={busy || !valid}
-                  onClick={add}
-                  className="rounded-lg bg-chalk px-5 py-2 text-[13px] font-semibold text-ink transition-opacity disabled:opacity-40"
-                >
-                  Add to shelf
-                </button>
-
-                {[6, 12, 24].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    disabled={busy}
-                    onClick={() => setAmount(String(n))}
-                    className="rounded-lg border border-hairline px-3 py-2 text-[12px] text-muted transition-colors hover:border-white/30 hover:text-chalk disabled:opacity-40"
-                  >
-                    {n}
-                  </button>
-                ))}
-
-                {available > 0 && (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() =>
-                      onChange(
-                        [{ pieceId: piece.id, op: "pull" }],
-                        `Pulled ${piece.name} off the shelf`,
-                      )
-                    }
-                    className="ml-auto rounded-lg border border-hairline px-3 py-2 text-[12px] text-muted transition-colors hover:border-rose-400/40 hover:text-rose-300 disabled:opacity-40"
-                  >
-                    Pull from shelf
-                  </button>
-                )}
-              </div>
-
-              <p className="mt-3 text-[11px] text-faint">
-                {stocked === 0 ? (
-                  "Never stocked. Adding units is what puts it in the draw."
-                ) : (
-                  <>
-                    <span className="font-mono text-muted">{stocked}</span> stocked ·{" "}
-                    <span className="font-mono text-muted">{sold}</span> sold ·{" "}
-                    <span className="font-mono text-muted">{available}</span> available.
-                    Sold units are the floor — stock can never be set below them.
-                  </>
-                )}
-              </p>
-            </>
-          )}
-
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onArchive}
-            className="mt-3 text-[11px] text-faint underline underline-offset-4 transition-colors hover:text-muted disabled:opacity-40"
-          >
-            {piece.archived ? "Restore to the catalogue" : "Archive this product"}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 
 /**
  * Sets an exact number of units. The quick buttons beside it are for topping

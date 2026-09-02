@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { AccountButton, AccountProvider } from "@/components/AccountBar";
+import { AccountButton, AccountProvider, AdminLink } from "@/components/AccountBar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,26 +32,33 @@ function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-hairline/70 bg-ink/70 backdrop-blur-xl">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <span className="grid size-6 place-items-center rounded-md bg-chalk text-[11px] font-bold text-ink">
             B
           </span>
-          <span className="text-sm font-semibold tracking-tight">Blind Box</span>
+          <span className="whitespace-nowrap text-sm font-semibold tracking-tight">
+            Blind Box
+          </span>
         </Link>
-        <nav className="flex items-center gap-1 text-sm">
+        {/* Nothing in here may wrap: a two-line header on a phone pushes the
+            page down and reads as broken. "The set" is the one item that also
+            exists as a section of the page you are already on, so it is the one
+            that goes when the room runs out. */}
+        <nav className="flex shrink-0 items-center gap-0.5 whitespace-nowrap text-sm sm:gap-1">
           <Link
             href="/#set"
-            className="rounded-full px-3 py-1.5 text-muted transition-colors hover:text-chalk"
+            className="hidden rounded-full px-3 py-1.5 text-muted transition-colors hover:text-chalk sm:inline-block"
           >
             The set
           </Link>
           <Link
             href="/collection"
-            className="rounded-full px-3 py-1.5 text-muted transition-colors hover:text-chalk"
+            className="rounded-full px-2.5 py-1.5 text-muted transition-colors hover:text-chalk sm:px-3"
           >
             My pulls
           </Link>
-          <span className="ml-1.5">
+          <AdminLink />
+          <span className="ml-0.5 sm:ml-1.5">
             <AccountButton />
           </span>
         </nav>
