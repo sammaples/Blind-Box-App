@@ -57,7 +57,7 @@ export default async function HomePage() {
             href="#set"
             className="rounded-full border border-hairline px-7 py-3.5 text-sm font-medium text-muted transition-colors hover:border-white/30 hover:text-chalk"
           >
-            See every piece
+            See current stock
           </Link>
         </div>
 
