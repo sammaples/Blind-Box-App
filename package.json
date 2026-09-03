@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "migrate": "node-pg-migrate up",
     "migrate:down": "node-pg-migrate down",
-    "migrate:create": "node-pg-migrate create --migration-file-language sql"
+    "migrate:create": "node-pg-migrate create --migration-file-language sql",
+    "vercel-build": "node-pg-migrate up && next build",
+    "preflight": "node scripts/preflight.mjs"
   },
   "dependencies": {
     "framer-motion": "^13.1.1",

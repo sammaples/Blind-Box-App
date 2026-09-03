@@ -206,6 +206,17 @@ is no invented stock to sell. Add products one at a time, upload a CSV, or press
 **Load the demo catalogue** to fill it with 780 generated pieces so you can see
 the whole thing working before your own photography exists.
 
+## Deploying
+
+See [DEPLOY.md](DEPLOY.md). Short version: Postgres on Neon, hosting on Vercel,
+sign-in mail through Resend, and five environment variables. `npm run
+preflight` checks all of it — variables, database reachability, whether the
+schema is migrated — before a deploy rather than after.
+
+The JSON file backend refuses to start in production. A hosted app writing its
+catalogue to a file either cannot write at all, or loses the file on the next
+deploy; both are worse than not starting.
+
 ## Admin accounts
 
 Admin is a property of an account, reached through the same emailed sign-in as
