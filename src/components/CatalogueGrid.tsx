@@ -47,6 +47,8 @@ export function CatalogueGrid({
   busy,
   onChange,
   onArchive,
+  onEdit,
+  onDelete,
   focus,
 }: {
   pieces: GridPiece[];
@@ -54,6 +56,8 @@ export function CatalogueGrid({
   busy: boolean;
   onChange: (changes: StockChange[], message: string) => void;
   onArchive: (piece: GridPiece) => void;
+  onEdit: (piece: GridPiece) => void;
+  onDelete: (piece: GridPiece) => void;
   /** A piece to open the sheet on — how a freshly saved product introduces itself. */
   focus?: string | null;
 }) {
@@ -96,6 +100,8 @@ export function CatalogueGrid({
           onClose={() => setOpenId(null)}
           onChange={onChange}
           onArchive={onArchive}
+          onEdit={onEdit}
+          onDelete={onDelete}
         />
       )}
     </>
@@ -234,6 +240,8 @@ function StockSheet({
   onClose,
   onChange,
   onArchive,
+  onEdit,
+  onDelete,
 }: {
   piece: GridPiece;
   level: GridLevel | null;
@@ -242,6 +250,8 @@ function StockSheet({
   onClose: () => void;
   onChange: (changes: StockChange[], message: string) => void;
   onArchive: (piece: GridPiece) => void;
+  onEdit: (piece: GridPiece) => void;
+  onDelete: (piece: GridPiece) => void;
 }) {
   const [amount, setAmount] = useState(1);
   useScrollLock(true);
@@ -328,6 +338,14 @@ function StockSheet({
               className="mt-3 w-full rounded-xl bg-white/10 py-3 text-[14px] font-semibold transition-colors hover:bg-white/16 disabled:opacity-40"
             >
               Restore to the catalogue
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onDelete(piece)}
+              className="mt-2 w-full rounded-xl py-2.5 text-[12px] text-rose-400/80 transition-colors hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-40"
+            >
+              Delete permanently
             </button>
           </div>
         ) : (
@@ -426,14 +444,37 @@ function StockSheet({
                 </div>
               )}
 
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => onArchive(piece)}
-                className="mt-4 text-[12px] text-faint underline underline-offset-4 transition-colors hover:text-muted disabled:opacity-40"
-              >
-                Archive this piece
-              </button>
+              <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-hairline pt-4">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => onEdit(piece)}
+                  className="rounded-lg border border-hairline px-3.5 py-2 text-[12px] text-muted transition-colors hover:border-white/30 hover:text-chalk disabled:opacity-40"
+                >
+                  Edit details
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => onArchive(piece)}
+                  className="rounded-lg border border-hairline px-3.5 py-2 text-[12px] text-muted transition-colors hover:border-white/30 hover:text-chalk disabled:opacity-40"
+                >
+                  Archive
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => onDelete(piece)}
+                  className="ml-auto rounded-lg px-3.5 py-2 text-[12px] text-rose-400/80 transition-colors hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-40"
+                >
+                  Delete
+                </button>
+              </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-faint">
+                Archiving takes a piece out of the shop but keeps it on the orders
+                that pulled it. Delete removes it for good, and is only possible
+                while nothing has sold.
+              </p>
             </div>
           </>
         )}

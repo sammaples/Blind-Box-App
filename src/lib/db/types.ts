@@ -126,6 +126,17 @@ export interface Backend {
   /** Archives or restores a piece without losing the orders that pulled it. */
   setPieceArchived(pieceId: string, archived: boolean): Promise<Piece | null>;
 
+  /**
+   * Removes a piece and its stock line for good — but only if none of it has
+   * ever sold. An order names the piece it pulled, so deleting one that has
+   * shipped would leave a collector staring at a blank card.
+   *
+   * The check and the delete are one operation because they have to be: read
+   * the sold count, then delete, and a purchase landing in between takes the
+   * piece out from under an order that already exists.
+   */
+  deletePiece(pieceId: string): Promise<{ deleted: boolean; sold: number }>;
+
   /* product photos */
   /** Stores an uploaded photo under an id the app issued. */
   putImage(image: StoredImage): Promise<void>;

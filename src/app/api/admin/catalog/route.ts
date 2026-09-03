@@ -3,6 +3,8 @@ import { isAdmin } from "@/lib/admin";
 import {
   allPieces,
   buildPiece,
+  deletePiece,
+  findPiece,
   loadDemoCatalogue,
   RARITIES,
   savePieces,
@@ -36,6 +38,32 @@ export async function POST(request: Request) {
   if (body.action === "loadDemo") {
     const count = await loadDemoCatalogue();
     return NextResponse.json({ ok: true, loaded: count });
+  }
+
+  if (body.action === "delete") {
+    const pieceId = typeof body.pieceId === "string" ? body.pieceId : "";
+    const piece = await findPiece(pieceId);
+    if (!piece) {
+      return NextResponse.json({ error: "No piece with that id" }, { status: 404 });
+    }
+
+    const result = await deletePiece(pieceId);
+    if (result.deleted) return NextResponse.json({ ok: true, deleted: true });
+
+    // Something has shipped under this name, so the row has to stay for the
+    // orders that point at it. Archiving is the honest version of the same
+    // intent: gone from the shop, still resolvable for the people who own one.
+    await setPieceArchived(pieceId, true);
+    return NextResponse.json({
+      ok: true,
+      deleted: false,
+      archived: true,
+      sold: result.sold,
+      message:
+        `${piece.name} has sold ${result.sold} ` +
+        `unit${result.sold === 1 ? "" : "s"}, so it was archived instead of ` +
+        "deleted — those orders still need to name what they pulled.",
+    });
   }
 
   if (body.action === "archive" || body.action === "restore") {
@@ -79,6 +107,9 @@ export async function POST(request: Request) {
     quantity = Math.trunc(quantity);
   }
 
+  // An id means "edit this one". savePieces upserts, so the same call both
+  // creates and updates — but only if the id survives the round trip, which is
+  // why the form sends it back rather than letting a rename mint a new piece.
   const piece = buildPiece({
     id: typeof body.id === "string" ? body.id : undefined,
     name,

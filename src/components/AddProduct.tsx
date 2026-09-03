@@ -5,12 +5,16 @@ import { RARITY_LABEL, RARITY_ORDER } from "@/lib/catalog";
 import type { Rarity, Scale } from "@/lib/types";
 
 /**
- * The listing uploader: one new product, from nothing to catalogued.
+ * The listing form: one product, created or corrected.
  *
  * The photo is uploaded the moment it is chosen rather than at save. That is
  * deliberate — the server decides whether a file is really an image, and
  * finding that out after filling in a form is a worse way to learn it than
  * seeing the picture appear, or not, straight away.
+ *
+ * Editing is the same form with the fields filled in and the id carried along.
+ * The id is what makes a save an update rather than a second piece, so a typo
+ * in a title is a correction and not a duplicate listing.
  */
 
 const SCALE_CHOICES: { scale: Scale; label: string; note: string; accent: string }[] = [
@@ -54,22 +58,38 @@ export interface NewProduct {
   scale: Scale;
 }
 
+/** An existing piece being corrected, rather than a new one being listed. */
+export interface EditableProduct {
+  id: string;
+  name: string;
+  setName: string;
+  series: number | null;
+  scale: Scale;
+  rarity: Rarity;
+  imageUrl: string | null;
+  blurb?: string;
+}
+
 export function AddProduct({
+  editing,
   onSaved,
   onCancel,
 }: {
+  editing?: EditableProduct | null;
   onSaved: (product: NewProduct) => void;
   onCancel: () => void;
 }) {
-  const [scale, setScale] = useState<Scale>("100%");
-  const [name, setName] = useState("");
-  const [collection, setCollection] = useState("");
-  const [series, setSeries] = useState("");
-  const [rarity, setRarity] = useState<Rarity>("common");
-  const [notes, setNotes] = useState("");
+  const [scale, setScale] = useState<Scale>(editing?.scale ?? "100%");
+  const [name, setName] = useState(editing?.name ?? "");
+  const [collection, setCollection] = useState(editing?.setName ?? "");
+  const [series, setSeries] = useState(
+    editing?.series === null || editing?.series === undefined ? "" : String(editing.series),
+  );
+  const [rarity, setRarity] = useState<Rarity>(editing?.rarity ?? "common");
+  const [notes, setNotes] = useState(editing?.blurb ?? "");
   const [quantity, setQuantity] = useState("");
 
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(editing?.imageUrl ?? null);
   const [resize, setResize] = useState<ResizeReport | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -106,6 +126,9 @@ export function AddProduct({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          // Present only when correcting an existing piece; its absence is what
+          // makes this a new listing.
+          id: editing?.id,
           name,
           scale,
           rarity,
@@ -137,10 +160,13 @@ export function AddProduct({
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold">New product</h3>
+          <h3 className="text-sm font-semibold">
+            {editing ? `Editing ${editing.name}` : "New product"}
+          </h3>
           <p className="mt-1 text-xs leading-relaxed text-muted">
-            A piece people can pull. It lands in the catalogue straight away; it only
-            becomes pullable once it has units on the shelf.
+            {editing
+              ? "Changes apply everywhere this piece appears, including on orders that already pulled it."
+              : "A piece people can pull. It lands in the catalogue straight away; it only becomes pullable once it has units on the shelf."}
           </p>
         </div>
         <button
@@ -302,17 +328,21 @@ export function AddProduct({
                 ))}
               </select>
             </Field>
-            <Field label="Units in hand" hint="Optional — puts it on the shelf now.">
-              <input
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                type="number"
-                min={0}
-                inputMode="numeric"
-                placeholder="0"
-                className={inputClass}
-              />
-            </Field>
+            {editing ? (
+              <div />
+            ) : (
+              <Field label="Units in hand" hint="Optional — puts it on the shelf now.">
+                <input
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  placeholder="0"
+                  className={inputClass}
+                />
+              </Field>
+            )}
           </div>
 
           <Field label="Notes" hint="Optional. Shown with the piece.">
@@ -340,10 +370,14 @@ export function AddProduct({
           disabled={!ready}
           className="rounded-full bg-chalk px-6 py-2.5 text-[13px] font-semibold text-ink transition-opacity disabled:opacity-40"
         >
-          {saving ? "Saving…" : "Save to catalogue"}
+          {saving ? "Saving…" : editing ? "Save changes" : "Save to catalogue"}
         </button>
         <span className="text-[11px] text-faint">
-          {name.trim() === "" ? "A product needs a title." : `Goes in as a ${scale} piece.`}
+          {name.trim() === ""
+            ? "A product needs a title."
+            : editing
+              ? `Stays a ${scale} piece.`
+              : `Goes in as a ${scale} piece.`}
         </span>
       </div>
     </form>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { AddProduct, type NewProduct } from "@/components/AddProduct";
+import { AddProduct, type EditableProduct, type NewProduct } from "@/components/AddProduct";
 import { CatalogueGrid } from "@/components/CatalogueGrid";
 import { PieceImage } from "@/components/PieceImage";
 import { RarityChip } from "@/components/ui";
@@ -725,6 +725,8 @@ function Catalogue({
 }) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
+  // The piece the form is correcting. Null while adding a new one.
+  const [editing, setEditing] = useState<EditableProduct | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
@@ -819,6 +821,25 @@ function Catalogue({
     }
   };
 
+  const remove = async (piece: AdminPiece) => {
+    setWorking(true);
+    setError(null);
+    try {
+      const data = await post("/api/admin/catalog", {
+        action: "delete",
+        pieceId: piece.id,
+      });
+      // The server archives instead when units have shipped, and says why —
+      // reporting "deleted" for something that is still there would be a lie.
+      setNote(data.deleted ? `Deleted ${piece.name}.` : String(data.message));
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete that");
+    } finally {
+      setWorking(false);
+    }
+  };
+
   const loadDemo = async () => {
     setWorking(true);
     try {
@@ -834,13 +855,21 @@ function Catalogue({
 
   /* --------------------------- adding a product -------------------------- */
 
-  if (adding) {
+  if (adding || editing) {
     return (
       <AddProduct
-        onCancel={() => setAdding(false)}
-        onSaved={(product: NewProduct) => {
+        editing={editing}
+        onCancel={() => {
           setAdding(false);
-          setNote(`${product.name} is in the catalogue.`);
+          setEditing(null);
+        }}
+        onSaved={(product: NewProduct) => {
+          const wasEdit = editing !== null;
+          setAdding(false);
+          setEditing(null);
+          setNote(
+            wasEdit ? `Saved changes to ${product.name}.` : `${product.name} is in the catalogue.`,
+          );
           setError(null);
           // Show it: a new product landing on page four of an unfiltered list
           // looks exactly like a save that did not happen.
@@ -861,6 +890,7 @@ function Catalogue({
           type="button"
           onClick={() => {
             setAdding(true);
+            setEditing(null);
             setNote(null);
             setError(null);
           }}
@@ -1079,6 +1109,20 @@ function Catalogue({
               busy={busy || working}
               onChange={onChange}
               onArchive={(piece) => void archive(piece)}
+              onEdit={(piece) => {
+                setEditing({
+                  id: piece.id,
+                  name: piece.name,
+                  setName: piece.setName,
+                  series: piece.series,
+                  scale: piece.scale,
+                  rarity: piece.rarity,
+                  imageUrl: piece.imageUrl,
+                });
+                setNote(null);
+                setError(null);
+              }}
+              onDelete={(piece) => void remove(piece)}
               focus={open}
             />
             {matches.length === 120 && (

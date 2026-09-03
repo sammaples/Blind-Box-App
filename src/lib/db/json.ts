@@ -254,6 +254,18 @@ export function createJsonBackend(): Backend {
       });
     },
 
+    async deletePiece(pieceId) {
+      return transact((db) => {
+        const sold = db.stock[pieceId]?.sold ?? 0;
+        if (sold > 0) return { deleted: false, sold };
+
+        const index = db.pieces.findIndex((p) => p.id === pieceId);
+        if (index >= 0) db.pieces.splice(index, 1);
+        delete db.stock[pieceId];
+        return { deleted: index >= 0, sold: 0 };
+      });
+    },
+
     async putImage({ id, bytes }: StoredImage) {
       // An id becomes a path here, so an unvetted one is a way to write
       // anywhere on disk. Ids are issued by this app and checked on the way in

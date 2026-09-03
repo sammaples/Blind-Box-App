@@ -367,6 +367,25 @@ export function createPostgresBackend(connectionString: string): Backend {
       return rows[0] ? toPiece(rows[0]) : null;
     },
 
+    async deletePiece(pieceId) {
+      return withTx(async (client) => {
+        // Locked, so a purchase cannot slip between reading the count and
+        // deleting the row it would have belonged to.
+        const { rows } = await client.query(
+          "select sold from stock where piece_id = $1 for update",
+          [pieceId],
+        );
+        const sold = rows[0] ? Number(rows[0].sold) : 0;
+        if (sold > 0) return { deleted: false, sold };
+
+        await client.query("delete from stock where piece_id = $1", [pieceId]);
+        const gone = await client.query("delete from catalog_pieces where id = $1", [
+          pieceId,
+        ]);
+        return { deleted: (gone.rowCount ?? 0) > 0, sold: 0 };
+      });
+    },
+
     async putImage({ id, contentType, bytes }: StoredImage) {
       await query(
         `insert into product_images (id, content_type, bytes)

@@ -163,6 +163,24 @@ already small enough for it to be a duplicate. Metadata is not carried across,
 so the GPS coordinates a phone writes into a photo do not end up published with
 a picture taken at home.
 
+### Editing and removing a product
+
+Open a piece and the sheet carries **Edit details**, **Archive** and **Delete**.
+
+Editing reopens the same form with the fields filled in, and carries the id
+along — which is what makes a save an update rather than a second listing, so
+fixing a typo in a title does not leave you with two of the same bear. The
+photo can be replaced there too.
+
+Archive and Delete are different promises. Archiving takes a piece out of the
+shop and out of the draw while keeping it on the orders that already pulled
+it. Delete removes it outright — and only works while nothing has sold. Ask to
+delete something that has shipped and it is archived instead, and told you so:
+an order names the piece it pulled, so deleting one would leave a collector
+looking at a blank card. The sold count is read and the row removed in one
+transaction, because a purchase landing between the two would take the piece
+out from under an order that already exists.
+
 ### Stocking what you have
 
 Stock is managed by hand, because being in stock on every series at once is not

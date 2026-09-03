@@ -37,6 +37,16 @@ export async function savePieces(pieces: readonly Piece[]): Promise<void> {
   await backend().savePieces(pieces);
 }
 
+/**
+ * Removes a piece outright. Refuses, reporting the sold count, when units have
+ * shipped — see the seam for why that has to be one operation.
+ */
+export async function deletePiece(
+  pieceId: string,
+): Promise<{ deleted: boolean; sold: number }> {
+  return backend().deletePiece(pieceId);
+}
+
 export async function setPieceArchived(
   pieceId: string,
   archived: boolean,
