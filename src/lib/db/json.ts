@@ -9,6 +9,7 @@ import type {
   Piece,
   Scale,
 } from "../types";
+import { LEGACY_RARITY } from "../catalog";
 import { contentTypeFor, isImageId } from "../images";
 import type {
   Backend,
@@ -225,7 +226,13 @@ export function createJsonBackend(): Backend {
 
     async listPieces() {
       const db = await read();
-      return db.pieces;
+      // A file written before the tiers collapsed still says "uncommon". The
+      // Postgres side gets a migration; a JSON file has nobody to run one, so
+      // it is mapped on the way out.
+      return db.pieces.map((piece) => ({
+        ...piece,
+        rarity: LEGACY_RARITY[piece.rarity] ?? "common",
+      }));
     },
 
     async savePieces(pieces) {

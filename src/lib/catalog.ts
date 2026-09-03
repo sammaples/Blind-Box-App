@@ -140,7 +140,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
     type: "Pattern",
     weights: [80, 80],
     pattern: "checker",
-    rarity: "uncommon",
+    rarity: "common",
     hueShift: 48,
     colorways: ["Checker", "Argyle", "Houndstooth", "Tartan", "Halftone"],
   },
@@ -148,7 +148,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
     type: "Flag",
     weights: [90],
     pattern: "stripes",
-    rarity: "uncommon",
+    rarity: "common",
     hueShift: 120,
     colorways: ["Tricolour", "Ensign", "Pennant", "Standard", "Banner"],
   },
@@ -156,7 +156,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
     type: "Animal",
     weights: [80],
     pattern: "camo",
-    rarity: "uncommon",
+    rarity: "common",
     hueShift: 74,
     colorways: ["Leopard", "Tiger", "Koi", "Tortoise", "Snow Hare"],
   },
@@ -196,7 +196,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
     type: "Hero",
     weights: [20],
     pattern: "stars",
-    rarity: "ultra",
+    rarity: "rare",
     hueShift: 210,
     colorways: ["Cape", "Insignia", "Sidekick", "Vigilante"],
   },
@@ -204,13 +204,13 @@ const TYPE_SPECS: readonly TypeSpec[] = [
     type: "Secret",
     weights: [5],
     pattern: "chrome",
-    rarity: "secret",
+    rarity: "chase",
     hueShift: 180,
     colorways: ["Secret"],
   },
 ];
 
-/** Series whose secret is a certified chase piece rather than a normal secret. */
+/** Series whose hidden piece is a chase rather than an ordinary secret. */
 const GRAIL_SERIES = new Set([1, 13, 21, 27, 34, 42, 50]);
 
 /* ------------------------------------------------------------------ *
@@ -301,7 +301,7 @@ function buildPiece(seriesNo: number, spec: TypeSpec, index: number): Piece {
   const colorway =
     spec.type === "Secret"
       ? isGrail
-        ? "Grail Secret"
+        ? "Chase"
         : "Secret"
       : spec.colorways[
           (hash(`s${seriesNo}-${spec.type}`) + index) % spec.colorways.length
@@ -319,7 +319,7 @@ function buildPiece(seriesNo: number, spec: TypeSpec, index: number): Piece {
     series: seriesNo,
     type: spec.type,
     scale: "100%",
-    rarity: isGrail ? "grail" : spec.rarity,
+    rarity: isGrail ? "chase" : spec.rarity,
     pattern: spec.pattern,
     palette: paletteFor(theme.hue, spec, key),
     weight: spec.weights[index],
@@ -375,11 +375,11 @@ const BIG_SPECS: readonly BigSpec[] = [
   { name: "Signal Orange", hue: 26, pattern: "solid", rarity: "common", weight: 100, blurb: "Safety-cone orange, gloss finish, impossible to ignore." },
   { name: "Jelly Grape", hue: 288, pattern: "jelly", rarity: "common", weight: 95, blurb: "Clear violet cast with a frosted interior." },
   { name: "Jelly Soda", hue: 196, pattern: "jelly", rarity: "common", weight: 92, blurb: "Bottle-glass blue. Reads almost liquid under a spotlight." },
-  { name: "Sakura Fade", hue: 340, pattern: "gradient", rarity: "uncommon", weight: 70, blurb: "Airbrushed pink-to-white fade over the shoulders." },
-  { name: "Court Checker", hue: 12, pattern: "checker", rarity: "uncommon", weight: 66, blurb: "Two-inch check wrapped clean across the body seam." },
-  { name: "Ranger Camo", hue: 96, pattern: "camo", rarity: "uncommon", weight: 64, blurb: "Four-colour woodland pattern, hand-masked in layers." },
-  { name: "Track Stripe", hue: 232, pattern: "stripes", rarity: "uncommon", weight: 62, blurb: "Racing stripes down the centreline, tape-edge crisp." },
-  { name: "Tiger Coat", hue: 34, pattern: "camo", rarity: "uncommon", weight: 58, blurb: "Brushstroke markings laid over a warm amber base." },
+  { name: "Sakura Fade", hue: 340, pattern: "gradient", rarity: "common", weight: 70, blurb: "Airbrushed pink-to-white fade over the shoulders." },
+  { name: "Court Checker", hue: 12, pattern: "checker", rarity: "common", weight: 66, blurb: "Two-inch check wrapped clean across the body seam." },
+  { name: "Ranger Camo", hue: 96, pattern: "camo", rarity: "common", weight: 64, blurb: "Four-colour woodland pattern, hand-masked in layers." },
+  { name: "Track Stripe", hue: 232, pattern: "stripes", rarity: "common", weight: 62, blurb: "Racing stripes down the centreline, tape-edge crisp." },
+  { name: "Tiger Coat", hue: 34, pattern: "camo", rarity: "common", weight: 58, blurb: "Brushstroke markings laid over a warm amber base." },
   { name: "Midnight Drip", hue: 268, pattern: "drip", rarity: "rare", weight: 44, blurb: "Gloss drip pulled down a matte body. Wet forever." },
   { name: "Static Ghost", hue: 250, pattern: "drip", rarity: "rare", weight: 42, blurb: "Glow-in-the-dark shell with a broadcast-static overlay." },
   { name: "Chrome Silver", hue: 205, pattern: "chrome", rarity: "rare", weight: 40, blurb: "Full vac-metallised mirror. Fingerprints are the enemy." },
@@ -387,17 +387,17 @@ const BIG_SPECS: readonly BigSpec[] = [
   { name: "Studio Overspray", hue: 320, pattern: "gradient", rarity: "rare", weight: 34, blurb: "Artist edition. Every body sprayed individually." },
   { name: "Ink Wash", hue: 214, pattern: "gradient", rarity: "rare", weight: 32, blurb: "Sumi-style wash that pools darker in the joints." },
   { name: "Colour Field", hue: 160, pattern: "split", rarity: "rare", weight: 30, blurb: "Hard-edge colour blocking across four panels." },
-  { name: "Constellation", hue: 244, pattern: "stars", rarity: "ultra", weight: 20, blurb: "Foil star map applied over deep navy." },
-  { name: "Prism Cut", hue: 300, pattern: "gradient", rarity: "ultra", weight: 18, blurb: "Refractive coat that shifts hue with viewing angle." },
-  { name: "Molten Core", hue: 14, pattern: "gradient", rarity: "ultra", weight: 16, blurb: "Internal LED-orange glow bleeding through a dark shell." },
-  { name: "Blueprint Edition", hue: 218, pattern: "stripes", rarity: "ultra", weight: 15, blurb: "Technical drawing of itself, printed on itself." },
-  { name: "Porcelain Crackle", hue: 190, pattern: "checker", rarity: "ultra", weight: 14, blurb: "Kiln-crackle glaze, individually fired and numbered." },
-  { name: "Solar Flare", hue: 40, pattern: "chrome", rarity: "secret", weight: 8, blurb: "Secret. Heat-shift metallic that never photographs right." },
-  { name: "Deep Field", hue: 262, pattern: "stars", rarity: "secret", weight: 7, blurb: "Secret. Star field under six coats of clear." },
-  { name: "Anatomy Cut", hue: 350, pattern: "split", rarity: "secret", weight: 6, blurb: "Secret. Sectioned body showing the internals." },
-  { name: "First Sample", hue: 30, pattern: "solid", rarity: "grail", weight: 3, blurb: "Grail. Factory test shot, unpainted, stamped and dated." },
-  { name: "Gold Standard", hue: 46, pattern: "chrome", rarity: "grail", weight: 2, blurb: "Grail. Solid-look gold, fewer than fifty in circulation." },
-  { name: "Artist Proof 1/1", hue: 0, pattern: "gradient", rarity: "grail", weight: 1, blurb: "Grail. A single piece exists. It is signed on the foot." },
+  { name: "Constellation", hue: 244, pattern: "stars", rarity: "rare", weight: 20, blurb: "Foil star map applied over deep navy." },
+  { name: "Prism Cut", hue: 300, pattern: "gradient", rarity: "rare", weight: 18, blurb: "Refractive coat that shifts hue with viewing angle." },
+  { name: "Molten Core", hue: 14, pattern: "gradient", rarity: "rare", weight: 16, blurb: "Internal LED-orange glow bleeding through a dark shell." },
+  { name: "Blueprint Edition", hue: 218, pattern: "stripes", rarity: "rare", weight: 15, blurb: "Technical drawing of itself, printed on itself." },
+  { name: "Porcelain Crackle", hue: 190, pattern: "checker", rarity: "rare", weight: 14, blurb: "Kiln-crackle glaze, individually fired and numbered." },
+  { name: "Solar Flare", hue: 40, pattern: "chrome", rarity: "chase", weight: 8, blurb: "Chase. Heat-shift metallic that never photographs right." },
+  { name: "Deep Field", hue: 262, pattern: "stars", rarity: "chase", weight: 7, blurb: "Chase. Star field under six coats of clear." },
+  { name: "Anatomy Cut", hue: 350, pattern: "split", rarity: "chase", weight: 6, blurb: "Chase. Sectioned body showing the internals." },
+  { name: "First Sample", hue: 30, pattern: "solid", rarity: "chase", weight: 3, blurb: "Chase. Factory test shot, unpainted, stamped and dated." },
+  { name: "Gold Standard", hue: 46, pattern: "chrome", rarity: "chase", weight: 2, blurb: "Chase. Solid-look gold, fewer than fifty in circulation." },
+  { name: "Artist Proof 1/1", hue: 0, pattern: "gradient", rarity: "chase", weight: 1, blurb: "Chase. A single piece exists. It is signed on the foot." },
 ];
 
 export const BIG_PIECES: readonly Piece[] = BIG_SPECS.map((spec, i) => ({
@@ -405,7 +405,7 @@ export const BIG_PIECES: readonly Piece[] = BIG_SPECS.map((spec, i) => ({
   name: spec.name,
   setName: "400% Collection",
   series: null,
-  type: spec.rarity === "grail" || spec.rarity === "secret" ? "Secret" : "Standard",
+  type: spec.rarity === "chase" ? "Secret" : "Standard",
   scale: "400%",
   rarity: spec.rarity,
   pattern: spec.pattern,
@@ -448,12 +448,12 @@ export const PRODUCTS: readonly Product[] = [
     name: "400% Blind Box",
     tagline: "One sealed 400% figure. Eleven inches of it.",
     description:
-      "The large format, guaranteed. One 400% figure drawn from the 400% shelf as it stands today — including the grails, while they last.",
+      "The large format, guaranteed. One 400% figure drawn from the 400% shelf as it stands today — including the chase pieces, while they last.",
     priceCents: 18500,
     highlights: [
       "One guaranteed 400% figure",
       "Drawn from live stock, never a fixed list",
-      "Grails stay in until the last one sells",
+      "Chase pieces stay in until the last one sells",
     ],
     accent: "#22d3ee",
     scale: "400%",
@@ -474,31 +474,38 @@ export function getPiece(id: string): Piece | undefined {
   return ALL_PIECES.find((p) => p.id === id);
 }
 
-export const RARITY_ORDER: readonly Rarity[] = [
-  "grail",
-  "secret",
-  "ultra",
-  "rare",
-  "uncommon",
-  "common",
-];
+/** Rarest first, which is the order a filter row should read in. */
+export const RARITY_ORDER: readonly Rarity[] = ["chase", "rare", "common"];
 
 export const RARITY_LABEL: Record<Rarity, string> = {
   common: "Common",
-  uncommon: "Uncommon",
   rare: "Rare",
-  ultra: "Ultra Rare",
-  secret: "Secret",
-  grail: "Grail",
+  chase: "Chase",
 };
 
 export const RARITY_COLOR: Record<Rarity, string> = {
   common: "#94a3b8",
-  uncommon: "#34d399",
   rare: "#60a5fa",
-  ultra: "#c084fc",
-  secret: "#fbbf24",
-  grail: "#fb7185",
+  chase: "#fbbf24",
+};
+
+/**
+ * What the six older tiers become.
+ *
+ * Kept because catalogues outlive schemas: a spreadsheet exported last month,
+ * or a row written before this change, still says "uncommon". Both the CSV
+ * importer and the database migration read from here, so there is one mapping
+ * rather than two that can disagree.
+ */
+export const LEGACY_RARITY: Readonly<Record<string, Rarity>> = {
+  common: "common",
+  uncommon: "common",
+  rare: "rare",
+  ultra: "rare",
+  ultrarare: "rare",
+  secret: "chase",
+  grail: "chase",
+  chase: "chase",
 };
 
 export function formatOdds(odds: number): string {

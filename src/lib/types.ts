@@ -1,4 +1,13 @@
-export type Rarity = "common" | "uncommon" | "rare" | "ultra" | "secret" | "grail";
+/**
+ * Three tiers, not six.
+ *
+ * A shop with Common / Uncommon / Rare / Ultra Rare / Secret / Grail asks a
+ * buyer to hold a ranking in their head before a badge means anything. Chase,
+ * Rare and Common are the distinctions people actually make out loud about
+ * blind boxes, and the real odds come from unit counts regardless — a tier is
+ * a label on a card, never the arithmetic.
+ */
+export type Rarity = "common" | "rare" | "chase";
 
 export type PatternKind =
   | "solid"

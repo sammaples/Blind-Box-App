@@ -12,14 +12,7 @@ import type { Piece, Rarity, Scale } from "./types";
  */
 
 export const SCALES: readonly Scale[] = ["100%", "400%"];
-export const RARITIES: readonly Rarity[] = [
-  "common",
-  "uncommon",
-  "rare",
-  "ultra",
-  "secret",
-  "grail",
-];
+export const RARITIES: readonly Rarity[] = ["common", "rare", "chase"];
 
 /** Every piece, archived included. Archived ones still resolve for old orders. */
 export async function allPieces(): Promise<Piece[]> {

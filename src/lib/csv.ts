@@ -1,3 +1,4 @@
+import { LEGACY_RARITY } from "./catalog";
 import type { Rarity, Scale } from "./types";
 import { buildPiece, RARITIES, SCALES, slugFor } from "./pieces";
 import type { Piece } from "./types";
@@ -104,11 +105,17 @@ function normaliseScale(value: string): Scale | null {
   return null;
 }
 
+/**
+ * Reads a tier, including the six older names.
+ *
+ * Someone's spreadsheet says "uncommon" because that is what this shop used to
+ * call things. Rejecting the row over a word we retired would make them edit a
+ * file to say something they never chose; it maps instead.
+ */
 function normaliseRarity(value: string): Rarity | null {
   const v = value.trim().toLowerCase().replace(/[\s_-]/g, "");
-  if (v === "" ) return "common";
-  if (v === "ultrarare" || v === "ultra") return "ultra";
-  return (RARITIES as readonly string[]).includes(v) ? (v as Rarity) : null;
+  if (v === "") return "common";
+  return LEGACY_RARITY[v] ?? null;
 }
 
 export interface ImportRow {
@@ -128,7 +135,7 @@ export interface ImportResult {
 export const CSV_TEMPLATE =
   "name,set,series,scale,rarity,image,quantity,notes\n" +
   "Sky Blue Bear,Series 47,47,100%,common,https://example.com/sky.jpg,12,Gloss finish\n" +
-  "Chrome Grail,400% Collection,,400%,grail,https://example.com/chrome.jpg,1,One of one\n";
+  "Chrome Chase,400% Collection,,400%,chase,https://example.com/chrome.jpg,1,One of one\n";
 
 /**
  * Reads a catalogue spreadsheet. Every row is validated independently: a bad

@@ -75,7 +75,7 @@ The Catalogue tab takes a CSV with a header row. Only two columns are required:
 | `scale` | yes | `100%` or `400%` — `100` and `400` also work |
 | `set` | no | whatever you call the set, e.g. "Series 47" |
 | `series` | no | a number, used to group the shelf |
-| `rarity` | no | common, uncommon, rare, ultra, secret, grail |
+| `rarity` | no | chase, rare, common — the old six-tier names still import and are mapped |
 | `image` | no | a photo URL, `http(s)` or site-relative |
 | `notes` | no | shown on the piece's detail sheet |
 | `quantity` | no | **stocks the piece in the same upload** |

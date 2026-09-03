@@ -1,5 +1,5 @@
 name,set,series,scale,rarity,image,quantity,notes
 Sky Blue Bear,Series 47,47,100%,common,https://example.com/sky-blue.jpg,12,Gloss finish
-Camo Pattern,Series 47,47,100%,uncommon,https://example.com/camo.jpg,8,
-Series 47 Secret,Series 47,47,100%,secret,https://example.com/secret.jpg,1,The chase
-Chrome Gold,400% Collection,,400%,grail,https://example.com/chrome-gold.jpg,1,One of one
+Camo Pattern,Series 47,47,100%,common,https://example.com/camo.jpg,8,
+Series 47 Chase,Series 47,47,100%,chase,https://example.com/chase.jpg,1,The chase
+Chrome Gold,400% Collection,,400%,chase,https://example.com/chrome-gold.jpg,1,One of one

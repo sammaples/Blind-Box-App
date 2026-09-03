@@ -16,11 +16,8 @@ const BURST_MS = 620;
 /** Rarer pulls get a louder celebration. */
 const INTENSITY: Record<string, number> = {
   common: 18,
-  uncommon: 24,
-  rare: 34,
-  ultra: 46,
-  secret: 64,
-  grail: 84,
+  rare: 38,
+  chase: 84,
 };
 
 export function BoxOpening({
@@ -378,7 +375,7 @@ function Shards({ count, color }: { count: number; color: string }) {
 
 function PullSummary({ piece, odds }: { piece: Piece; odds: number }) {
   const color = RARITY_COLOR[piece.rarity];
-  const isChase = piece.rarity === "grail" || piece.rarity === "secret";
+  const isChase = piece.rarity === "chase";
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -391,7 +388,7 @@ function PullSummary({ piece, odds }: { piece: Piece; odds: number }) {
             backgroundImage: `linear-gradient(90deg, ${color}, #fff, ${color})`,
           }}
         >
-          {piece.rarity === "grail" ? "Grail pull" : "Secret pull"}
+          Chase pull
         </motion.p>
       )}
       <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{piece.name}</h2>

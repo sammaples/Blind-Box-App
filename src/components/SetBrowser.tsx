@@ -282,7 +282,7 @@ function PieceDetail({
                 <div>
                   <dt className="text-[11px] uppercase tracking-[0.14em] text-faint">In stock</dt>
                   <dd className="mt-1 font-mono">
-                    {entry.available} / {entry.stocked}
+                    {entry.available}
                   </dd>
                 </div>
                 <div>
