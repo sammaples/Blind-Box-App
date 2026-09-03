@@ -40,17 +40,31 @@ enough for customers.
 
 1. Sign up at **vercel.com** with GitHub.
 2. **Add New → Project**, pick `sammaples/Blind-Box-App`.
-3. Under **Branch**, choose `claude/blind-box-collectibles-app-cwj3e8` — or
-   merge that branch into `main` first and deploy `main`, whichever you prefer.
+   `claude/blind-box-collectibles-app-cwj3e8` is the repo's default branch, so
+   that is what deploys. Nothing to choose.
+3. Leave the framework and build settings alone — Next.js is detected, and
+   `vercel-build` runs the migrations before the build.
 4. Before clicking Deploy, open **Environment Variables** and add:
 
    | Name | Value |
    |---|---|
    | `DATABASE_URL` | the Neon connection string |
-   | `AUTH_SECRET` | run `openssl rand -hex 32` and paste the result |
+   | `AUTH_SECRET` | 64 random hex characters — `openssl rand -hex 32` |
    | `ADMIN_EMAILS` | `sammaples@me.com` |
    | `RESEND_API_KEY` | the `re_…` key |
    | `EMAIL_FROM` | `Blind Box <hello@yourdomain.com>` — on the verified domain |
+
+   No terminal handy for `AUTH_SECRET`? In any browser console:
+
+   ```js
+   crypto.getRandomValues(new Uint8Array(32))
+     .reduce((s, b) => s + b.toString(16).padStart(2, "0"), "")
+   ```
+
+   Without a verified domain, `EMAIL_FROM` can be
+   `Blind Box <onboarding@resend.dev>`, which Resend will only deliver to the
+   address the Resend account itself was opened with. That address has to be
+   one of `ADMIN_EMAILS` or you cannot sign in.
 
 5. Deploy.
 
