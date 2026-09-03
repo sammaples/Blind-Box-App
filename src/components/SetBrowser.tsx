@@ -274,7 +274,7 @@ function PieceDetail({
                 <RarityChip rarity={piece.rarity} />
               </div>
               <p className="text-sm leading-relaxed text-muted">{piece.blurb}</p>
-              <dl className="grid grid-cols-3 gap-3 border-t border-hairline pt-4 text-sm">
+              <dl className="grid grid-cols-3 gap-3 border-t border-hairline pt-4 text-center text-sm">
                 <div>
                   <dt className="text-[11px] uppercase tracking-[0.14em] text-faint">Scale</dt>
                   <dd className="mt-1 font-mono">{piece.scale}</dd>
