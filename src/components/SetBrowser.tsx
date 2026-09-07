@@ -67,17 +67,7 @@ export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> 
 
   return (
     <section id="set" className="relative z-10 mx-auto w-full max-w-6xl px-5 py-20 sm:px-8">
-      <div className="flex flex-col gap-3">
-        <SectionLabel>On the shelf right now</SectionLabel>
-        <h2 className="max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
-          Everything in stock, and the exact rate it pulls at.
-        </h2>
-        <p className="max-w-2xl text-sm leading-relaxed text-muted">
-          A piece&apos;s rate is its share of the units left on the shelf, so these are the
-          same numbers the draw runs against. Stock changes as inventory arrives and boxes
-          sell — when the last unit of a piece goes, it leaves the pool.
-        </p>
-      </div>
+      <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Live Stock</h2>
 
       {/* product tabs */}
       <div className="mt-8 flex flex-wrap gap-2">
