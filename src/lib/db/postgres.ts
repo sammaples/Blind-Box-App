@@ -386,6 +386,25 @@ export function createPostgresBackend(connectionString: string): Backend {
       });
     },
 
+    async resetShop() {
+      return withTx(async (client) => {
+        // One transaction, so a purchase landing mid-reset either happens
+        // entirely before it (and is cleared) or fails — never half-cleared,
+        // leaving an order pointing at a piece that no longer exists.
+        const counted = async (sql: string) =>
+          (await client.query(sql)).rowCount ?? 0;
+
+        // Children before parents: orders and the change log both name pieces.
+        const auditEntries = await counted("delete from audit");
+        const orders = await counted("delete from orders");
+        const stockRows = await counted("delete from stock");
+        const pieces = await counted("delete from catalog_pieces");
+        const images = await counted("delete from product_images");
+
+        return { pieces, stockRows, orders, auditEntries, images };
+      });
+    },
+
     async putImage({ id, contentType, bytes }: StoredImage) {
       await query(
         `insert into product_images (id, content_type, bytes)

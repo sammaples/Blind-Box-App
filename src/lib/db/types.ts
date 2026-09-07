@@ -48,6 +48,15 @@ export interface StoredImage {
   bytes: Uint8Array;
 }
 
+/** What a shop-wide reset removed, so the console can say so rather than guess. */
+export interface ResetSummary {
+  pieces: number;
+  stockRows: number;
+  orders: number;
+  auditEntries: number;
+  images: number;
+}
+
 /** What a draw needs back from a reservation. */
 export interface Reservation {
   pieceId: string;
@@ -136,6 +145,20 @@ export interface Backend {
    * piece out from under an order that already exists.
    */
   deletePiece(pieceId: string): Promise<{ deleted: boolean; sold: number }>;
+
+  /**
+   * Empties the shop: every piece, every stock line, every order, the change
+   * log, and the uploaded photos. Accounts survive, admin flags included —
+   * a reset that signed you out of the console you triggered it from would be
+   * a trap.
+   *
+   * This is the one operation that deliberately ignores the rule `deletePiece`
+   * enforces. Deleting a sold piece normally orphans an order, so it is
+   * refused; here the orders go too, which is the whole point. It exists for
+   * exactly one moment — the end of testing, before real stock goes in — and
+   * nothing it removes can be recovered.
+   */
+  resetShop(): Promise<ResetSummary>;
 
   /* product photos */
   /** Stores an uploaded photo under an id the app issued. */

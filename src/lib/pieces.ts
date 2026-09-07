@@ -1,6 +1,7 @@
 import "server-only";
 import { ALL_PIECES as DEMO_PIECES } from "./catalog";
 import { backend } from "./db";
+import type { ResetSummary } from "./db/types";
 import type { Piece, Rarity, Scale } from "./types";
 
 /**
@@ -45,6 +46,16 @@ export async function deletePiece(
   pieceId: string,
 ): Promise<{ deleted: boolean; sold: number }> {
   return backend().deletePiece(pieceId);
+}
+
+/**
+ * Empties the shop of product data — pieces, stock, orders, change log,
+ * photos — and keeps the accounts. For the crossover from testing to real
+ * inventory, where deleting a few hundred test pieces one at a time is not a
+ * plan. Irreversible.
+ */
+export async function resetShop(): Promise<ResetSummary> {
+  return backend().resetShop();
 }
 
 export async function setPieceArchived(

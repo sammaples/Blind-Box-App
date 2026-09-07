@@ -266,6 +266,41 @@ export function createJsonBackend(): Backend {
       });
     },
 
+    async resetShop() {
+      const summary = await transact((db) => {
+        const counts = {
+          pieces: db.pieces.length,
+          stockRows: Object.keys(db.stock).length,
+          orders: db.orders.length,
+          auditEntries: db.audit.length,
+          images: 0,
+        };
+        db.pieces = [];
+        db.stock = {};
+        db.orders = [];
+        db.audit = [];
+        // Collectors and their login tokens stay: the account that triggered
+        // this is signing back in afterwards.
+        return counts;
+      });
+
+      // Photos are files rather than rows, so they are cleared after the
+      // record of them is gone. A leftover file is invisible; a piece pointing
+      // at a file that has already been unlinked would render a broken image.
+      try {
+        const files = await fs.readdir(IMAGE_DIR);
+        for (const file of files) {
+          if (!isImageId(file)) continue;
+          await fs.rm(path.join(IMAGE_DIR, file), { force: true });
+          summary.images += 1;
+        }
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+      }
+
+      return summary;
+    },
+
     async putImage({ id, bytes }: StoredImage) {
       // An id becomes a path here, so an unvetted one is a way to write
       // anywhere on disk. Ids are issued by this app and checked on the way in

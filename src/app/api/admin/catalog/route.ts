@@ -7,12 +7,16 @@ import {
   findPiece,
   loadDemoCatalogue,
   RARITIES,
+  resetShop,
   savePieces,
   SCALES,
   setPieceArchived,
 } from "@/lib/pieces";
 import { applyStockChanges } from "@/lib/stock";
 import type { Rarity, Scale } from "@/lib/types";
+
+/** What has to be typed to empty the shop. Shown in the console beside the box. */
+const RESET_PHRASE = "RESET";
 
 /** The whole catalogue, archived pieces included. */
 export async function GET() {
@@ -22,7 +26,10 @@ export async function GET() {
   return NextResponse.json({ pieces: await allPieces() });
 }
 
-/** Adds or edits one piece, archives one, or loads the demo set. */
+/**
+ * Adds or edits one piece, archives or deletes one, loads the demo set, or
+ * empties the shop.
+ */
 export async function POST(request: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: "Not authorised" }, { status: 401 });
@@ -38,6 +45,21 @@ export async function POST(request: Request) {
   if (body.action === "loadDemo") {
     const count = await loadDemoCatalogue();
     return NextResponse.json({ ok: true, loaded: count });
+  }
+
+  if (body.action === "resetShop") {
+    // A typed word, not just an admin session. Every other action here is
+    // recoverable by hand; this one removes the orders that would tell you
+    // what used to be there, so it asks for something a misplaced click
+    // cannot produce.
+    if (body.confirm !== RESET_PHRASE) {
+      return NextResponse.json(
+        { error: `Type ${RESET_PHRASE} to confirm` },
+        { status: 400 },
+      );
+    }
+    const summary = await resetShop();
+    return NextResponse.json({ ok: true, reset: summary });
   }
 
   if (body.action === "delete") {

@@ -28,6 +28,9 @@ export interface AdminPiece {
 type Levels = Record<string, { stocked: number; sold: number }>;
 type Change = { pieceId: string; op: "add" | "set" | "pull"; units?: number };
 
+/** Must match the phrase the reset endpoint checks for. */
+const RESET_PHRASE = "RESET";
+
 const SHELVES: { scale: Scale; label: string; accent: string }[] = [
   { scale: "100%", label: "100% shelf", accent: "#f97316" },
   { scale: "400%", label: "400% shelf", accent: "#22d3ee" },
@@ -738,6 +741,8 @@ function Catalogue({
   const [working, setWorking] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showReset, setShowReset] = useState(false);
+  const [resetTyped, setResetTyped] = useState("");
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -848,6 +853,37 @@ function Catalogue({
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "That did not work");
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const reset = async () => {
+    setWorking(true);
+    setError(null);
+    try {
+      const data = await post("/api/admin/catalog", {
+        action: "resetShop",
+        confirm: RESET_PHRASE,
+      });
+      const r = data.reset as {
+        pieces: number;
+        stockRows: number;
+        orders: number;
+        images: number;
+      };
+      setNote(
+        `Shop emptied — ${r.pieces} piece${r.pieces === 1 ? "" : "s"}, ` +
+          `${r.stockRows} stock line${r.stockRows === 1 ? "" : "s"}, ` +
+          `${r.orders} order${r.orders === 1 ? "" : "s"} and ` +
+          `${r.images} photo${r.images === 1 ? "" : "s"} removed. ` +
+          "Your account is untouched.",
+      );
+      setShowReset(false);
+      setResetTyped("");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not empty the shop");
     } finally {
       setWorking(false);
     }
@@ -1133,6 +1169,78 @@ function Catalogue({
           </div>
         )}
       </section>
+
+      {/* Emptying the shop. Last on the page, folded shut, and typed to confirm. */}
+      {pieces.length > 0 && (
+        <section className="rounded-2xl border border-hairline bg-ink-card p-5">
+          {!showReset ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold">Start over</h3>
+                <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted">
+                  Clears out test data in one go, for the changeover from trying
+                  things to real stock. Deleting pieces one at a time refuses on
+                  anything that has sold; this does not.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReset(true)}
+                className="rounded-full border border-hairline px-5 py-2.5 text-[13px] text-muted transition-colors hover:border-rose-400/40 hover:text-rose-300"
+              >
+                Empty the shop
+              </button>
+            </div>
+          ) : (
+            <div>
+              <h3 className="text-sm font-semibold text-rose-300">
+                This cannot be undone
+              </h3>
+              <p className="mt-1.5 max-w-xl text-xs leading-relaxed text-muted">
+                Removing{" "}
+                <span className="text-chalk">
+                  all {pieces.length} piece{pieces.length === 1 ? "" : "s"}
+                </span>
+                , every stock line, every order placed so far, the change log,
+                and every uploaded photo. Accounts stay — you will still be
+                signed in, and still an admin.
+              </p>
+              <label className="mt-4 block max-w-xs">
+                <span className="block text-[11px] font-medium uppercase tracking-wider text-faint">
+                  Type {RESET_PHRASE} to confirm
+                </span>
+                <input
+                  value={resetTyped}
+                  onChange={(e) => setResetTyped(e.target.value)}
+                  autoFocus
+                  placeholder={RESET_PHRASE}
+                  className="mt-1.5 w-full rounded-xl border border-hairline bg-ink px-3.5 py-2.5 text-[13px] text-chalk outline-none transition-colors placeholder:text-faint focus:border-rose-400/40"
+                />
+              </label>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  disabled={working || resetTyped !== RESET_PHRASE}
+                  onClick={() => void reset()}
+                  className="rounded-full bg-rose-500/90 px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:bg-rose-500 disabled:opacity-40"
+                >
+                  {working ? "Emptying…" : "Empty the shop"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowReset(false);
+                    setResetTyped("");
+                  }}
+                  className="text-xs text-faint transition-colors hover:text-muted"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }
