@@ -484,6 +484,17 @@ export function getPiece(id: string): Piece | undefined {
  * ------------------------------------------------------------------ */
 
 /**
+ * The collection for releases that are not part of a numbered series —
+ * collaborations, one-offs, anything that stands on its own.
+ *
+ * It is a set name rather than a series number because that is what it is: a
+ * named collection with no number, which the schema already has a column for.
+ * Nothing special-cases it, so it sorts, searches and displays like any other
+ * set, and a spreadsheet can put a piece in it by writing the same words.
+ */
+export const NON_SERIES = "Non-Series";
+
+/**
  * What to show as a piece's collection.
  *
  * A piece carries both a free-text set name and a series number, and most

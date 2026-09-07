@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { RARITY_LABEL, RARITY_ORDER, SERIES_NUMBERS } from "@/lib/catalog";
+import { NON_SERIES, RARITY_LABEL, RARITY_ORDER, SERIES_NUMBERS } from "@/lib/catalog";
 import type { Rarity, Scale } from "@/lib/types";
 
 /**
@@ -58,6 +58,19 @@ export interface NewProduct {
   scale: Scale;
 }
 
+/**
+ * The picker's value for a non-series release. Not a number, because it is not
+ * one — it selects the NON_SERIES set name instead.
+ */
+const NON_SERIES_CHOICE = "non";
+
+/** Which option a piece already sits on, so editing opens on its own answer. */
+function seriesChoiceFor(piece: EditableProduct | null | undefined): string {
+  if (!piece) return "";
+  if (piece.series !== null && piece.series !== undefined) return String(piece.series);
+  return piece.setName.trim() === NON_SERIES ? NON_SERIES_CHOICE : "";
+}
+
 /** An existing piece being corrected, rather than a new one being listed. */
 export interface EditableProduct {
   id: string;
@@ -81,8 +94,7 @@ export function AddProduct({
 }) {
   const [scale, setScale] = useState<Scale>(editing?.scale ?? "100%");
   const [name, setName] = useState(editing?.name ?? "");
-  const originalSeries =
-    editing?.series === null || editing?.series === undefined ? "" : String(editing.series);
+  const originalSeries = seriesChoiceFor(editing);
   const [series, setSeries] = useState(originalSeries);
   const [rarity, setRarity] = useState<Rarity>(editing?.rarity ?? "common");
   const [notes, setNotes] = useState(editing?.blurb ?? "");
@@ -131,12 +143,19 @@ export function AddProduct({
           name,
           scale,
           rarity,
-          // The picker owns "which collection" now. A piece imported from a
-          // spreadsheet can still carry a free-text set name, so it is kept as
-          // it was — unless the series just changed, which makes the old name
+          // The picker owns "which collection" now. Non-Series is stored as a
+          // set name because that is what it is. A piece imported from a
+          // spreadsheet can carry some other free-text name, so that is kept as
+          // it was — unless the choice just changed, which makes the old name
           // stale and would otherwise go on displaying instead of the new one.
-          setName: series === originalSeries ? (editing?.setName ?? "") : "",
-          series: series === "" ? null : Number(series),
+          setName:
+            series === NON_SERIES_CHOICE
+              ? NON_SERIES
+              : series === originalSeries
+                ? (editing?.setName ?? "")
+                : "",
+          series:
+            series === "" || series === NON_SERIES_CHOICE ? null : Number(series),
           imageUrl,
           notes,
           // Optional: a listing can go straight onto the shelf, because most of
@@ -302,7 +321,10 @@ export function AddProduct({
                 className={inputClass}
               >
                 <option value="" className="bg-ink">
-                  No series
+                  Not set
+                </option>
+                <option value={NON_SERIES_CHOICE} className="bg-ink">
+                  {NON_SERIES}
                 </option>
                 {SERIES_NUMBERS.map((n) => (
                   <option key={n} value={String(n)} className="bg-ink">
