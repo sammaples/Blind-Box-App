@@ -17,7 +17,15 @@ import { PieceCard } from "./PieceCard";
 import { RarityChip, SectionLabel } from "./ui";
 import { useScrollLock } from "@/lib/useScrollLock";
 
-type Sort = "rarity" | "odds" | "name";
+type Sort = "rarity" | "odds" | "series" | "name";
+
+/** Rarest first, then the longest odds — the default, and the tiebreak. */
+function byRarity(a: StockEntry, b: StockEntry): number {
+  return (
+    RARITY_ORDER.indexOf(a.piece.rarity) - RARITY_ORDER.indexOf(b.piece.rarity) ||
+    b.odds - a.odds
+  );
+}
 
 /**
  * What is on the shelf right now. Every tile carries the piece's current pull
@@ -52,7 +60,20 @@ export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> 
       if ((a.available === 0) !== (b.available === 0)) return a.available === 0 ? 1 : -1;
       if (sort === "odds") return b.odds - a.odds;
       if (sort === "name") return a.piece.name.localeCompare(b.piece.name);
-      return RARITY_ORDER.indexOf(a.piece.rarity) - RARITY_ORDER.indexOf(b.piece.rarity) || b.odds - a.odds;
+      if (sort === "series") {
+        const one = a.piece.series;
+        const two = b.piece.series;
+        // Non-Series pieces have no number, so they sit after the numbered
+        // ones rather than sorting as if they were series zero.
+        if (one === null || two === null) {
+          if (one !== two) return one === null ? 1 : -1;
+        } else if (one !== two) {
+          return one - two;
+        }
+        // Within a series, the order the series itself reads in.
+        return byRarity(a, b);
+      }
+      return byRarity(a, b);
     });
   }, [shelf, series, rarity, sort]);
 
@@ -177,6 +198,7 @@ export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> 
           >
             <option value="rarity">Rarity</option>
             <option value="odds">Pull rate</option>
+            <option value="series">Series</option>
             <option value="name">Name</option>
           </select>
         </div>
