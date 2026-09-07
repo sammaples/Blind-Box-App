@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Onboarding } from "@/components/Onboarding";
 import { SetBrowser } from "@/components/SetBrowser";
 import { Shop } from "@/components/Shop";
+import { SectionLabel } from "@/components/ui";
 import { PRODUCTS } from "@/lib/catalog";
 import { shelfFor } from "@/lib/stock";
 import type { StockEntry } from "@/lib/types";
@@ -32,12 +33,7 @@ export default async function HomePage() {
           <br />
           <span className="text-muted">Keep it for real.</span>
         </h1>
-        <p className="mt-6 max-w-xl text-base leading-relaxed text-muted">
-          A digital blind box with a physical piece behind it. Buy one box, open it on
-          screen, and the figure you pulled gets packed and shipped to your door.
-        </p>
-
-        <div className="mt-8 flex flex-wrap items-center gap-3">
+        <div className="mt-10 flex flex-wrap items-center gap-3">
           <Link
             href="#shop"
             className="rounded-full bg-chalk px-7 py-3.5 text-sm font-semibold text-ink transition-transform hover:scale-[1.03] active:scale-[0.98]"
@@ -52,7 +48,10 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        <ol className="mt-16 grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-3">
+        <div className="mt-16">
+          <SectionLabel>How it works</SectionLabel>
+        </div>
+        <ol className="mt-5 grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-3">
           {STEPS.map((step) => (
             <li key={step.n} className="bg-ink-card p-6">
               <p className="font-mono text-xs text-faint">{step.n}</p>
