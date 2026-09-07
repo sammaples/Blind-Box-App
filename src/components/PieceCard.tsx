@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { formatOdds, oddsAsOneIn } from "@/lib/catalog";
+import { formatOdds, oddsAsOneIn, seriesLabel } from "@/lib/catalog";
 import type { Piece } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
 import { RarityChip } from "./ui";
@@ -47,7 +47,7 @@ export function PieceCard({
 
       <div className="mt-3 space-y-1.5">
         <p className="truncate text-[13px] font-semibold text-chalk">{piece.name}</p>
-        <p className="truncate text-[11px] text-faint">{piece.setName}</p>
+        <p className="truncate text-[11px] text-faint">{seriesLabel(piece)}</p>
         <div className="flex items-center justify-between gap-2 pt-1">
           <RarityChip rarity={piece.rarity} />
           {soldOut ? (

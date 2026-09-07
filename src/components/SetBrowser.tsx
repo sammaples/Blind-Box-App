@@ -8,6 +8,7 @@ import {
   PRODUCTS,
   RARITY_LABEL,
   RARITY_ORDER,
+  seriesLabel,
   seriesName,
 } from "@/lib/catalog";
 import type { Piece, Rarity, StockEntry } from "@/lib/types";
@@ -269,7 +270,7 @@ function PieceDetail({
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 className="text-xl font-semibold tracking-tight">{piece.name}</h3>
-                  <p className="mt-1 text-sm text-muted">{piece.setName}</p>
+                  <p className="mt-1 text-sm text-muted">{seriesLabel(piece)}</p>
                 </div>
                 <RarityChip rarity={piece.rarity} />
               </div>

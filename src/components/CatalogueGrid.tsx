@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PieceImage } from "@/components/PieceImage";
-import { formatOdds, RARITY_COLOR, RARITY_LABEL } from "@/lib/catalog";
+import { formatOdds, RARITY_COLOR, RARITY_LABEL, seriesLabel } from "@/lib/catalog";
 import { useScrollLock } from "@/lib/useScrollLock";
 import type { Rarity, Scale } from "@/lib/types";
 
@@ -181,7 +181,7 @@ function Card({
             {piece.scale}
           </span>
           <span className="truncate text-[12px] text-faint">
-            {piece.setName || (piece.series !== null ? `Series ${piece.series}` : "—")}
+            {seriesLabel(piece, "—")}
           </span>
         </div>
         <p className="mt-2 text-[12px]">
@@ -312,7 +312,7 @@ function StockSheet({
             <h3 className="mt-2 text-lg font-semibold leading-tight">{piece.name}</h3>
             <p className="mt-1 truncate text-[12px] text-faint">
               {piece.scale} ·{" "}
-              {piece.setName || (piece.series !== null ? `Series ${piece.series}` : "No set")}
+              {seriesLabel(piece, "No set")}
             </p>
           </div>
           <button

@@ -339,6 +339,11 @@ function buildSeries(seriesNo: number): Piece[] {
   return pieces;
 }
 
+/**
+ * 1…52. Doubles as the series picker in the product form, which is why it is
+ * a list rather than a maximum: the form should offer exactly the series this
+ * shop numbers, and there should not be a second list of them to disagree.
+ */
 export const SERIES_NUMBERS: readonly number[] = Array.from(
   { length: SERIES_THEMES.length },
   (_, i) => i + 1,
@@ -472,6 +477,30 @@ export const ALL_PIECES: readonly Piece[] = [...ALL_100, ...BIG_PIECES];
 
 export function getPiece(id: string): Piece | undefined {
   return ALL_PIECES.find((p) => p.id === id);
+}
+
+/* ------------------------------------------------------------------ *
+ * Series
+ * ------------------------------------------------------------------ */
+
+/**
+ * What to show as a piece's collection.
+ *
+ * A piece carries both a free-text set name and a series number, and most
+ * pieces have only one of them: anything added through the console now picks a
+ * series and leaves the name empty, while imported spreadsheets and the demo
+ * catalogue often carry a name. Every place that displays "which set is this"
+ * needs the same fallback, so it lives here rather than being written out at
+ * each call site and drifting.
+ */
+export function seriesLabel(
+  piece: { setName?: string | null; series?: number | null },
+  fallback = "",
+): string {
+  const named = piece.setName?.trim();
+  if (named) return named;
+  if (piece.series !== null && piece.series !== undefined) return `Series ${piece.series}`;
+  return fallback;
 }
 
 /** Rarest first, which is the order a filter row should read in. */

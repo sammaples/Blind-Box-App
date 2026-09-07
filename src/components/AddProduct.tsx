@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { RARITY_LABEL, RARITY_ORDER } from "@/lib/catalog";
+import { RARITY_LABEL, RARITY_ORDER, SERIES_NUMBERS } from "@/lib/catalog";
 import type { Rarity, Scale } from "@/lib/types";
 
 /**
@@ -81,10 +81,9 @@ export function AddProduct({
 }) {
   const [scale, setScale] = useState<Scale>(editing?.scale ?? "100%");
   const [name, setName] = useState(editing?.name ?? "");
-  const [collection, setCollection] = useState(editing?.setName ?? "");
-  const [series, setSeries] = useState(
-    editing?.series === null || editing?.series === undefined ? "" : String(editing.series),
-  );
+  const originalSeries =
+    editing?.series === null || editing?.series === undefined ? "" : String(editing.series);
+  const [series, setSeries] = useState(originalSeries);
   const [rarity, setRarity] = useState<Rarity>(editing?.rarity ?? "common");
   const [notes, setNotes] = useState(editing?.blurb ?? "");
   const [quantity, setQuantity] = useState("");
@@ -132,8 +131,12 @@ export function AddProduct({
           name,
           scale,
           rarity,
-          setName: collection,
-          series: series.trim() === "" ? null : Number(series),
+          // The picker owns "which collection" now. A piece imported from a
+          // spreadsheet can still carry a free-text set name, so it is kept as
+          // it was — unless the series just changed, which makes the old name
+          // stale and would otherwise go on displaying instead of the new one.
+          setName: series === originalSeries ? (editing?.setName ?? "") : "",
+          series: series === "" ? null : Number(series),
           imageUrl,
           notes,
           // Optional: a listing can go straight onto the shelf, because most of
@@ -292,29 +295,22 @@ export function AddProduct({
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Set or series name" hint="Optional.">
-              <input
-                value={collection}
-                onChange={(e) => setCollection(e.target.value)}
-                maxLength={160}
-                placeholder="Series 47"
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Series number" hint="Optional.">
-              <input
+            <Field label="Series" hint="Optional.">
+              <select
                 value={series}
                 onChange={(e) => setSeries(e.target.value)}
-                type="number"
-                min={0}
-                inputMode="numeric"
-                placeholder="47"
                 className={inputClass}
-              />
+              >
+                <option value="" className="bg-ink">
+                  No series
+                </option>
+                {SERIES_NUMBERS.map((n) => (
+                  <option key={n} value={String(n)} className="bg-ink">
+                    Series {n}
+                  </option>
+                ))}
+              </select>
             </Field>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Rarity" hint="A label on the card. Odds come from stock.">
               <select
                 value={rarity}
@@ -328,22 +324,21 @@ export function AddProduct({
                 ))}
               </select>
             </Field>
-            {editing ? (
-              <div />
-            ) : (
-              <Field label="Units in hand" hint="Optional — puts it on the shelf now.">
-                <input
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  type="number"
-                  min={0}
-                  inputMode="numeric"
-                  placeholder="0"
-                  className={inputClass}
-                />
-              </Field>
-            )}
           </div>
+
+          {!editing && (
+            <Field label="Units in hand" hint="Optional — puts it on the shelf now.">
+              <input
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                type="number"
+                min={0}
+                inputMode="numeric"
+                placeholder="0"
+                className={`${inputClass} sm:max-w-[calc(50%-0.5rem)]`}
+              />
+            </Field>
+          )}
 
           <Field label="Notes" hint="Optional. Shown with the piece.">
             <textarea

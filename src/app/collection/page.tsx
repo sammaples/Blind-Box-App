@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PieceImage } from "@/components/PieceImage";
 import { RarityChip } from "@/components/ui";
-import { formatOdds, getProduct, RARITY_ORDER } from "@/lib/catalog";
+import { formatOdds, getProduct, RARITY_ORDER, seriesLabel } from "@/lib/catalog";
 import { pieceMap } from "@/lib/pieces";
 import { oddsFromSnapshot } from "@/lib/serialize";
 import { currentCollectorId } from "@/lib/auth";
@@ -156,7 +156,7 @@ function PullRow({
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">{piece.name}</p>
-        <p className="mt-0.5 truncate text-xs text-faint">{piece.setName}</p>
+        <p className="mt-0.5 truncate text-xs text-faint">{seriesLabel(piece)}</p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <RarityChip rarity={piece.rarity} />
           <span className="font-mono text-[11px] text-muted">{formatOdds(odds)}</span>

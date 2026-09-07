@@ -7,7 +7,7 @@ import { AddProduct, type EditableProduct, type NewProduct } from "@/components/
 import { CatalogueGrid } from "@/components/CatalogueGrid";
 import { PieceImage } from "@/components/PieceImage";
 import { RarityChip } from "@/components/ui";
-import { formatOdds, RARITY_LABEL, RARITY_ORDER } from "@/lib/catalog";
+import { formatOdds, RARITY_LABEL, RARITY_ORDER, seriesLabel } from "@/lib/catalog";
 import { UNITS_BY_RARITY } from "@/lib/inventory";
 import type { AuditBatch, Palette, PatternKind, Rarity, Scale } from "@/lib/types";
 
@@ -146,7 +146,7 @@ export function AdminConsole({
       if (piece.scale !== "100%" || piece.series === null || piece.archived) continue;
       const row = map.get(piece.series) ?? {
         // Whatever the shop calls this set, not a name invented here.
-        label: piece.setName || `Series ${piece.series}`,
+        label: seriesLabel(piece),
         total: 0,
         stocked: 0,
         available: 0,
@@ -428,7 +428,7 @@ function ShelfTable({
                   </div>
                   <div className="min-w-0">
                     <p className="truncate font-medium">{row.piece.name}</p>
-                    <p className="truncate text-[11px] text-faint">{row.piece.setName}</p>
+                    <p className="truncate text-[11px] text-faint">{seriesLabel(row.piece)}</p>
                   </div>
                 </div>
               </td>
@@ -572,7 +572,7 @@ function AddPieces({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-medium">{piece.name}</p>
-                <p className="truncate text-[11px] text-faint">{piece.setName}</p>
+                <p className="truncate text-[11px] text-faint">{seriesLabel(piece)}</p>
               </div>
               <button
                 type="button"
