@@ -1,8 +1,24 @@
 import type { Metadata, Viewport } from "next";
+import { Pacifico } from "next/font/google";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AccountButton, AccountProvider, AdminLink } from "@/components/AccountBar";
 import "./globals.css";
+
+/**
+ * The wordmark's face — a brush script, the one thing on the page that is not
+ * the interface typeface.
+ *
+ * Loaded through next/font rather than a stylesheet link: it is self-hosted at
+ * build time, so the name is painted in its own face on first frame instead of
+ * appearing in a fallback and then jumping. `display: swap` keeps the header
+ * readable if that ever fails.
+ */
+const wordmark = Pacifico({
+  weight: "400",
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Blind Box — open digitally, collect physically",
@@ -33,11 +49,18 @@ function Header() {
     <header className="sticky top-0 z-40 border-b border-hairline/70 bg-ink/70 backdrop-blur-xl">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
-          <span className="grid size-6 place-items-center rounded-md bg-chalk text-[11px] font-bold text-ink">
-            B
+          <span
+            className={`grid size-6 place-items-center rounded-md bg-chalk pb-0.5 text-[13px] leading-none text-ink ${wordmark.className}`}
+          >
+            R
           </span>
-          <span className="whitespace-nowrap text-sm font-semibold tracking-tight">
-            Blind Box
+          {/* A script sits small for its point size and its descenders drop
+              below the line, so it is set larger than the nav beside it and
+              nudged up to share a baseline with it. */}
+          <span
+            className={`whitespace-nowrap text-[19px] leading-none -translate-y-px ${wordmark.className}`}
+          >
+            Rip n&apos; Ship
           </span>
         </Link>
         {/* Nothing in here may wrap: a two-line header on a phone pushes the
