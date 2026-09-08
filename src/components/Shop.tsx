@@ -277,7 +277,7 @@ function CheckoutSheet({
               className="mt-5 w-full rounded-xl py-3.5 text-sm font-semibold text-ink transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60"
               style={{ background: product.accent }}
             >
-              {busy ? "Sealing your box…" : `Buy and seal · $${(product.priceCents / 100).toFixed(2)}`}
+              {busy ? "Ripping…" : `Rip · $${(product.priceCents / 100).toFixed(2)}`}
             </button>
 
             {error && <p className="mt-3 text-center text-xs text-rose-400">{error}</p>}
