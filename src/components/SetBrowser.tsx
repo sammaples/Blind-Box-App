@@ -9,7 +9,6 @@ import {
   RARITY_LABEL,
   RARITY_ORDER,
   pieceSubtitle,
-  seriesName,
 } from "@/lib/catalog";
 import type { Piece, Rarity, StockEntry } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
@@ -124,13 +123,8 @@ export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> 
       {/* series filter — only for shelves that hold numbered series */}
       {stockedSeries.length > 0 && (
         <div className="mt-6">
-          <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+          <div className="mb-2">
             <SectionLabel>Series in stock</SectionLabel>
-            <p className="text-xs text-faint">
-              {series === "all"
-                ? `${stockedSeries.length} series on the shelf`
-                : `Series ${series} · ${seriesName(series as number)}`}
-            </p>
           </div>
           <div className="scroll-slim flex gap-1.5 overflow-x-auto pb-2">
             <button
