@@ -467,7 +467,7 @@ export const PRODUCTS: readonly Product[] = [
   {
     id: "four-hundred",
     name: "400% Blind Box",
-    tagline: "One authentic 400% figure. Eleven inches of it.",
+    tagline: "One authentic 400% figure from our live list of pieces.",
     description:
       "The large format, guaranteed. One 400% figure drawn from the 400% shelf as it stands today — including the chase pieces, while they last.",
     priceCents: 18500,
