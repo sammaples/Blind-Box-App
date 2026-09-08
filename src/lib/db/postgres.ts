@@ -113,6 +113,7 @@ function toPiece(r: Row): Piece {
   const palettes: Record<Rarity, { base: string; accent: string }> = {
     common: { base: "hsl(210 12% 62%)", accent: "hsl(210 14% 44%)" },
     rare: { base: "hsl(214 72% 62%)", accent: "hsl(214 60% 44%)" },
+    ultra: { base: "hsl(275 80% 72%)", accent: "hsl(272 62% 52%)" },
     chase: { base: "hsl(43 88% 58%)", accent: "hsl(38 76% 44%)" },
   };
   const tone = palettes[rarity] ?? palettes.common;

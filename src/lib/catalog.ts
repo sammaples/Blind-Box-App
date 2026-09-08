@@ -515,34 +515,42 @@ export function seriesLabel(
 }
 
 /** Rarest first, which is the order a filter row should read in. */
-export const RARITY_ORDER: readonly Rarity[] = ["chase", "rare", "common"];
+export const RARITY_ORDER: readonly Rarity[] = ["chase", "ultra", "rare", "common"];
 
 export const RARITY_LABEL: Record<Rarity, string> = {
   common: "Common",
   rare: "Rare",
+  ultra: "Ultra Rare",
   chase: "Chase",
 };
 
 export const RARITY_COLOR: Record<Rarity, string> = {
   common: "#94a3b8",
   rare: "#60a5fa",
+  // Violet: a step up from rare's blue and clearly not chase's gold, so the
+  // three top tiers stay apart at badge size and in a reveal glow.
+  ultra: "#c084fc",
   chase: "#fbbf24",
 };
 
 /**
- * What the six older tiers become.
+ * What older tier names become.
  *
  * Kept because catalogues outlive schemas: a spreadsheet exported last month,
  * or a row written before this change, still says "uncommon". Both the CSV
  * importer and the database migration read from here, so there is one mapping
  * rather than two that can disagree.
+ *
+ * "ultra" and "ultrarare" used to fold into rare, back when there were three
+ * tiers. Now that Ultra Rare is a tier of its own they mean it again, so a
+ * spreadsheet written for the six-tier catalogue imports as it reads.
  */
 export const LEGACY_RARITY: Readonly<Record<string, Rarity>> = {
   common: "common",
   uncommon: "common",
   rare: "rare",
-  ultra: "rare",
-  ultrarare: "rare",
+  ultra: "ultra",
+  ultrarare: "ultra",
   secret: "chase",
   grail: "chase",
   chase: "chase",

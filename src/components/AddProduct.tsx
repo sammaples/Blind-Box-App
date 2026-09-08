@@ -64,11 +64,17 @@ export interface NewProduct {
  */
 const NON_SERIES_CHOICE = "non";
 
-/** Which option a piece already sits on, so editing opens on its own answer. */
+/**
+ * Which option a piece already sits on, so editing opens on its own answer.
+ *
+ * Anything with no series number reads as Non-Series, including a piece
+ * imported with the column left blank. There is no "unanswered" option any
+ * more: a release either belongs to a numbered series or it does not, and a
+ * blank was only ever the second of those with nothing said about it.
+ */
 function seriesChoiceFor(piece: EditableProduct | null | undefined): string {
-  if (!piece) return "";
-  if (piece.series !== null && piece.series !== undefined) return String(piece.series);
-  return piece.setName.trim() === NON_SERIES ? NON_SERIES_CHOICE : "";
+  if (piece?.series !== null && piece?.series !== undefined) return String(piece.series);
+  return NON_SERIES_CHOICE;
 }
 
 /** An existing piece being corrected, rather than a new one being listed. */
@@ -127,6 +133,20 @@ export function AddProduct({
     }
   };
 
+  /**
+   * The set name the picker implies.
+   *
+   * Non-Series is stored as a set name, because that is what it is. But a
+   * piece imported from a spreadsheet can carry some other name — "Copperline"
+   * — and an untouched picker must not overwrite it just because editing the
+   * photo happened to save the form. So an unchanged choice keeps whatever the
+   * piece already had, and only a changed one writes the new answer.
+   */
+  const setNameToSave = (): string => {
+    if (editing && series === originalSeries) return editing.setName;
+    return series === NON_SERIES_CHOICE ? NON_SERIES : "";
+  };
+
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     if (saving || uploading) return;
@@ -143,19 +163,8 @@ export function AddProduct({
           name,
           scale,
           rarity,
-          // The picker owns "which collection" now. Non-Series is stored as a
-          // set name because that is what it is. A piece imported from a
-          // spreadsheet can carry some other free-text name, so that is kept as
-          // it was — unless the choice just changed, which makes the old name
-          // stale and would otherwise go on displaying instead of the new one.
-          setName:
-            series === NON_SERIES_CHOICE
-              ? NON_SERIES
-              : series === originalSeries
-                ? (editing?.setName ?? "")
-                : "",
-          series:
-            series === "" || series === NON_SERIES_CHOICE ? null : Number(series),
+          setName: setNameToSave(),
+          series: series === NON_SERIES_CHOICE ? null : Number(series),
           imageUrl,
           notes,
           // Optional: a listing can go straight onto the shelf, because most of
@@ -314,15 +323,12 @@ export function AddProduct({
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Series" hint="Optional.">
+            <Field label="Series" hint="Non-Series for collabs and one-offs.">
               <select
                 value={series}
                 onChange={(e) => setSeries(e.target.value)}
                 className={inputClass}
               >
-                <option value="" className="bg-ink">
-                  Not set
-                </option>
                 <option value={NON_SERIES_CHOICE} className="bg-ink">
                   {NON_SERIES}
                 </option>

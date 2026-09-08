@@ -7,7 +7,7 @@
  * blind boxes, and the real odds come from unit counts regardless — a tier is
  * a label on a card, never the arithmetic.
  */
-export type Rarity = "common" | "rare" | "chase";
+export type Rarity = "common" | "rare" | "ultra" | "chase";
 
 export type PatternKind =
   | "solid"

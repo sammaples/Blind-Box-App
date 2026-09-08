@@ -10,8 +10,8 @@ import type { Piece, Rarity, Scale } from "./types";
  */
 
 export const UNITS_BY_RARITY: Record<Scale, Record<Rarity, number>> = {
-  "100%": { common: 24, rare: 8, chase: 1 },
-  "400%": { common: 60, rare: 14, chase: 2 },
+  "100%": { common: 24, rare: 8, ultra: 3, chase: 1 },
+  "400%": { common: 60, rare: 14, ultra: 5, chase: 2 },
 };
 
 /** The count the console offers when you stock a piece for the first time. */
