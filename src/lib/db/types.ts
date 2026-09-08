@@ -132,6 +132,17 @@ export interface Backend {
   listPieces(): Promise<Piece[]>;
   /** Creates or updates pieces by id, in one transaction. */
   savePieces(pieces: readonly Piece[]): Promise<void>;
+
+  /**
+   * Inserts a piece only if its id is free, reporting whether it went in.
+   *
+   * `savePieces` upserts, which is right for editing and wrong for listing:
+   * two products with the same title derive the same id, and an upsert would
+   * quietly replace the first with the second. The caller picks another id and
+   * tries again — and because the database decides, two admins adding the same
+   * title at the same moment get two listings rather than one survivor.
+   */
+  createPiece(piece: Piece): Promise<boolean>;
   /** Archives or restores a piece without losing the orders that pulled it. */
   setPieceArchived(pieceId: string, archived: boolean): Promise<Piece | null>;
 

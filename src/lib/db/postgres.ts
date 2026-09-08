@@ -355,6 +355,29 @@ export function createPostgresBackend(connectionString: string): Backend {
       });
     },
 
+    async createPiece(piece) {
+      // "do nothing" rather than "do update": a taken id means a different
+      // product already answers to it, and the caller wants a new row.
+      const { rowCount } = await query(
+        `insert into catalog_pieces
+           (id, name, set_name, series, scale, rarity, image_url, notes, archived_at)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+         on conflict (id) do nothing`,
+        [
+          piece.id,
+          piece.name,
+          piece.setName,
+          piece.series,
+          piece.scale,
+          piece.rarity,
+          piece.imageUrl,
+          piece.blurb,
+          piece.archived ? new Date().toISOString() : null,
+        ],
+      );
+      return (rowCount ?? 0) > 0;
+    },
+
     async setPieceArchived(pieceId, archived) {
       const { rows } = await query(
         `update catalog_pieces

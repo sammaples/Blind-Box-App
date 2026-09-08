@@ -3,6 +3,7 @@ import { isAdmin } from "@/lib/admin";
 import {
   allPieces,
   buildPiece,
+  createPiece,
   deletePiece,
   findPiece,
   loadDemoCatalogue,
@@ -129,11 +130,14 @@ export async function POST(request: Request) {
     quantity = Math.trunc(quantity);
   }
 
-  // An id means "edit this one". savePieces upserts, so the same call both
-  // creates and updates — but only if the id survives the round trip, which is
-  // why the form sends it back rather than letting a rename mint a new piece.
-  const piece = buildPiece({
-    id: typeof body.id === "string" ? body.id : undefined,
+  // An id means "edit this one", which is why the form sends it back rather
+  // than letting a rename mint a second piece. Its absence means "list a new
+  // one", and those two want opposite things from a clash: an edit must land
+  // on the row it names, while a new listing must never land on someone
+  // else's — two products are allowed to share a title.
+  const editingId = typeof body.id === "string" && body.id.trim() !== "" ? body.id : undefined;
+  const draft = buildPiece({
+    id: editingId,
     name,
     setName: typeof body.setName === "string" ? body.setName : "",
     series:
@@ -146,7 +150,12 @@ export async function POST(request: Request) {
     notes: typeof body.notes === "string" ? body.notes : "",
   });
 
-  await savePieces([piece]);
+  let piece = draft;
+  if (editingId) {
+    await savePieces([draft]);
+  } else {
+    piece = await createPiece(draft);
+  }
 
   // Listing a product and putting the box of them on the shelf is usually one
   // errand, so the form can do both. Stock has to follow the save: there is

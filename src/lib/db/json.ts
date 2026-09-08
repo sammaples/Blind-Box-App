@@ -245,6 +245,16 @@ export function createJsonBackend(): Backend {
       });
     },
 
+    async createPiece(piece) {
+      return transact((db) => {
+        // A taken id means a different product already answers to it, so the
+        // caller gets a no and picks another rather than replacing it.
+        if (db.pieces.some((p) => p.id === piece.id)) return false;
+        db.pieces.push(piece);
+        return true;
+      });
+    },
+
     async setPieceArchived(pieceId, archived) {
       return transact((db) => {
         const piece = db.pieces.find((p) => p.id === pieceId);

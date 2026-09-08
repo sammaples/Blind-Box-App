@@ -38,6 +38,35 @@ export async function savePieces(pieces: readonly Piece[]): Promise<void> {
   await backend().savePieces(pieces);
 }
 
+/** How many times to try a free id before giving up on a very popular title. */
+const ID_ATTEMPTS = 200;
+
+/**
+ * Lists a brand-new piece, keeping its id distinct from every other.
+ *
+ * An id is derived from the title, so two products called the same thing want
+ * the same one — and saving the second over the first is not what "add a
+ * product" means. Two pieces really can share a title: a repaint, a size
+ * variant, a second run, or simply a name a shop uses twice. So the first
+ * takes the plain slug and the next takes `-2`, `-3`, and so on.
+ *
+ * The database decides who gets an id, not a lookup beforehand, so two
+ * additions at the same instant end up as two listings rather than one
+ * overwriting the other.
+ */
+export async function createPiece(piece: Piece): Promise<Piece> {
+  const base = piece.id;
+  for (let n = 1; n <= ID_ATTEMPTS; n++) {
+    const candidate = n === 1 ? base : `${base}-${n}`;
+    const attempt = { ...piece, id: candidate };
+    if (await backend().createPiece(attempt)) return attempt;
+  }
+  throw new Error(
+    `Could not find a free id for "${piece.name}" after ${ID_ATTEMPTS} tries. ` +
+      "Give this one a slightly different title.",
+  );
+}
+
 /**
  * Removes a piece outright. Refuses, reporting the sold count, when units have
  * shipped — see the seam for why that has to be one operation.
