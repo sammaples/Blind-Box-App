@@ -452,7 +452,7 @@ export const PRODUCTS: readonly Product[] = [
   {
     id: "hundred",
     name: "100% Blind Box",
-    tagline: "One sealed 100% figure from our live list of pieces.",
+    tagline: "One authentic 100% figure from our live list of pieces.",
     description:
       "A single 100% figure, drawn from everything currently in stock. The line-up changes as inventory moves — what is listed below is what is in the warehouse right now, and every rate is that piece's share of it.",
     priceCents: 2400,
@@ -467,7 +467,7 @@ export const PRODUCTS: readonly Product[] = [
   {
     id: "four-hundred",
     name: "400% Blind Box",
-    tagline: "One sealed 400% figure. Eleven inches of it.",
+    tagline: "One authentic 400% figure. Eleven inches of it.",
     description:
       "The large format, guaranteed. One 400% figure drawn from the 400% shelf as it stands today — including the chase pieces, while they last.",
     priceCents: 18500,
