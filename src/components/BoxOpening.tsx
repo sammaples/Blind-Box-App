@@ -2,7 +2,13 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useMemo, useState } from "react";
-import { formatOdds, oddsAsOneIn, RARITY_COLOR, RARITY_LABEL, seriesLabel } from "@/lib/catalog";
+import {
+  formatOdds,
+  oddsAsOneIn,
+  pieceSubtitle,
+  RARITY_COLOR,
+  RARITY_LABEL,
+} from "@/lib/catalog";
 import { boxGeometry } from "@/lib/boxShape";
 import type { Piece, Product } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
@@ -392,7 +398,7 @@ function PullSummary({ piece, odds }: { piece: Piece; odds: number }) {
         </motion.p>
       )}
       <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{piece.name}</h2>
-      <p className="text-sm text-muted">{seriesLabel(piece)}</p>
+      <p className="text-sm text-muted">{pieceSubtitle(piece)}</p>
       <div className="flex items-center gap-2">
         <RarityChip rarity={piece.rarity} />
         <span className="rounded-full bg-white/8 px-2.5 py-1 font-mono text-[11px] text-muted">

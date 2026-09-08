@@ -7,9 +7,15 @@ import { AddProduct, type EditableProduct, type NewProduct } from "@/components/
 import { CatalogueGrid } from "@/components/CatalogueGrid";
 import { PieceImage } from "@/components/PieceImage";
 import { RarityChip } from "@/components/ui";
-import { formatOdds, RARITY_LABEL, RARITY_ORDER, seriesLabel } from "@/lib/catalog";
+import {
+  formatOdds,
+  pieceSubtitle,
+  RARITY_LABEL,
+  RARITY_ORDER,
+  seriesLabel,
+} from "@/lib/catalog";
 import { UNITS_BY_RARITY } from "@/lib/inventory";
-import type { AuditBatch, Palette, PatternKind, Rarity, Scale } from "@/lib/types";
+import type { AuditBatch, Category, Palette, PatternKind, Rarity, Scale } from "@/lib/types";
 
 /** The slice of a piece the console needs. */
 export interface AdminPiece {
@@ -17,6 +23,7 @@ export interface AdminPiece {
   name: string;
   setName: string;
   series: number | null;
+  category: Category | null;
   scale: Scale;
   rarity: Rarity;
   pattern: PatternKind;
@@ -428,7 +435,7 @@ function ShelfTable({
                   </div>
                   <div className="min-w-0">
                     <p className="truncate font-medium">{row.piece.name}</p>
-                    <p className="truncate text-[11px] text-faint">{seriesLabel(row.piece)}</p>
+                    <p className="truncate text-[11px] text-faint">{pieceSubtitle(row.piece)}</p>
                   </div>
                 </div>
               </td>
@@ -572,7 +579,7 @@ function AddPieces({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-medium">{piece.name}</p>
-                <p className="truncate text-[11px] text-faint">{seriesLabel(piece)}</p>
+                <p className="truncate text-[11px] text-faint">{pieceSubtitle(piece)}</p>
               </div>
               <button
                 type="button"
@@ -955,9 +962,11 @@ function Catalogue({
             A CSV with a header row. <span className="text-chalk">name</span> and{" "}
             <span className="text-chalk">scale</span> are required;{" "}
             <span className="text-chalk">set</span>, <span className="text-chalk">series</span>,{" "}
-            <span className="text-chalk">rarity</span>, <span className="text-chalk">image</span>,{" "}
+            <span className="text-chalk">rarity</span>, <span className="text-chalk">category</span>,{" "}
+            <span className="text-chalk">image</span>,{" "}
             <span className="text-chalk">notes</span> and{" "}
-            <span className="text-chalk">quantity</span> are optional. Include a quantity and
+            <span className="text-chalk">quantity</span> are optional — though a row with a
+            series number needs a category, same as the form. Include a quantity and
             the piece goes straight onto the shelf. Re-uploading a sheet updates pieces rather
             than duplicating them, so a corrected export is safe to send again.
           </p>
@@ -1153,6 +1162,7 @@ function Catalogue({
                   series: piece.series,
                   scale: piece.scale,
                   rarity: piece.rarity,
+                  category: piece.category,
                   imageUrl: piece.imageUrl,
                 });
                 setNote(null);

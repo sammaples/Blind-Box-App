@@ -1,5 +1,5 @@
 import "server-only";
-import { ALL_PIECES as DEMO_PIECES } from "./catalog";
+import { ALL_PIECES as DEMO_PIECES, toCategory } from "./catalog";
 import { backend } from "./db";
 import type { ResetSummary } from "./db/types";
 import type { Piece, Rarity, Scale } from "./types";
@@ -105,6 +105,7 @@ export interface PieceInput {
   series?: number | null;
   scale: Scale;
   rarity?: Rarity;
+  category?: unknown;
   imageUrl?: unknown;
   notes?: string;
 }
@@ -154,6 +155,7 @@ export function buildPiece(input: PieceInput): Piece {
         ? null
         : Math.trunc(input.series),
     type: "",
+    category: toCategory(input.category),
     scale,
     rarity,
     pattern: "solid",

@@ -1,4 +1,4 @@
-import { LEGACY_RARITY } from "./catalog";
+import { CATEGORY_ORDER, LEGACY_RARITY, toCategory } from "./catalog";
 import type { Rarity, Scale } from "./types";
 import { buildPiece, RARITIES, SCALES, slugFor } from "./pieces";
 import type { Piece } from "./types";
@@ -77,6 +77,9 @@ const HEADER_ALIASES: Record<string, string> = {
   setname: "set",
   collection: "set",
   series: "series",
+  category: "category",
+  kind: "category",
+  type: "category",
   scale: "scale",
   size: "scale",
   rarity: "rarity",
@@ -201,6 +204,15 @@ export function importCatalogue(text: string): ImportResult {
       continue;
     }
 
+    const categoryRaw = get("category");
+    const category = toCategory(categoryRaw);
+    if (categoryRaw !== "" && category === null) {
+      errors.push(
+        `Line ${line}: "${categoryRaw}" is not a category — use ${CATEGORY_ORDER.join(", ")}.`,
+      );
+      continue;
+    }
+
     const seriesRaw = get("series");
     const series = seriesRaw === "" ? null : Number(seriesRaw);
     if (series !== null && !Number.isFinite(series)) {
@@ -219,6 +231,11 @@ export function importCatalogue(text: string): ImportResult {
       quantity = Math.trunc(parsed);
     }
 
+    if (series !== null && category === null) {
+      errors.push(`Line ${line}: "${name}" is a series piece, so it needs a category.`);
+      continue;
+    }
+
     const piece = buildPiece({
       id: get("id") || slugFor(name, scale),
       name,
@@ -226,6 +243,7 @@ export function importCatalogue(text: string): ImportResult {
       series,
       scale,
       rarity,
+      category,
       imageUrl: get("image"),
       notes: get("notes"),
     });

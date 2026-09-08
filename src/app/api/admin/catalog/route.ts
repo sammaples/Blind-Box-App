@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin";
+import { toCategory } from "@/lib/catalog";
 import {
   allPieces,
   buildPiece,
@@ -116,6 +117,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "That is not a rarity" }, { status: 400 });
   }
 
+  const series =
+    body.series === null || body.series === undefined || body.series === ""
+      ? null
+      : Number(body.series);
+
+  // Required on a numbered series piece, optional on a one-off. Which slot a
+  // figure fills is part of what a series is, so a series piece without one is
+  // an incomplete listing; a collab or a single release often fits no slot at
+  // all. Checked here and not only in the form, because the form is not the
+  // only way to reach this.
+  const category = toCategory(body.category);
+  if (series !== null && category === null) {
+    return NextResponse.json(
+      { error: "A series piece needs a category" },
+      { status: 400 },
+    );
+  }
+
   // A quantity is optional, but when it comes it has to be a real count —
   // silently reading NaN as zero would quietly unstock a piece.
   let quantity: number | null = null;
@@ -140,12 +159,10 @@ export async function POST(request: Request) {
     id: editingId,
     name,
     setName: typeof body.setName === "string" ? body.setName : "",
-    series:
-      body.series === null || body.series === undefined || body.series === ""
-        ? null
-        : Number(body.series),
+    series,
     scale,
     rarity,
+    category,
     imageUrl: body.imageUrl,
     notes: typeof body.notes === "string" ? body.notes : "",
   });

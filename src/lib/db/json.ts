@@ -9,7 +9,7 @@ import type {
   Piece,
   Scale,
 } from "../types";
-import { LEGACY_RARITY } from "../catalog";
+import { LEGACY_RARITY, toCategory } from "../catalog";
 import { contentTypeFor, isImageId } from "../images";
 import type {
   Backend,
@@ -232,6 +232,7 @@ export function createJsonBackend(): Backend {
       return db.pieces.map((piece) => ({
         ...piece,
         rarity: LEGACY_RARITY[piece.rarity] ?? "common",
+        category: toCategory(piece.category),
       }));
     },
 

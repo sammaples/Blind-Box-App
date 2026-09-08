@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
+import { toCategory } from "../catalog";
 import type {
   AuditBatch,
   AuditEntry,
@@ -124,6 +125,7 @@ function toPiece(r: Row): Piece {
     setName: (r.set_name as string) || "",
     series: r.series === null || r.series === undefined ? null : Number(r.series),
     type: "",
+    category: toCategory(r.category),
     scale: r.scale as Scale,
     rarity,
     pattern: "solid" as PatternKind,
@@ -329,8 +331,8 @@ export function createPostgresBackend(connectionString: string): Backend {
         for (const p of pieces) {
           await client.query(
             `insert into catalog_pieces
-               (id, name, set_name, series, scale, rarity, image_url, notes, archived_at)
-             values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+               (id, name, set_name, series, scale, rarity, image_url, notes, archived_at, category)
+             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
              on conflict (id) do update set
                name       = excluded.name,
                set_name   = excluded.set_name,
@@ -339,6 +341,7 @@ export function createPostgresBackend(connectionString: string): Backend {
                rarity     = excluded.rarity,
                image_url  = excluded.image_url,
                notes      = excluded.notes,
+               category   = excluded.category,
                updated_at = now()`,
             [
               p.id,
@@ -350,6 +353,7 @@ export function createPostgresBackend(connectionString: string): Backend {
               p.imageUrl,
               p.blurb,
               p.archived ? new Date().toISOString() : null,
+              p.category,
             ],
           );
         }
@@ -361,8 +365,8 @@ export function createPostgresBackend(connectionString: string): Backend {
       // product already answers to it, and the caller wants a new row.
       const { rowCount } = await query(
         `insert into catalog_pieces
-           (id, name, set_name, series, scale, rarity, image_url, notes, archived_at)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+           (id, name, set_name, series, scale, rarity, image_url, notes, archived_at, category)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
          on conflict (id) do nothing`,
         [
           piece.id,
@@ -374,6 +378,7 @@ export function createPostgresBackend(connectionString: string): Backend {
           piece.imageUrl,
           piece.blurb,
           piece.archived ? new Date().toISOString() : null,
+          piece.category,
         ],
       );
       return (rowCount ?? 0) > 0;

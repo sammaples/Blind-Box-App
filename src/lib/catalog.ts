@@ -1,4 +1,4 @@
-import type { Palette, PatternKind, Piece, Product, Rarity } from "./types";
+import type { Category, Palette, PatternKind, Piece, Product, Rarity } from "./types";
 
 /**
  * The reference catalogue: every piece that exists, generated deterministically
@@ -102,6 +102,8 @@ const SERIES_THEMES: readonly SeriesTheme[] = [
 
 interface TypeSpec {
   type: string;
+  /** The shop category this lineup slot belongs to. Null where none fits. */
+  category: Category | null;
   /** One entry per piece of this type in the series. */
   weights: readonly number[];
   pattern: PatternKind;
@@ -114,6 +116,7 @@ interface TypeSpec {
 const TYPE_SPECS: readonly TypeSpec[] = [
   {
     type: "Basic",
+    category: null,
     weights: [90, 90],
     pattern: "solid",
     rarity: "common",
@@ -122,6 +125,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
   },
   {
     type: "Jellybean",
+    category: "jellybean",
     weights: [100],
     pattern: "jelly",
     rarity: "common",
@@ -130,6 +134,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
   },
   {
     type: "Cute",
+    category: "cute",
     weights: [90],
     pattern: "split",
     rarity: "common",
@@ -138,6 +143,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
   },
   {
     type: "Pattern",
+    category: "pattern",
     weights: [80, 80],
     pattern: "checker",
     rarity: "common",
@@ -146,6 +152,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
   },
   {
     type: "Flag",
+    category: "flag",
     weights: [90],
     pattern: "stripes",
     rarity: "common",
@@ -154,6 +161,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
   },
   {
     type: "Animal",
+    category: "animal",
     weights: [80],
     pattern: "camo",
     rarity: "common",
@@ -162,6 +170,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
   },
   {
     type: "Horror",
+    category: "horror",
     weights: [70],
     pattern: "drip",
     rarity: "rare",
@@ -170,6 +179,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
   },
   {
     type: "SF",
+    category: "scifi",
     weights: [70],
     pattern: "chrome",
     rarity: "rare",
@@ -178,6 +188,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
   },
   {
     type: "Artist",
+    category: "artist",
     weights: [50, 45, 40],
     pattern: "gradient",
     rarity: "rare",
@@ -194,6 +205,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
   },
   {
     type: "Hero",
+    category: "hero",
     weights: [20],
     pattern: "stars",
     rarity: "rare",
@@ -202,6 +214,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
   },
   {
     type: "Secret",
+    category: "secret",
     weights: [5],
     pattern: "chrome",
     rarity: "chase",
@@ -318,6 +331,7 @@ function buildPiece(seriesNo: number, spec: TypeSpec, index: number): Piece {
     setName: `Series ${seriesNo} · ${theme.name}`,
     series: seriesNo,
     type: spec.type,
+    category: spec.category,
     scale: "100%",
     rarity: isGrail ? "chase" : spec.rarity,
     pattern: spec.pattern,
@@ -411,11 +425,13 @@ export const BIG_PIECES: readonly Piece[] = BIG_SPECS.map((spec, i) => ({
   setName: "400% Collection",
   series: null,
   type: spec.rarity === "chase" ? "Secret" : "Standard",
+  category: spec.rarity === "chase" ? ("secret" as const) : null,
   scale: "400%",
   rarity: spec.rarity,
   pattern: spec.pattern,
   palette: paletteFor(spec.hue, {
     type: spec.name,
+    category: null,
     weights: [spec.weight],
     pattern: spec.pattern,
     rarity: spec.rarity,
@@ -512,6 +528,64 @@ export function seriesLabel(
   if (named) return named;
   if (piece.series !== null && piece.series !== undefined) return `Series ${piece.series}`;
   return fallback;
+}
+
+/* ------------------------------------------------------------------ *
+ * Categories
+ * ------------------------------------------------------------------ */
+
+/** The picker's order, which is the shop's own, not alphabetical. */
+export const CATEGORY_ORDER: readonly Category[] = [
+  "flag",
+  "cute",
+  "jellybean",
+  "horror",
+  "animal",
+  "pattern",
+  "scifi",
+  "hero",
+  "artist",
+  "game",
+  "secret",
+];
+
+export const CATEGORY_LABEL: Record<Category, string> = {
+  flag: "Flag",
+  cute: "Cute",
+  jellybean: "Jellybean",
+  horror: "Horror",
+  animal: "Animal",
+  pattern: "Pattern",
+  scifi: "Sci-Fi",
+  hero: "Hero",
+  artist: "Artist",
+  game: "Game",
+  secret: "Secret",
+};
+
+/** Reads a stored or imported value, so an unknown string never renders. */
+export function toCategory(value: unknown): Category | null {
+  if (typeof value !== "string") return null;
+  const key = value.trim().toLowerCase().replace(/[\s_-]+/g, "");
+  const match = CATEGORY_ORDER.find((c) => c === key);
+  return match ?? null;
+}
+
+/**
+ * The line under a piece's name: which collection, then what kind of figure.
+ *
+ * "Series 3 · Cute". The category half is simply absent when there is none,
+ * rather than leaving a dangling separator, so a one-off with no category
+ * reads as "Non-Series" and not "Non-Series · ".
+ */
+export function pieceSubtitle(
+  piece: { setName?: string | null; series?: number | null; category?: Category | null },
+  fallback = "",
+): string {
+  const collection = seriesLabel(piece, fallback);
+  const kind = piece.category ? CATEGORY_LABEL[piece.category] : "";
+  if (!kind) return collection;
+  return collection ? `${collection} · ${kind}` : kind;
 }
 
 /** Rarest first, which is the order a filter row should read in. */

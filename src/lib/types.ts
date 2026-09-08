@@ -9,6 +9,27 @@
  */
 export type Rarity = "common" | "rare" | "ultra" | "chase";
 
+/**
+ * What kind of figure a piece is, independent of which series it came in.
+ *
+ * A fixed list rather than free text: it is the second half of the line under
+ * a piece's name, so "Sci-Fi", "sci fi" and "SciFi" would read as three
+ * different things on three cards. Required on a numbered series piece,
+ * optional on a one-off, which is why it is nullable.
+ */
+export type Category =
+  | "flag"
+  | "cute"
+  | "jellybean"
+  | "horror"
+  | "animal"
+  | "pattern"
+  | "scifi"
+  | "hero"
+  | "artist"
+  | "game"
+  | "secret";
+
 export type PatternKind =
   | "solid"
   | "split"
@@ -41,8 +62,10 @@ export interface Piece {
   setName: string;
   /** Series number, when the piece belongs to a numbered series. */
   series: number | null;
-  /** Type family: Basic, Jellybean, Artist, Secret, ... */
+  /** Type family: Basic, Jellybean, Artist, Secret, ... Demo artwork only. */
   type: string;
+  /** What kind of figure it is. Null on a one-off with none chosen. */
+  category: Category | null;
   scale: Scale;
   rarity: Rarity;
   pattern: PatternKind;

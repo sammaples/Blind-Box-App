@@ -40,6 +40,7 @@ export default async function AdminPage() {
         id: p.id,
         name: p.name,
         setName: p.setName,
+        category: p.category,
         series: p.series,
         scale: p.scale,
         rarity: p.rarity,

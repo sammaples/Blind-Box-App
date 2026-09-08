@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { PieceImage } from "@/components/PieceImage";
-import { formatOdds, RARITY_COLOR, RARITY_LABEL, seriesLabel } from "@/lib/catalog";
+import { formatOdds, pieceSubtitle, RARITY_COLOR, RARITY_LABEL } from "@/lib/catalog";
 import { useScrollLock } from "@/lib/useScrollLock";
-import type { Rarity, Scale } from "@/lib/types";
+import type { Category, Rarity, Scale } from "@/lib/types";
 
 /**
  * The catalogue as a wall of photographs.
@@ -24,6 +24,7 @@ export interface GridPiece {
   id: string;
   name: string;
   setName: string;
+  category: Category | null;
   series: number | null;
   scale: Scale;
   rarity: Rarity;
@@ -181,7 +182,7 @@ function Card({
             {piece.scale}
           </span>
           <span className="truncate text-[12px] text-faint">
-            {seriesLabel(piece, "—")}
+            {pieceSubtitle(piece, "—")}
           </span>
         </div>
         <p className="mt-2 text-[12px]">
@@ -312,7 +313,7 @@ function StockSheet({
             <h3 className="mt-2 text-lg font-semibold leading-tight">{piece.name}</h3>
             <p className="mt-1 truncate text-[12px] text-faint">
               {piece.scale} ·{" "}
-              {seriesLabel(piece, "No set")}
+              {pieceSubtitle(piece, "No set")}
             </p>
           </div>
           <button

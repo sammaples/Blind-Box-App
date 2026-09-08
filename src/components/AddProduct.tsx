@@ -1,8 +1,15 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { NON_SERIES, RARITY_LABEL, RARITY_ORDER, SERIES_NUMBERS } from "@/lib/catalog";
-import type { Rarity, Scale } from "@/lib/types";
+import {
+  CATEGORY_LABEL,
+  CATEGORY_ORDER,
+  NON_SERIES,
+  RARITY_LABEL,
+  RARITY_ORDER,
+  SERIES_NUMBERS,
+} from "@/lib/catalog";
+import type { Category, Rarity, Scale } from "@/lib/types";
 
 /**
  * The listing form: one product, created or corrected.
@@ -87,6 +94,7 @@ export interface EditableProduct {
   rarity: Rarity;
   imageUrl: string | null;
   blurb?: string;
+  category: Category | null;
 }
 
 export function AddProduct({
@@ -102,6 +110,7 @@ export function AddProduct({
   const [name, setName] = useState(editing?.name ?? "");
   const originalSeries = seriesChoiceFor(editing);
   const [series, setSeries] = useState(originalSeries);
+  const [category, setCategory] = useState<string>(editing?.category ?? "");
   const [rarity, setRarity] = useState<Rarity>(editing?.rarity ?? "common");
   const [notes, setNotes] = useState(editing?.blurb ?? "");
   const [quantity, setQuantity] = useState("");
@@ -165,6 +174,7 @@ export function AddProduct({
           rarity,
           setName: setNameToSave(),
           series: series === NON_SERIES_CHOICE ? null : Number(series),
+          category: category === "" ? null : category,
           imageUrl,
           notes,
           // Optional: a listing can go straight onto the shelf, because most of
@@ -182,7 +192,11 @@ export function AddProduct({
     }
   };
 
-  const ready = name.trim() !== "" && !uploading && !saving;
+  // A numbered series has a lineup of slots, so which one a piece fills is
+  // part of listing it. A one-off usually fills none.
+  const categoryRequired = series !== NON_SERIES_CHOICE;
+  const ready =
+    name.trim() !== "" && !uploading && !saving && (!categoryRequired || category !== "");
 
   return (
     <form
@@ -339,6 +353,32 @@ export function AddProduct({
                 ))}
               </select>
             </Field>
+            <Field
+              label={categoryRequired ? "Category" : "Category (optional)"}
+              hint={
+                categoryRequired
+                  ? "Required on a series piece. Shown under the name."
+                  : "Shown under the name."
+              }
+            >
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className={inputClass}
+              >
+                <option value="" className="bg-ink">
+                  {categoryRequired ? "Choose one…" : "None"}
+                </option>
+                {CATEGORY_ORDER.map((c) => (
+                  <option key={c} value={c} className="bg-ink">
+                    {CATEGORY_LABEL[c]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Rarity" hint="A label on the card. Odds come from stock.">
               <select
                 value={rarity}
@@ -398,6 +438,8 @@ export function AddProduct({
         <span className="text-[11px] text-faint">
           {name.trim() === ""
             ? "A product needs a title."
+            : categoryRequired && category === ""
+              ? "A series piece needs a category."
             : editing
               ? `Stays a ${scale} piece.`
               : `Goes in as a ${scale} piece.`}
