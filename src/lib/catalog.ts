@@ -452,7 +452,7 @@ export const PRODUCTS: readonly Product[] = [
   {
     id: "hundred",
     name: "100% Blind Box",
-    tagline: "One sealed 100% figure from whatever is on the shelf.",
+    tagline: "One sealed 100% figure from our live list of pieces.",
     description:
       "A single 100% figure, drawn from everything currently in stock. The line-up changes as inventory moves — what is listed below is what is in the warehouse right now, and every rate is that piece's share of it.",
     priceCents: 2400,
