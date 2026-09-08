@@ -10,7 +10,7 @@ import type { StockEntry } from "@/lib/types";
 const STEPS = [
   { n: "01", title: "Choose a box", body: "Pick from our selection of boxes you want to open." },
   { n: "02", title: "Open it", body: "Tap to open and reveal your prize." },
-  { n: "03", title: "We ship it", body: "Your items are shipped directly to you." },
+  { n: "03", title: "We ship it", body: "Your items are packed and shipped directly to you." },
 ];
 
 export const dynamic = "force-dynamic";
