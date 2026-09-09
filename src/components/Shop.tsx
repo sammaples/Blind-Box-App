@@ -73,7 +73,6 @@ function ProductCard({
   const inStock = shelf.filter((e) => e.available > 0);
   const unitsLeft = inStock.reduce((sum, e) => sum + e.available, 0);
   const soldOut = unitsLeft === 0;
-  const best = [...inStock].sort((a, b) => a.odds - b.odds)[0];
 
   return (
     <motion.article
@@ -99,18 +98,11 @@ function ProductCard({
 
         <OddsByRarity shelf={shelf} />
 
-        <div className="mt-auto space-y-1.5 border-t border-hairline pt-4 text-[11px] text-faint">
+        <div className="mt-auto border-t border-hairline pt-4 text-[11px] text-faint">
           <p>
             In stock now: {inStock.length} pieces ·{" "}
             <span className="font-mono">{unitsLeft.toLocaleString()}</span> units
           </p>
-          {best && (
-            <p>
-              Rarest on the shelf:{" "}
-              <span style={{ color: RARITY_COLOR[best.piece.rarity] }}>{best.piece.name}</span>{" "}
-              at {(best.odds * 100).toFixed(3)}%
-            </p>
-          )}
         </div>
 
         {/* The card exists to be bought from, so the button gets the full width
