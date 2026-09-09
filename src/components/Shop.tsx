@@ -159,9 +159,11 @@ function OddsByRarity({ shelf }: { shelf: StockEntry[] }) {
     }
     if (total === 0) return [];
 
-    // Rarest first, and a tier with nothing left is not listed — the same rule
-    // the shelf itself follows.
-    return RARITY_ORDER.filter((r) => (units.get(r) ?? 0) > 0).map((rarity) => ({
+    // Commonest first, so the bars read as a descending staircase and the
+    // chase you are actually here for is the short one at the bottom. A tier
+    // with nothing left is not listed, the same rule the shelf follows.
+    const order = [...RARITY_ORDER].reverse();
+    return order.filter((r) => (units.get(r) ?? 0) > 0).map((rarity) => ({
       rarity,
       units: units.get(rarity)!,
       share: units.get(rarity)! / total,
