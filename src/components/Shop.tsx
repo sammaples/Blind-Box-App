@@ -2,9 +2,15 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { PRODUCTS, RARITY_COLOR } from "@/lib/catalog";
-import type { Product, StockEntry } from "@/lib/types";
+import { useMemo, useState } from "react";
+import {
+  formatOdds,
+  PRODUCTS,
+  RARITY_COLOR,
+  RARITY_LABEL,
+  RARITY_ORDER,
+} from "@/lib/catalog";
+import type { Product, Rarity, StockEntry } from "@/lib/types";
 import { boxGeometry } from "@/lib/boxShape";
 import { useAccount } from "./AccountBar";
 import { Price, SectionLabel } from "./ui";
@@ -91,17 +97,7 @@ function ProductCard({
         <h3 className="text-lg font-semibold tracking-tight">{product.name}</h3>
         <p className="mt-1 text-sm text-muted">{product.tagline}</p>
 
-        <ul className="mt-4 space-y-2 pb-5">
-          {product.highlights.map((h) => (
-            <li key={h} className="flex items-start gap-2 text-[13px] text-muted">
-              <span
-                className="mt-1.5 size-1.5 shrink-0 rounded-full"
-                style={{ background: product.accent }}
-              />
-              {h}
-            </li>
-          ))}
-        </ul>
+        <OddsByRarity shelf={shelf} />
 
         <div className="mt-auto space-y-1.5 border-t border-hairline pt-4 text-[11px] text-faint">
           <p>
@@ -133,6 +129,75 @@ function ProductCard({
         </div>
       </div>
     </motion.article>
+  );
+}
+
+/**
+ * What this box pulls, by tier.
+ *
+ * A horizontal bar per rarity, because the question is magnitude across a
+ * handful of named things — how likely is each — and length answers that at a
+ * glance where four percentages in a row do not.
+ *
+ * The numbers are not a marketing estimate. A tier's chance is its share of
+ * the units left on this shelf, which is the same arithmetic the draw runs,
+ * summed per tier. Restock a chase and the bar moves on the next page load.
+ *
+ * Each bar is named on its own row, so the colour is not carrying identity —
+ * it is there to match the badge the same tier wears everywhere else. That
+ * matters: the four rarity colours are close enough that a colourblind reader
+ * could not separate them, and this chart never asks anyone to.
+ */
+function OddsByRarity({ shelf }: { shelf: StockEntry[] }) {
+  const rows = useMemo(() => {
+    const units = new Map<Rarity, number>();
+    let total = 0;
+    for (const entry of shelf) {
+      if (entry.available <= 0) continue;
+      units.set(entry.piece.rarity, (units.get(entry.piece.rarity) ?? 0) + entry.available);
+      total += entry.available;
+    }
+    if (total === 0) return [];
+
+    // Rarest first, and a tier with nothing left is not listed — the same rule
+    // the shelf itself follows.
+    return RARITY_ORDER.filter((r) => (units.get(r) ?? 0) > 0).map((rarity) => ({
+      rarity,
+      units: units.get(rarity)!,
+      share: units.get(rarity)! / total,
+    }));
+  }, [shelf]);
+
+  if (rows.length === 0) return <div className="pb-5" />;
+
+  return (
+    <div className="mt-4 space-y-2 pb-5">
+      {rows.map(({ rarity, units, share }) => (
+        <div
+          key={rarity}
+          className="flex items-center gap-3 text-[13px]"
+          title={`${units} ${units === 1 ? "unit" : "units"} of ${RARITY_LABEL[rarity]} left`}
+        >
+          <span className="w-[4.5rem] shrink-0 truncate text-muted">
+            {RARITY_LABEL[rarity]}
+          </span>
+          <span className="h-2 flex-1 overflow-hidden rounded-full bg-white/[0.07]">
+            {/* A floor of 3%, so a one-of-one chase still shows a mark rather
+                than an empty track that reads as "none". */}
+            <span
+              className="block h-full rounded-full"
+              style={{
+                width: `${Math.max(share * 100, 3)}%`,
+                background: RARITY_COLOR[rarity],
+              }}
+            />
+          </span>
+          <span className="w-14 shrink-0 text-right font-mono text-[12px] text-muted">
+            {formatOdds(share)}
+          </span>
+        </div>
+      ))}
+    </div>
   );
 }
 
