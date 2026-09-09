@@ -113,7 +113,10 @@ function ProductCard({
           )}
         </div>
 
-        <div className="mt-5 flex items-center justify-between gap-3 pt-1">
+        {/* The card exists to be bought from, so the button gets the full width
+            rather than sharing a row with the price — and at this size it is
+            also a proper thumb target on a phone, which the old pill was not. */}
+        <div className="mt-5 pt-1">
           <p className="font-mono text-xl">
             <Price cents={product.priceCents} />
           </p>
@@ -121,7 +124,7 @@ function ProductCard({
             type="button"
             onClick={onBuy}
             disabled={soldOut}
-            className="rounded-full px-5 py-2.5 text-sm font-semibold text-ink transition-transform hover:scale-[1.03] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
+            className="mt-3 w-full rounded-2xl py-4 text-base font-semibold text-ink transition-transform hover:scale-[1.02] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
             style={{ background: soldOut ? "#3a3a44" : product.accent }}
           >
             {soldOut ? "Sold out" : "Buy one box"}
