@@ -49,14 +49,19 @@ export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> 
     return [...found].sort((a, b) => a - b);
   }, [shelf]);
 
+  /**
+   * What is actually buyable. A piece with no units left cannot be pulled and
+   * contributes nothing to anyone's odds, so listing it is advertising stock
+   * that is not there.
+   */
+  const available = useMemo(() => shelf.filter((e) => e.available > 0), [shelf]);
+
   const entries = useMemo(() => {
-    let list = shelf;
+    let list = available;
     if (series !== "all") list = list.filter((e) => e.piece.series === series);
     if (rarity !== "all") list = list.filter((e) => e.piece.rarity === rarity);
 
     return [...list].sort((a, b) => {
-      // Sold-out pieces always sink to the bottom, whatever the sort.
-      if ((a.available === 0) !== (b.available === 0)) return a.available === 0 ? 1 : -1;
       if (sort === "odds") return b.odds - a.odds;
       if (sort === "name") return a.piece.name.localeCompare(b.piece.name);
       if (sort === "series") {
@@ -74,16 +79,15 @@ export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> 
       }
       return byRarity(a, b);
     });
-  }, [shelf, series, rarity, sort]);
+  }, [available, series, rarity, sort]);
 
   const rarities = useMemo(() => {
-    const present = new Set(shelf.map((e) => e.piece.rarity));
+    const present = new Set(available.map((e) => e.piece.rarity));
     return RARITY_ORDER.filter((r) => present.has(r));
-  }, [shelf]);
+  }, [available]);
 
   const product = PRODUCTS.find((p) => p.id === productId)!;
   const unitsLeft = shelf.reduce((sum, e) => sum + e.available, 0);
-  const inStock = shelf.filter((e) => e.available > 0).length;
 
   return (
     <section id="set" className="relative z-10 mx-auto w-full max-w-6xl px-5 py-20 sm:px-8">
@@ -199,26 +203,37 @@ export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> 
       </div>
 
       <p className="mt-4 text-xs text-faint">
-        Showing {entries.length} of {shelf.length} pieces in {product.name} · {inStock} in stock ·{" "}
+        Showing {entries.length} of {available.length} pieces in {product.name} ·{" "}
         <span className="font-mono">{unitsLeft.toLocaleString()}</span> units left
       </p>
 
-      <motion.div
-        layout
-        className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
-      >
-        <AnimatePresence mode="popLayout">
-          {entries.map((entry) => (
-            <PieceCard
-              key={entry.piece.id}
-              piece={entry.piece}
-              odds={entry.odds}
-              available={entry.available}
-              onSelect={() => setSelected(entry)}
-            />
-          ))}
-        </AnimatePresence>
-      </motion.div>
+      {/* Hiding sold-out pieces means the grid can now legitimately be empty —
+          a shelf that has sold through, or a filter that has outlived its
+          stock. Either way it needs to say so rather than end in blank space. */}
+      {entries.length === 0 ? (
+        <p className="mt-4 rounded-2xl border border-dashed border-hairline p-12 text-center text-sm text-muted">
+          {available.length === 0
+            ? `Every ${product.name} piece has sold. New stock goes up here as it lands.`
+            : "Nothing in stock matches that. Try another filter."}
+        </p>
+      ) : (
+        <motion.div
+          layout
+          className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
+        >
+          <AnimatePresence mode="popLayout">
+            {entries.map((entry) => (
+              <PieceCard
+                key={entry.piece.id}
+                piece={entry.piece}
+                odds={entry.odds}
+                available={entry.available}
+                onSelect={() => setSelected(entry)}
+              />
+            ))}
+          </AnimatePresence>
+        </motion.div>
+      )}
 
       <PieceDetail
         entry={selected}
