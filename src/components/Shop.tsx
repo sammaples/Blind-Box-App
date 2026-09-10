@@ -118,7 +118,7 @@ function ProductCard({
               "Sold out"
             ) : (
               <>
-                Buy one box ·{" "}
+                Buy a box ·{" "}
                 {/* Mono for the figure, as every other price in the app is —
                     digits that line up are easier to read at a glance than
                     proportional ones, and the checkout button matches. */}
