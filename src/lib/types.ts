@@ -102,6 +102,11 @@ export interface Product {
   /** Accent colour used for the product's UI treatment. */
   accent: string;
   scale: Scale;
+  /**
+   * Announced but not on sale yet. The box is listed and its shelf is public,
+   * but it cannot be bought — enforced at the API, not only in the UI.
+   */
+  comingSoon?: boolean;
 }
 
 export type OrderStatus =

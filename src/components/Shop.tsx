@@ -26,6 +26,7 @@ export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
    * rather than being let through and refused at the end.
    */
   const startCheckout = (product: Product) => {
+    if (product.comingSoon) return;
     if (!account) {
       signIn("A box is a real object that has to reach you, so we need an account before you buy. No password — we email you a link.");
       return;
@@ -71,6 +72,9 @@ function ProductCard({
   const inStock = shelf.filter((e) => e.available > 0);
   const unitsLeft = inStock.reduce((sum, e) => sum + e.available, 0);
   const soldOut = unitsLeft === 0;
+  // Not on sale yet outranks sold out: a box nobody can buy has not sold out,
+  // and saying so would be the wrong story about the same disabled button.
+  const comingSoon = product.comingSoon === true;
 
   return (
     <motion.article
@@ -112,11 +116,20 @@ function ProductCard({
           <button
             type="button"
             onClick={onBuy}
-            disabled={soldOut}
-            className="w-full rounded-2xl py-4 text-base font-semibold text-ink transition-transform hover:scale-[1.02] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
-            style={{ background: soldOut ? "#3a3a44" : product.accent }}
+            disabled={soldOut || comingSoon}
+            /* A disabled button is still read, and "Coming soon" is the whole
+               message on this card until the box goes on sale — so the dead
+               state gets light text on the grey (7.3:1) rather than the
+               accent's dark ink dimmed into it, which came out at 1.4:1. The
+               flat grey and the cursor are what say it cannot be pressed. */
+            className={`w-full rounded-2xl py-4 text-base font-semibold transition-transform disabled:cursor-not-allowed disabled:hover:scale-100 ${
+              soldOut || comingSoon
+                ? "text-chalk/80"
+                : "text-ink hover:scale-[1.02] active:scale-[0.99]"
+            }`}
+            style={{ background: soldOut || comingSoon ? "#3a3a44" : product.accent }}
           >
-            {soldOut ? "Sold out" : "Buy a box"}
+            {comingSoon ? "Coming soon" : soldOut ? "Sold out" : "Buy a box"}
           </button>
         </div>
       </div>

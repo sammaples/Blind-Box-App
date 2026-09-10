@@ -478,6 +478,7 @@ export const PRODUCTS: readonly Product[] = [
     ],
     accent: "#22d3ee",
     scale: "400%",
+    comingSoon: true,
   },
 ];
 

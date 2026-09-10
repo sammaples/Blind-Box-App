@@ -48,6 +48,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unknown product" }, { status: 400 });
   }
 
+  // A box that is only announced is listed, not for sale. The card disables
+  // its own button, but the check that matters is this one: nothing stops a
+  // buyer posting the product id by hand, and a charge for a box that cannot
+  // ship is worse than a refusal.
+  if (product.comingSoon) {
+    return NextResponse.json(
+      { error: `${product.name} is not on sale yet.` },
+      { status: 409 },
+    );
+  }
+
   const payment = await payments.charge({
     amountCents: product.priceCents,
     description: product.name,
