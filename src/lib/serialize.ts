@@ -6,8 +6,8 @@ export interface PublicOrder {
   status: Order["status"];
   createdAt: string;
   revealedAt: string | null;
-  shipping: Order["shipping"];
-  trackingNumber: string | null;
+  /** The bundle carrying it, once it has been picked for shipping. */
+  shipmentId: string | null;
   /** Null while the box is still sealed. */
   pieceId: string | null;
   /** The pull rate this piece had on the shelf it was drawn from. */
@@ -43,8 +43,7 @@ export function publicOrder(order: Order): PublicOrder {
     status: order.status,
     createdAt: order.createdAt,
     revealedAt: order.revealedAt,
-    shipping: order.shipping,
-    trackingNumber: order.trackingNumber,
+    shipmentId: order.shipmentId,
     pieceId: revealed ? order.pieceId : null,
     pulledOdds: revealed
       ? oddsFromSnapshot(order.poolSnapshot ?? [], order.pieceId)

@@ -87,8 +87,7 @@ export async function POST(request: Request) {
       rollValue,
       poolSnapshot,
       email: null,
-      shipping: null,
-      trackingNumber: null,
+      shipmentId: null,
     }),
   );
 

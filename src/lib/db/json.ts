@@ -8,6 +8,7 @@ import type {
   Order,
   Piece,
   Scale,
+  Shipment,
 } from "../types";
 import { LEGACY_RARITY, toCategory } from "../catalog";
 import { contentTypeFor, isImageId } from "../images";
@@ -42,6 +43,7 @@ interface Db {
   pieces: Piece[];
   loginTokens: LoginToken[];
   orders: Order[];
+  shipments: Shipment[];
   stock: Record<string, { scale: Scale; stocked: number; sold: number }>;
   audit: AuditEntry[];
 }
@@ -51,6 +53,7 @@ const EMPTY: Db = {
   pieces: [],
   loginTokens: [],
   orders: [],
+  shipments: [],
   stock: {},
   audit: [],
 };
@@ -94,6 +97,7 @@ export function createJsonBackend(): Backend {
         pieces: parsed.pieces ?? [],
         loginTokens: parsed.loginTokens ?? [],
         orders: parsed.orders ?? [],
+        shipments: parsed.shipments ?? [],
         stock: parsed.stock ?? {},
         audit: parsed.audit ?? [],
       };
@@ -224,6 +228,45 @@ export function createJsonBackend(): Backend {
       });
     },
 
+    async createShipment({ id, collectorId, address, trackingNumber, createdAt, orderIds }) {
+      if (orderIds.length === 0) return null;
+
+      // Single-process and serialised through the same lock as every other
+      // write, which is all the atomicity this backend can offer — and the
+      // reason it is the demo backend rather than the real one.
+      return transact((db) => {
+        const picked = orderIds.map((oid) => db.orders.find((o) => o.id === oid));
+        const eligible = picked.every(
+          (o) => o && o.collectorId === collectorId && !o.shipmentId && o.status !== "paid",
+        );
+        if (!eligible) return null;
+
+        const shipment: Shipment = {
+          id,
+          collectorId,
+          status: "packing",
+          address,
+          trackingNumber,
+          createdAt,
+          shippedAt: null,
+          orderIds: [...orderIds],
+        };
+        db.shipments.push(shipment);
+        for (const order of picked) {
+          order!.shipmentId = id;
+          order!.status = "packing";
+        }
+        return shipment;
+      });
+    },
+
+    async listShipments(collectorId) {
+      const db = await read();
+      return db.shipments
+        .filter((s) => s.collectorId === collectorId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    },
+
     async listPieces() {
       const db = await read();
       // A file written before the tiers collapsed still says "uncommon". The
@@ -289,6 +332,7 @@ export function createJsonBackend(): Backend {
         db.pieces = [];
         db.stock = {};
         db.orders = [];
+        db.shipments = [];
         db.audit = [];
         // Collectors and their login tokens stay: the account that triggered
         // this is signing back in afterwards.

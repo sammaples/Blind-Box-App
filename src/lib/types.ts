@@ -179,8 +179,30 @@ export interface Order {
   rollValue: number;
   poolSnapshot: PoolSnapshot;
   email: string | null;
-  shipping: ShippingAddress | null;
+  /** The bundle carrying this piece, once it has been picked for shipping. */
+  shipmentId: string | null;
+}
+
+/** How far along a bundle is. Orders in it follow whatever it says. */
+export type ShipmentStatus = "packing" | "shipped" | "delivered";
+
+/**
+ * One parcel, holding one or many pulls.
+ *
+ * Bundling is the point: a collector picks what they want sent and it all goes
+ * in a single box, so opening six boxes over a fortnight costs one postage
+ * rather than six. A bundle of one is the same object, not a special case.
+ */
+export interface Shipment {
+  id: string;
+  collectorId: string;
+  status: ShipmentStatus;
+  address: ShippingAddress;
   trackingNumber: string | null;
+  createdAt: string;
+  shippedAt: string | null;
+  /** The orders travelling in it, oldest pull first. */
+  orderIds: string[];
 }
 
 /**

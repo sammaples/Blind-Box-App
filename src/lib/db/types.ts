@@ -2,6 +2,8 @@ import type {
   AuditBatch,
   Collector,
   Order,
+  Shipment,
+  ShippingAddress,
   Piece,
   PoolSnapshot,
   Scale,
@@ -126,6 +128,29 @@ export interface Backend {
     id: string,
     patch: Partial<Omit<Order, "id" | "collectorId" | "pieceId">>,
   ): Promise<Order | null>;
+
+  /* shipments */
+  /**
+   * Bundles orders into one parcel.
+   *
+   * Eligibility is checked in the same transaction as the write, not before
+   * it: two tabs submitting overlapping selections would otherwise both pass
+   * their checks and the second would quietly move pieces out of the first
+   * one's parcel. Returns null if any order is not the collector's, is still
+   * sealed, or is already travelling — the whole bundle fails rather than
+   * silently shipping a subset of what was picked.
+   */
+  createShipment(input: {
+    id: string;
+    collectorId: string;
+    address: ShippingAddress;
+    trackingNumber: string;
+    createdAt: string;
+    orderIds: readonly string[];
+  }): Promise<Shipment | null>;
+
+  /** A collector's bundles, newest first. */
+  listShipments(collectorId: string): Promise<Shipment[]>;
 
   /* catalogue */
   /** Every piece the shop knows about, archived ones included. */

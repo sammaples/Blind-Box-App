@@ -6,6 +6,7 @@ import type {
   AuditEntry,
   Collector,
   Order,
+  Shipment,
   PatternKind,
   Piece,
   Rarity,
@@ -79,8 +80,20 @@ function toOrder(r: Row): Order {
     rollValue: Number(r.roll_value),
     poolSnapshot: r.pool_snapshot as Order["poolSnapshot"],
     email: (r.email as string | null) ?? null,
-    shipping: (r.shipping as Order["shipping"]) ?? null,
+    shipmentId: (r.shipment_id as string | null) ?? null,
+  };
+}
+
+function toShipment(r: Row, orderIds: string[]): Shipment {
+  return {
+    id: r.id as string,
+    collectorId: r.collector_id as string,
+    status: r.status as Shipment["status"],
+    address: r.address as Shipment["address"],
     trackingNumber: (r.tracking_number as string | null) ?? null,
+    createdAt: (r.created_at as Date).toISOString(),
+    shippedAt: r.shipped_at ? (r.shipped_at as Date).toISOString() : null,
+    orderIds,
   };
 }
 
@@ -309,8 +322,7 @@ export function createPostgresBackend(connectionString: string): Backend {
 
       if (patch.status !== undefined) set("status", patch.status);
       if (patch.revealedAt !== undefined) set("revealed_at", patch.revealedAt);
-      if (patch.shipping !== undefined) set("shipping", JSON.stringify(patch.shipping));
-      if (patch.trackingNumber !== undefined) set("tracking_number", patch.trackingNumber);
+      if (patch.shipmentId !== undefined) set("shipment_id", patch.shipmentId);
       if (patch.email !== undefined) set("email", patch.email);
       if (sets.length === 0) return this.getOrder(id);
 
@@ -319,6 +331,68 @@ export function createPostgresBackend(connectionString: string): Backend {
         values,
       );
       return rows[0] ? toOrder(rows[0]) : null;
+    },
+
+    async createShipment({ id, collectorId, address, trackingNumber, createdAt, orderIds }) {
+      if (orderIds.length === 0) return null;
+
+      return withTx(async (client) => {
+        // Locked for the length of the transaction, so a second submission
+        // holding the same order waits here and then finds it taken rather
+        // than moving it out of the parcel this one is building.
+        const { rows: picked } = await client.query(
+          `select id, collector_id, status, shipment_id
+             from orders
+            where id = any($1::text[])
+            order by created_at
+              for update`,
+          [[...orderIds]],
+        );
+
+        const eligible =
+          picked.length === orderIds.length &&
+          picked.every(
+            (o: Row) =>
+              o.collector_id === collectorId &&
+              o.shipment_id === null &&
+              o.status !== "paid",
+          );
+        if (!eligible) return null;
+
+        const { rows } = await client.query(
+          `insert into shipments (id, collector_id, status, address, tracking_number, created_at)
+           values ($1, $2, 'packing', $3, $4, $5)
+           returning *`,
+          [id, collectorId, JSON.stringify(address), trackingNumber, createdAt],
+        );
+
+        await client.query(
+          `update orders set shipment_id = $1, status = 'packing' where id = any($2::text[])`,
+          [id, [...orderIds]],
+        );
+
+        return toShipment(
+          rows[0],
+          picked.map((o: Row) => o.id as string),
+        );
+      });
+    },
+
+    async listShipments(collectorId) {
+      const { rows } = await query(
+        `select s.*,
+                coalesce(
+                  array_agg(o.id order by o.created_at) filter (where o.id is not null),
+                  '{}'
+                ) as order_ids
+           from shipments s
+           left join orders o on o.shipment_id = s.id
+          where s.collector_id = $1
+          group by s.id
+          order by s.created_at desc`,
+        [collectorId],
+      );
+      return rows.map((r) => toShipment(r, (r.order_ids as string[]) ?? []));
     },
 
     async listPieces() {
@@ -516,9 +590,8 @@ export function createPostgresBackend(connectionString: string): Backend {
         await client.query(
           `insert into orders (
              id, collector_id, product_id, piece_id, status, created_at,
-             revealed_at, roll_seed, roll_value, pool_snapshot, email,
-             shipping, tracking_number
-           ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+             revealed_at, roll_seed, roll_value, pool_snapshot, email
+           ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
           [
             order.id,
             order.collectorId,
@@ -531,8 +604,6 @@ export function createPostgresBackend(connectionString: string): Backend {
             order.rollValue,
             JSON.stringify(order.poolSnapshot),
             order.email,
-            order.shipping ? JSON.stringify(order.shipping) : null,
-            order.trackingNumber,
           ],
         );
 

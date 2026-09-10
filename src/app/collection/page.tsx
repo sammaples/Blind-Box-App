@@ -5,15 +5,17 @@ import { formatOdds, getProduct, pieceSubtitle, RARITY_ORDER } from "@/lib/catal
 import { pieceMap } from "@/lib/pieces";
 import { oddsFromSnapshot } from "@/lib/serialize";
 import { currentCollectorId } from "@/lib/auth";
+import { listShipments } from "@/lib/shipments";
 import { listOrders } from "@/lib/store";
-import type { Piece } from "@/lib/types";
+import { ShipBundle, type ShippablePull } from "@/components/ShipBundle";
+import type { Piece, Shipment } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const STATUS_LABEL: Record<string, string> = {
   paid: "Sealed — not opened yet",
-  revealed: "Opened · awaiting address",
-  packing: "Packing",
+  revealed: "Opened · ready to ship",
+  packing: "In a parcel, being packed",
   shipped: "Shipped",
   delivered: "Delivered",
 };
@@ -33,6 +35,14 @@ export default async function CollectionPage() {
   });
 
   const sealed = orders.filter((o) => o.status === "paid");
+
+  // Opened, and not already in a parcel — the pool a bundle is picked from.
+  const shippable: ShippablePull[] = pulls
+    .filter(({ order }) => order.shipmentId === null)
+    .map(({ order, piece, odds }) => ({ orderId: order.id, piece, odds }));
+
+  const shipments = collectorId ? await listShipments(collectorId) : [];
+  const pieceForOrder = new Map(pulls.map(({ order, piece }) => [order.id, piece]));
   const best = [...pulls].sort(
     (a, b) => RARITY_ORDER.indexOf(a.piece.rarity) - RARITY_ORDER.indexOf(b.piece.rarity),
   )[0];
@@ -86,9 +96,30 @@ export default async function CollectionPage() {
         </section>
       )}
 
+      <ShipBundle pulls={shippable} />
+
+      {shipments.length > 0 && (
+        <section className="mt-10">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-faint">
+            Parcels
+          </h2>
+          <div className="mt-4 space-y-3">
+            {shipments.map((shipment) => (
+              <ParcelCard
+                key={shipment.id}
+                shipment={shipment}
+                pieces={shipment.orderIds
+                  .map((id) => pieceForOrder.get(id))
+                  .filter((p): p is Piece => Boolean(p))}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="mt-10">
         <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-faint">
-          Opened
+          Everything opened
         </h2>
 
         {pulls.length === 0 ? (
@@ -104,15 +135,7 @@ export default async function CollectionPage() {
         ) : (
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {pulls.map(({ order, piece, odds }) => (
-              <PullRow
-                key={order.id}
-                piece={piece}
-                odds={odds}
-                status={order.status}
-                tracking={order.trackingNumber}
-                needsAddress={order.shipping === null}
-                orderId={order.id}
-              />
+              <PullRow key={order.id} piece={piece} odds={odds} status={order.status} />
             ))}
           </div>
         )}
@@ -131,20 +154,67 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
   );
 }
 
+/** A parcel and what is riding in it. */
+function ParcelCard({ shipment, pieces }: { shipment: Shipment; pieces: Piece[] }) {
+  const count = shipment.orderIds.length;
+
+  return (
+    <div className="rounded-2xl border border-hairline bg-ink-card p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold">
+            {count} {count === 1 ? "piece" : "pieces"} · {STATUS_LABEL[shipment.status]}
+          </p>
+          <p className="mt-0.5 text-xs text-faint">
+            Packed {new Date(shipment.createdAt).toLocaleDateString()}
+          </p>
+        </div>
+        {shipment.trackingNumber && (
+          <p className="font-mono text-[11px] text-muted">{shipment.trackingNumber}</p>
+        )}
+      </div>
+
+      {/* Thumbnails rather than a list: the question is "did my chase go in
+          this one", which a row of faces answers faster than seven names. */}
+      {pieces.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {pieces.map((piece, i) => (
+            <span
+              key={`${piece.id}-${i}`}
+              title={piece.name}
+              className="grid size-12 place-items-center rounded-lg"
+              style={{
+                background: `radial-gradient(120% 90% at 50% 12%, ${piece.palette.wash}, #0b0b10 78%)`,
+              }}
+            >
+              <PieceImage piece={piece} className="h-10 w-auto" thumb />
+            </span>
+          ))}
+        </div>
+      )}
+
+      <address className="mt-4 border-t border-hairline pt-4 text-xs not-italic leading-relaxed text-muted">
+        <span className="text-chalk">{shipment.address.name}</span>
+        <br />
+        {shipment.address.line1}
+        {shipment.address.line2 ? `, ${shipment.address.line2}` : ""}
+        <br />
+        {shipment.address.city}, {shipment.address.region} {shipment.address.postal}
+        <br />
+        {shipment.address.country}
+      </address>
+    </div>
+  );
+}
+
 function PullRow({
   piece,
   odds,
   status,
-  tracking,
-  needsAddress,
-  orderId,
 }: {
   piece: Piece;
   odds: number;
   status: string;
-  tracking: string | null;
-  needsAddress: boolean;
-  orderId: string;
 }) {
   return (
     <div className="flex gap-4 rounded-2xl border border-hairline bg-ink-card p-4">
@@ -165,18 +235,8 @@ function PullRow({
           <span className="font-mono text-[11px] text-muted">{formatOdds(odds)}</span>
         </div>
         <p className="mt-2 text-xs text-muted">{STATUS_LABEL[status] ?? status}</p>
-        {tracking && (
-          <p className="mt-0.5 font-mono text-[11px] text-faint">{tracking}</p>
-        )}
-        {needsAddress && (
-          <Link
-            href={`/open/${orderId}`}
-            className="mt-2 inline-block text-xs font-medium text-orange-400 hover:text-orange-300"
-          >
-            Add a shipping address →
-          </Link>
-        )}
       </div>
     </div>
   );
 }
+
