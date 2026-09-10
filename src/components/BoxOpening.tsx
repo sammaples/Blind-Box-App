@@ -52,23 +52,61 @@ const FLASH_AT = 2.15;
  * Chase pulls, and only chase pulls, get the loud version.
  *
  * A chase is roughly one box in a hundred. If every tier shook and burst, the
- * one that matters would look like all the others — so the rattle, the
- * shockwave and the shards exist here and nowhere else, and every other tier
- * keeps the calm opening exactly as it was.
+ * one that matters would look like all the others — so the rattle, the colour
+ * hunt, the riser, the rays and the shards exist here and nowhere else, and
+ * every other tier keeps the calm opening exactly as it was.
  *
- * The box starts fighting once the light does. The rattle grows from nothing
- * at GLOW_AT to violent by FLASH_AT, then stops dead as the frame goes white:
- * the box is gone by the time the white clears, so it never has to settle.
+ * All of the fighting happens before the box opens, not during: it rattles
+ * harder and harder against shut flaps while colour hunts across the frame,
+ * and the opening itself is the same steady move every tier gets. That is what
+ * the wind-up buys — by the time the flaps give, you already know.
  */
 /** Long enough to notice, short enough not to feel like a hang. */
 const CHASE_WIND_MS = 2100;
 /** Everyone else: just the beat it takes the reveal call to land. */
 const WIND_MIN_MS = 420;
 
-/** The rattle, growing from a twitch to a fight across the wind-up. */
-const CHASE_SHAKE_TIMES = [0, 0.12, 0.24, 0.36, 0.48, 0.6, 0.7, 0.78, 0.86, 0.93, 1];
-const CHASE_SHAKE_X = [0, -3, 4, -6, 8, -11, 14, -18, 21, -24, 0];
-const CHASE_SHAKE_TILT = [0, -0.6, 0.9, -1.4, 1.9, -2.5, 3.2, -4, 4.7, -5.4, 0];
+/**
+ * The rattle: a fast buzz that grows, not a slow sway.
+ *
+ * Frequency is what makes this read as something trying to get out. Eleven
+ * swings across two seconds is a box rocking; this is twenty-eight, about one
+ * every 75ms, which is fast enough to blur and still resolve as a direction
+ * each way. Amplitude is what grows — it starts as a twitch you barely see and
+ * ends throwing the box a third of its own width.
+ *
+ * Generated rather than typed out: the point is the curve, and thirty
+ * hand-written numbers hide it.
+ */
+const SHAKE_SWINGS = 28;
+
+function buildShake(peakX: number, peakTilt: number) {
+  const times: number[] = [];
+  const x: number[] = [];
+  const tilt: number[] = [];
+  for (let i = 0; i <= SHAKE_SWINGS; i++) {
+    const at = i / SHAKE_SWINGS;
+    times.push(at);
+    if (i === 0 || i === SHAKE_SWINGS) {
+      // Starts and ends dead still, so it does not snap in or out.
+      x.push(0);
+      tilt.push(0);
+      continue;
+    }
+    // Amplitude ramps with the square of progress: almost nothing early, most
+    // of the movement in the last third, which is where the tension is.
+    const grow = at ** 2;
+    const side = i % 2 === 0 ? 1 : -1;
+    x.push(+(side * peakX * grow).toFixed(2));
+    tilt.push(+(side * peakTilt * grow).toFixed(2));
+  }
+  return { times, x, tilt };
+}
+
+const CHASE_SHAKE = buildShake(26, 5.6);
+const CHASE_SHAKE_TIMES = CHASE_SHAKE.times;
+const CHASE_SHAKE_X = CHASE_SHAKE.x;
+const CHASE_SHAKE_TILT = CHASE_SHAKE.tilt;
 
 /**
  * The colours that flash across the frame while a chase winds up.
@@ -263,6 +301,13 @@ export function BoxOpening({
               />
             </motion.div>
           )}
+        </AnimatePresence>
+
+        {/*
+          The rays, chase only, above the spill they grow out of.
+        */}
+        <AnimatePresence>
+          {loud && opening && <ChaseRays key="rays" color={glow} />}
         </AnimatePresence>
 
         <AnimatePresence>
@@ -491,6 +536,100 @@ const SIDE_TURN: Record<Side, string> = {
   left: "rotateY(-90deg)",
   right: "rotateY(90deg)",
 };
+
+/**
+ * The light getting out: sun rays off the mouth of the box.
+ *
+ * The spill already puts a column of colour above the rim, but a column is a
+ * glow — it says the box is lit, not that something is escaping it. Rays say
+ * escaping. They are struck from the same point the column rises from, so the
+ * two read as one shaft of light breaking into spokes rather than two effects
+ * stacked on the same box.
+ *
+ * Two discs of repeating wedges, counter-rotating: one narrow and white for the
+ * hard spokes, one wide and tier-coloured behind it. Turning them against each
+ * other makes the fan shimmer instead of sitting still, which is the difference
+ * between light and a drawn sunburst.
+ *
+ * Everything below the rim is masked away. The rays belong to the opening, and
+ * a full disc would put half of them across the front of a box that is very
+ * obviously solid.
+ */
+const RAY_RADIUS = 460;
+
+function ChaseRays({ color }: { color: string }) {
+  const secs = OPEN_MS / 1000;
+  /** Struck as the flaps part, at full reach by the blow-out. */
+  const times = [0, GLOW_AT / secs, FLASH_AT / secs, 1];
+
+  const disc = {
+    position: "absolute" as const,
+    left: 0,
+    // Centred on the rim: the wedges all converge at the mouth, and the
+    // wrapper crops the half that would fall down the front of the carton.
+    bottom: -RAY_RADIUS,
+    width: RAY_RADIUS * 2,
+    height: RAY_RADIUS * 2,
+  };
+
+  /** Bright at the mouth, gone before the edge — rays thin out, they do not stop. */
+  const falloff =
+    "radial-gradient(closest-side, rgb(0 0 0 / 0.5) 0%, #000 16%, rgb(0 0 0 / 0.72) 44%, transparent 78%)";
+
+  return (
+    <motion.div
+      aria-hidden
+      className="pointer-events-none absolute z-10"
+      style={{
+        left: "50%",
+        bottom: "calc(50% + 74px)",
+        width: RAY_RADIUS * 2,
+        height: RAY_RADIUS,
+        marginLeft: -RAY_RADIUS,
+        overflow: "hidden",
+        // Softens the straight cut along the rim, so the fan grows out of the
+        // box rather than sitting on a shelf.
+        maskImage: "linear-gradient(to top, transparent, #000 16%)",
+        WebkitMaskImage: "linear-gradient(to top, transparent, #000 16%)",
+        // Additive, like the rest of the spill: rays brighten the flaps they
+        // cross instead of painting over them.
+        mixBlendMode: "screen",
+      }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: [0, 0, 1, 1] }}
+      exit={{ opacity: 0, transition: { duration: 0.2 } }}
+      transition={{ duration: secs, times, ease: "easeIn" }}
+    >
+      {/* wide, coloured, soft — the body of the light */}
+      <motion.div
+        style={{
+          ...disc,
+          filter: "blur(9px)",
+          maskImage: falloff,
+          WebkitMaskImage: falloff,
+          background: `repeating-conic-gradient(from 6deg, ${color} 0deg, ${color} 6deg, transparent 6deg, transparent 30deg)`,
+        }}
+        initial={{ scale: 0.2, rotate: 0, opacity: 0 }}
+        animate={{ scale: [0.2, 0.24, 1, 1.3], rotate: [0, 0, -13, -21], opacity: [0, 0, 0.85, 0.95] }}
+        transition={{ duration: secs, times, ease: "easeOut" }}
+      />
+      {/* narrow, white, hard — the spokes you actually read as rays */}
+      <motion.div
+        style={{
+          ...disc,
+          filter: "blur(2px)",
+          maskImage: falloff,
+          WebkitMaskImage: falloff,
+          background:
+            "repeating-conic-gradient(from 0deg, #fff 0deg, #fff 2.2deg, transparent 2.2deg, transparent 15deg)",
+        }}
+        initial={{ scale: 0.2, rotate: 0, opacity: 0 }}
+        animate={{ scale: [0.2, 0.26, 1, 1.34], rotate: [0, 0, 9, 15], opacity: [0, 0, 0.8, 0.92] }}
+        transition={{ duration: secs, times, ease: "easeOut" }}
+      />
+    </motion.div>
+  );
+}
 
 /**
  * A chase coming out: a spray of shards.
