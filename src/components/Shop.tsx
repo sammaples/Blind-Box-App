@@ -13,7 +13,7 @@ import {
 import type { Product, Rarity, StockEntry } from "@/lib/types";
 import { boxGeometry } from "@/lib/boxShape";
 import { useAccount } from "./AccountBar";
-import { Price, SectionLabel } from "./ui";
+import { Price } from "./ui";
 import { useScrollLock } from "@/lib/useScrollLock";
 
 /** The boxes on sale, plus the checkout sheet that seals one. */
@@ -34,13 +34,11 @@ export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
   };
 
   return (
-    <section id="shop" className="relative z-10 mx-auto w-full max-w-6xl px-5 sm:px-8">
-      <div className="flex flex-col gap-3">
-        <SectionLabel>Pick your box</SectionLabel>
-        <h2 className="max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
-          Two boxes. One pull each.
-        </h2>
-      </div>
+    <section
+      id="shop"
+      className="relative z-10 mx-auto w-full max-w-6xl scroll-mt-20 px-5 sm:px-8"
+    >
+      <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Pick your box</h2>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {PRODUCTS.map((product, i) => (

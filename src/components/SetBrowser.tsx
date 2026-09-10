@@ -90,7 +90,10 @@ export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> 
   const unitsLeft = shelf.reduce((sum, e) => sum + e.available, 0);
 
   return (
-    <section id="set" className="relative z-10 mx-auto w-full max-w-6xl px-5 py-20 sm:px-8">
+    <section
+      id="set"
+      className="relative z-10 mx-auto w-full max-w-6xl scroll-mt-20 px-5 py-20 sm:px-8"
+    >
       <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Live Stock</h2>
 
       {/* product tabs */}
