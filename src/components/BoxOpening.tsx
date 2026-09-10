@@ -105,32 +105,32 @@ export function BoxOpening({
 
   return (
     <div className="relative flex w-full flex-col items-center">
-      <div className="relative flex h-[26rem] w-full items-center justify-center overflow-hidden sm:h-[30rem]" style={{ perspective: "1100px" }}>
-        {/*
-          The bloom behind the box. It is the same light as the beam, thrown
-          against the room rather than up out of the mouth — without it the
-          beam looks pasted on rather than lighting anything.
-        */}
-        <motion.div
-          aria-hidden
-          className="pointer-events-none absolute size-[30rem] rounded-full blur-3xl"
-          style={{ background: glow }}
-          animate={
-            opening && !reducedMotion
-              ? { opacity: [0.12, 0.12, 0.55, 0.8], scale: [1, 1, 1.25, 1.5] }
-              : { opacity: stage === "reveal" ? 0.3 : 0.12, scale: 1 }
-          }
-          transition={
-            opening && !reducedMotion
-              ? {
-                  duration: OPEN_MS / 1000,
-                  times: [0, GLOW_AT / (OPEN_MS / 1000), FLASH_AT / (OPEN_MS / 1000), 1],
-                  ease: "easeIn",
-                }
-              : { duration: 0.5 }
-          }
-        />
+      {/*
+        The bloom is the page lighting up, not a panel that lights up on it.
+        Fixed and full-bleed, so it has no edge to give itself away — clipped
+        to the stage it read as a rectangle of light pasted over the page.
 
+        It has to live out here rather than inside the stage: `perspective`
+        makes an element the containing block for its fixed descendants, so a
+        fixed child of the stage would be measured against the stage, which is
+        the very box we are trying to escape.
+      */}
+      <motion.div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{
+          background: `radial-gradient(75rem 65rem at 50% 45%, ${glow}, transparent 72%)`,
+        }}
+        initial={false}
+        animate={
+          opening && !reducedMotion
+            ? { opacity: [0.1, 0.1, 0.6, 0.85] }
+            : { opacity: stage === "reveal" ? 0.26 : 0.1 }
+        }
+        transition={opening && !reducedMotion ? SPILL : { duration: 0.5 }}
+      />
+
+      <div className="relative flex h-[30rem] w-full items-center justify-center sm:h-[34rem]" style={{ perspective: "1100px" }}>
         {/*
           The light coming out of the box, in the colour of the tier inside it.
 
@@ -238,38 +238,40 @@ export function BoxOpening({
           )}
         </AnimatePresence>
 
-        {/*
-          The blow-out. The light builds until the frame cannot hold it, goes
-          white in a fifth of a second, then holds long enough to cover the
-          swap from box to piece before clearing.
-        */}
-        <AnimatePresence>
-          {(opening || stage === "reveal") && !reducedMotion && (
-            <motion.div
-              key="flash"
-              aria-hidden
-              className="pointer-events-none absolute inset-0 z-30 bg-white"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: opening ? [0, 0, 1, 1] : 0 }}
-              exit={{ opacity: 0 }}
-              transition={
-                opening
-                  ? {
-                      duration: OPEN_MS / 1000,
-                      times: [
-                        0,
-                        FLASH_AT / (OPEN_MS / 1000),
-                        (FLASH_AT + 0.22) / (OPEN_MS / 1000),
-                        1,
-                      ],
-                      ease: "easeIn",
-                    }
-                  : { duration: 0.55, ease: "easeOut" }
-              }
-            />
-          )}
-        </AnimatePresence>
       </div>
+
+      {/*
+        The blow-out, over the whole page for the same reason as the bloom: the
+        light builds until the frame cannot hold it, goes white in a fifth of a
+        second, then holds long enough to cover the swap from box to piece
+        before clearing.
+      */}
+      <AnimatePresence>
+        {(opening || stage === "reveal") && !reducedMotion && (
+          <motion.div
+            key="flash"
+            aria-hidden
+            className="pointer-events-none fixed inset-0 z-40 bg-white"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: opening ? [0, 0, 1, 1] : 0 }}
+            exit={{ opacity: 0 }}
+            transition={
+              opening
+                ? {
+                    duration: OPEN_MS / 1000,
+                    times: [
+                      0,
+                      FLASH_AT / (OPEN_MS / 1000),
+                      (FLASH_AT + 0.22) / (OPEN_MS / 1000),
+                      1,
+                    ],
+                    ease: "easeIn",
+                  }
+                : { duration: 0.55, ease: "easeOut" }
+            }
+          />
+        )}
+      </AnimatePresence>
 
       {/* Caption area */}
       <div className="relative z-10 mt-2 flex min-h-[9rem] w-full max-w-md flex-col items-center text-center">
@@ -535,7 +537,7 @@ function BlindBox({
               // since nothing else is closing the distance now. Seen this way
               // the flaps splay outward against the background rather than
               // opening into a mouth, and the light leaves through the top.
-              scale: [1, 1.26, 1.26],
+              scale: [1, 1.38, 1.38],
               rotateX: [-14, -16, -17],
               rotateY: [-26, -24, -23],
               y: [0, 6, 6],
