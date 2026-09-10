@@ -67,20 +67,23 @@ const CHASE_WIND_MS = 2100;
 const WIND_MIN_MS = 420;
 
 /**
- * The rattle: a fast buzz that grows, not a slow sway.
+ * The rattle: one steady buzz, the same the whole way through.
  *
  * Frequency is what makes this read as something trying to get out. Eleven
- * swings across two seconds is a box rocking; this is twenty-eight, about one
- * every 75ms, which is fast enough to blur and still resolve as a direction
- * each way. Amplitude is what grows — it starts as a twitch you barely see and
- * ends throwing the box a third of its own width.
+ * swings across two seconds is a box rocking; this is twenty-two, about one
+ * every 95ms, fast enough to blur and still resolve as a direction each way.
  *
- * Generated rather than typed out: the point is the curve, and thirty
+ * It does not build. An amplitude that ramps means the first half of the
+ * wind-up is a box barely moving, which reads as nothing happening rather
+ * than as tension — the box is either fighting or it is not. So every swing
+ * is the same throw, from the first to the last.
+ *
+ * Generated rather than typed out: the point is the shape, and two dozen
  * hand-written numbers hide it.
  */
-const SHAKE_SWINGS = 28;
+const SHAKE_SWINGS = 22;
 
-function buildShake(peakX: number, peakTilt: number) {
+function buildShake(throwX: number, throwTilt: number) {
   const times: number[] = [];
   const x: number[] = [];
   const tilt: number[] = [];
@@ -88,22 +91,20 @@ function buildShake(peakX: number, peakTilt: number) {
     const at = i / SHAKE_SWINGS;
     times.push(at);
     if (i === 0 || i === SHAKE_SWINGS) {
-      // Starts and ends dead still, so it does not snap in or out.
+      // Starts and ends on centre, so it neither snaps in nor leaves the box
+      // parked off to one side when the flaps take over.
       x.push(0);
       tilt.push(0);
       continue;
     }
-    // Amplitude ramps with the square of progress: almost nothing early, most
-    // of the movement in the last third, which is where the tension is.
-    const grow = at ** 2;
     const side = i % 2 === 0 ? 1 : -1;
-    x.push(+(side * peakX * grow).toFixed(2));
-    tilt.push(+(side * peakTilt * grow).toFixed(2));
+    x.push(+(side * throwX).toFixed(2));
+    tilt.push(+(side * throwTilt).toFixed(2));
   }
   return { times, x, tilt };
 }
 
-const CHASE_SHAKE = buildShake(26, 5.6);
+const CHASE_SHAKE = buildShake(22, 4.8);
 const CHASE_SHAKE_TIMES = CHASE_SHAKE.times;
 const CHASE_SHAKE_X = CHASE_SHAKE.x;
 const CHASE_SHAKE_TILT = CHASE_SHAKE.tilt;
@@ -257,13 +258,18 @@ export function BoxOpening({
           Head on you never see into the carton, so the glow cannot be sold by
           lighting an interior nobody can look at — it has to leave through the
           top. Two parts do that: a hot core sitting in the mouth, and a column
-          rising off it. Both are anchored to the rim and scale from their base,
-          and both blend additively so they brighten the flaps they cross
-          instead of painting over them.
+          rising off it. Both are anchored to the rim and scale from their base.
+
+          Both also sit BEHIND the carton. Painted over it, the core washed
+          across the near flap and the light read as a flare stuck to the front
+          of the box rather than as anything inside it. Behind, the box hides
+          its hottest part and the flaps stand in front of what they are
+          letting out — which is the whole idea. The carton is what gives the
+          light a shape; everything you see of it has cleared the rim.
         */}
         <AnimatePresence>
           {opening && !reducedMotion && (
-            <motion.div key="spill" className="pointer-events-none absolute inset-0 z-10">
+            <motion.div key="spill" className="pointer-events-none absolute inset-0 z-0">
               <motion.div
                 aria-hidden
                 className="absolute left-1/2 blur-xl"
@@ -271,7 +277,10 @@ export function BoxOpening({
                   width: 132,
                   height: 300,
                   marginLeft: -66,
-                  bottom: "calc(50% + 90px)",
+                  // On the rim, not inside the box. Behind the carton,
+                  // anything below this line is simply swallowed — the spill
+                  // only exists from the mouth up.
+                  bottom: "calc(50% + 116px)",
                   transformOrigin: "50% 100%",
                   mixBlendMode: "screen",
                   background: `linear-gradient(to top, ${glow}, transparent 78%)`,
@@ -291,7 +300,7 @@ export function BoxOpening({
                   width: 170,
                   height: 72,
                   marginLeft: -85,
-                  bottom: "calc(50% + 68px)",
+                  bottom: "calc(50% + 98px)",
                   mixBlendMode: "screen",
                   background: `radial-gradient(closest-side, #fff, ${glow} 45%, transparent 75%)`,
                 }}
@@ -331,7 +340,7 @@ export function BoxOpening({
           {stage === "reveal" && piece && (
             <motion.div
               key="figure"
-              className="absolute z-10 flex flex-col items-center"
+              className="absolute z-20 flex flex-col items-center"
               // The piece is already standing when the white clears — it does
               // not fly out of anything. The old spring threw it up from
               // nothing, which was the right move for a box that burst and the
@@ -554,6 +563,10 @@ const SIDE_TURN: Record<Side, string> = {
  * Everything below the rim is masked away. The rays belong to the opening, and
  * a full disc would put half of them across the front of a box that is very
  * obviously solid.
+ *
+ * They are struck behind the carton for the same reason the spill is: the
+ * point where they converge belongs inside the box, hidden by it, so what
+ * reaches the camera is only the part that has already escaped.
  */
 const RAY_RADIUS = 460;
 
@@ -579,7 +592,7 @@ function ChaseRays({ color }: { color: string }) {
   return (
     <motion.div
       aria-hidden
-      className="pointer-events-none absolute z-10"
+      className="pointer-events-none absolute z-0"
       style={{
         left: "50%",
         bottom: "calc(50% + 74px)",
@@ -883,7 +896,7 @@ function BlindBox({
       type="button"
       onClick={onOpen}
       aria-label="Open the blind box"
-      className="absolute cursor-pointer rounded-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-white/60"
+      className="absolute z-10 cursor-pointer rounded-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-white/60"
       style={{ width: box.width, height: box.height, transformStyle: "preserve-3d" }}
       initial={{ rotateX: -14, rotateY: -26 }}
       animate={
