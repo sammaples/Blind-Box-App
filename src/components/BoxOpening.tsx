@@ -10,6 +10,7 @@ import {
   RARITY_LABEL,
 } from "@/lib/catalog";
 import { boxGeometry } from "@/lib/boxShape";
+import { BoxPrint, isPrinted } from "./BoxPrint";
 import type { Piece, Product } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
 import { RarityChip } from "./ui";
@@ -103,6 +104,7 @@ export function BoxOpening({
             <BlindBox
               key="box"
               accent={product.accent}
+              printed={isPrinted(product.id)}
               stage={stage}
               reducedMotion={!!reducedMotion}
               onOpen={open}
@@ -213,11 +215,13 @@ export function BoxOpening({
 
 function BlindBox({
   accent,
+  printed,
   stage,
   reducedMotion,
   onOpen,
 }: {
   accent: string;
+  printed: boolean;
   stage: Stage;
   reducedMotion: boolean;
   onOpen: () => void;
@@ -226,9 +230,20 @@ function BlindBox({
 
   const face = (name: Parameters<typeof box.face>[0], shade: number) => ({
     ...box.face(name),
-    background: `linear-gradient(150deg, color-mix(in srgb, ${accent} 30%, #17171d) 0%, #0e0e13 62%)`,
+    background: printed
+      ? undefined
+      : `linear-gradient(150deg, color-mix(in srgb, ${accent} 30%, #17171d) 0%, #0e0e13 62%)`,
     boxShadow: `inset 0 0 0 1px rgb(255 255 255 / 0.07), inset 0 0 60px rgb(0 0 0 / ${shade})`,
+    overflow: "hidden" as const,
   });
+
+  /**
+   * The wrap sits under everything else on a face, and the inset shadow above
+   * still does the work of separating the planes — so a printed box is the
+   * same object in a different jacket, not a different animation.
+   */
+  const wrap = (name: Parameters<typeof box.face>[0]) =>
+    printed ? <BoxPrint face={name} style={{ zIndex: -1 }} /> : null;
 
   const shaking = stage === "shaking";
   const burst = stage === "burst";
@@ -264,12 +279,13 @@ function BlindBox({
     >
       {/* four sides + floor */}
       <div style={face("front", 0.25)}>
-        <BoxFront accent={accent} lit={shaking || burst} />
+        {wrap("front")}
+        <BoxFront accent={accent} printed={printed} lit={shaking || burst} />
       </div>
-      <div style={face("back", 0.55)} />
-      <div style={face("left", 0.45)} />
-      <div style={face("right", 0.5)} />
-      <div style={face("bottom", 0.6)} />
+      <div style={face("back", 0.55)}>{wrap("back")}</div>
+      <div style={face("left", 0.45)}>{wrap("left")}</div>
+      <div style={face("right", 0.5)}>{wrap("right")}</div>
+      <div style={face("bottom", 0.6)}>{wrap("bottom")}</div>
 
       {/*
         The lid. Its transform is written out rather than animated by the
@@ -287,10 +303,14 @@ function BlindBox({
           transition: reducedMotion
             ? "none"
             : "transform 0.5s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.5s",
-          background: `linear-gradient(150deg, color-mix(in srgb, ${accent} 46%, #1a1a20) 0%, #101016 70%)`,
+          background: printed
+            ? undefined
+            : `linear-gradient(150deg, color-mix(in srgb, ${accent} 46%, #1a1a20) 0%, #101016 70%)`,
           boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.1)",
         }}
-      />
+      >
+        {wrap("top")}
+      </div>
 
       {/* seam light escaping as it rattles */}
       <motion.div
@@ -309,17 +329,30 @@ function BlindBox({
   );
 }
 
-function BoxFront({ accent, lit }: { accent: string; lit: boolean }) {
+function BoxFront({
+  accent,
+  printed,
+  lit,
+}: {
+  accent: string;
+  printed: boolean;
+  lit: boolean;
+}) {
+  // A ribbon reads by contrast with what it crosses. At a quarter opacity it
+  // is a dark smear on a dark box, which is right; laid over pale artwork the
+  // same value turns to grey haze, so a printed box gets a solid one.
+  const ribbon = printed ? accent : `color-mix(in srgb, ${accent} 24%, transparent)`;
+
   return (
     <div className="relative flex size-full items-center justify-center">
       {/* ribbon */}
       <div
         className="absolute inset-y-0 left-1/2 w-7 -translate-x-1/2"
-        style={{ background: `color-mix(in srgb, ${accent} 24%, transparent)` }}
+        style={{ background: ribbon }}
       />
       <div
         className="absolute inset-x-0 top-1/2 h-7 -translate-y-1/2"
-        style={{ background: `color-mix(in srgb, ${accent} 24%, transparent)` }}
+        style={{ background: ribbon }}
       />
       <div
         className="relative flex size-16 items-center justify-center rounded-full text-2xl font-bold"

@@ -12,6 +12,7 @@ import {
 } from "@/lib/catalog";
 import type { Product, Rarity, StockEntry } from "@/lib/types";
 import { boxGeometry } from "@/lib/boxShape";
+import { BoxPrint, isPrinted } from "./BoxPrint";
 import { useAccount } from "./AccountBar";
 import { Price } from "./ui";
 import { useScrollLock } from "@/lib/useScrollLock";
@@ -91,7 +92,7 @@ function ProductCard({
       />
 
       <div className="relative flex h-40 items-center justify-center">
-        <ProductBox accent={product.accent} />
+        <ProductBox accent={product.accent} printed={isPrinted(product.id)} />
       </div>
 
       <div className="relative mt-4 flex flex-1 flex-col">
@@ -214,11 +215,48 @@ function OddsByRarity({ shelf }: { shelf: StockEntry[] }) {
   );
 }
 
-function ProductBox({ accent }: { accent: string }) {
+function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
   const box = boxGeometry(63);
 
   const faceBackground = (shade: number) =>
     `linear-gradient(150deg, color-mix(in srgb, ${accent} ${shade}%, #17171d), #0d0d12 70%)`;
+
+  /**
+   * A printed box keeps the same three-plane shading, but as a wash laid over
+   * the artwork rather than as the face's own colour — without it the three
+   * sides read as one flat shape and the box stops looking like an object.
+   */
+  const faceShade = (shade: number) =>
+    `linear-gradient(150deg, rgb(0 0 0 / ${shade}), rgb(0 0 0 / ${shade + 0.1}) 78%)`;
+
+  const Face = ({
+    name,
+    lit,
+    shade,
+  }: {
+    name: "front" | "right" | "top";
+    lit: number;
+    shade: number;
+  }) => (
+    <div
+      style={{
+        ...box.face(name),
+        background: printed ? undefined : faceBackground(lit),
+        boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.08)",
+        overflow: "hidden",
+      }}
+    >
+      {printed && (
+        <>
+          <BoxPrint face={name} />
+          <span
+            aria-hidden
+            style={{ position: "absolute", inset: 0, background: faceShade(shade) }}
+          />
+        </>
+      )}
+    </div>
+  );
 
   return (
     <motion.div
@@ -238,34 +276,26 @@ function ProductBox({ accent }: { accent: string }) {
         animate={{ rotateY: [-24, -14, -24] }}
         transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
       >
-        {/* Only the three faces a 3/4 view can see. */}
-        <div
-          style={{
-            ...box.face("front"),
-            background: faceBackground(34),
-            boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.08)",
-          }}
-        />
-        <div
-          style={{
-            ...box.face("right"),
-            background: faceBackground(24),
-            boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.08)",
-          }}
-        />
-        <div
-          style={{
-            ...box.face("top"),
-            background: faceBackground(14),
-            boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.08)",
-          }}
-        />
+        {/* Only the three faces a 3/4 view can see. The front catches the
+            most light, the lid the least, which is what separates the planes. */}
+        <Face name="front" lit={34} shade={0.0} />
+        <Face name="right" lit={24} shade={0.16} />
+        <Face name="top" lit={14} shade={0.26} />
 
         <div
           className="absolute inset-x-0 top-1/2 flex justify-center"
           style={{ transform: `translateZ(${box.width / 2 + 1}px) translateY(-50%)` }}
         >
-          <span className="text-2xl font-bold" style={{ color: accent }}>
+          {/* Over artwork the accent-coloured mark disappears, so a printed box
+              gets a white one with a shadow under it instead. */}
+          <span
+            className="text-2xl font-bold"
+            style={
+              printed
+                ? { color: "#fff", textShadow: "0 1px 3px rgb(0 0 0 / 0.55)" }
+                : { color: accent }
+            }
+          >
             ?
           </span>
         </div>
