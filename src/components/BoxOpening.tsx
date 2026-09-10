@@ -18,16 +18,25 @@ import { RarityChip } from "./ui";
 type Stage = "sealed" | "opening" | "reveal";
 
 /**
- * The opening runs as one continuous move, not a set of cuts: the camera dives
- * onto the lid while the box turns under it, the flaps peel back, the descent
- * carries on into the box until the white card fills the frame, and that white
- * becomes the reveal. These are the marks along that one move.
+ * The opening, in seconds along one timeline.
+ *
+ * The camera holds. The box tips just far enough to show its mouth, the flaps
+ * peel back, and then the light does the work: whatever the box is about to
+ * give up starts pouring out of it in the colour of its tier, builds until it
+ * is all there is, and blows out to white. The piece is standing there when
+ * the white clears.
+ *
+ * The tier is known long before the light needs it — the reveal call returns
+ * while the flaps are still moving — so the glow can be the real colour rather
+ * than a guess that corrects itself.
  */
-const DIVE_MS = 2200;
-/** The flaps start peeling while the dive is still accelerating. */
-const FLAP_START = 0.3;
-/** White fills the frame just before the piece takes over. */
-const WHITEOUT_AT = 1.85;
+const OPEN_MS = 2600;
+/** The flaps start peeling once the box has finished tipping. */
+const FLAP_START = 0.35;
+/** Light begins escaping as the flaps part, and builds from there. */
+const GLOW_AT = 0.95;
+/** The blow-out, once the light has nowhere left to go. */
+const FLASH_AT = 2.15;
 
 export function BoxOpening({
   orderId,
@@ -56,7 +65,7 @@ export function BoxOpening({
 
     // The dive and the network call run together, so the box never stalls
     // waiting on a response — and never opens before one arrives either.
-    const settle = new Promise((r) => setTimeout(r, reducedMotion ? 250 : DIVE_MS));
+    const settle = new Promise((r) => setTimeout(r, reducedMotion ? 250 : OPEN_MS));
     try {
       const res = await fetch(`/api/orders/${orderId}/reveal`, { method: "POST" });
       const data = await res.json();
@@ -66,11 +75,15 @@ export function BoxOpening({
       const pulled = (data.piece ?? null) as Piece | null;
       if (!pulled) throw new Error("This order is missing its piece");
 
-      await settle;
-      setPulledOdds(data.order.pulledOdds ?? 0);
+      // Stored now, not after the wait: the glow is coloured by the tier, and
+      // it starts building well before the box is done opening. The figure
+      // itself stays gated on the reveal stage, so nothing is given away.
       setPiece(pulled);
-      // The white-out is already covering the frame by now, so the swap from
-      // box to piece happens behind it and is never seen.
+      setPulledOdds(data.order.pulledOdds ?? 0);
+
+      await settle;
+      // The flash is already covering the frame by now, so the swap from box
+      // to piece happens behind it and is never seen.
       setStage("reveal");
       onRevealed?.(pulled);
     } catch (err) {
@@ -85,36 +98,70 @@ export function BoxOpening({
 
   return (
     <div className="relative flex w-full flex-col items-center">
-      {/*
-        The dive is sold by two things at once: the box growing, and the lens
-        widening under it. Pulling the perspective in from 1100px to 460px is
-        what makes the near corner of the box race past the far one — scale
-        alone reads as a zoom, which is a flat, lifeless version of the same
-        move.
-      */}
-      <motion.div
-        className="relative flex h-[26rem] w-full items-center justify-center overflow-hidden sm:h-[30rem]"
-        initial={false}
-        animate={{ perspective: opening && !reducedMotion ? 460 : 1100 }}
-        transition={{ duration: DIVE_MS / 1000, ease: [0.5, 0, 0.75, 0] }}
-      >
-        {/* Rarity glow behind everything */}
+      <div className="relative flex h-[26rem] w-full items-center justify-center overflow-hidden sm:h-[30rem]" style={{ perspective: "1100px" }}>
+        {/*
+          The bloom behind the box. It is the same light as the beam, thrown
+          against the room rather than up out of the mouth — without it the
+          beam looks pasted on rather than lighting anything.
+        */}
         <motion.div
           aria-hidden
           className="pointer-events-none absolute size-[30rem] rounded-full blur-3xl"
           style={{ background: glow }}
-          animate={{
-            opacity: stage === "reveal" ? 0.3 : opening ? 0.24 : 0.12,
-            scale: opening ? 1.15 : 1,
-          }}
-          transition={{ duration: 0.5 }}
+          animate={
+            opening && !reducedMotion
+              ? { opacity: [0.12, 0.12, 0.55, 0.8], scale: [1, 1, 1.25, 1.5] }
+              : { opacity: stage === "reveal" ? 0.3 : 0.12, scale: 1 }
+          }
+          transition={
+            opening && !reducedMotion
+              ? {
+                  duration: OPEN_MS / 1000,
+                  times: [0, GLOW_AT / (OPEN_MS / 1000), FLASH_AT / (OPEN_MS / 1000), 1],
+                  ease: "easeIn",
+                }
+              : { duration: 0.5 }
+          }
         />
+
+        {/*
+          The light coming out of the box, in the colour of the tier inside it.
+          Anchored to the mouth and scaled from its base, so it reads as
+          escaping the carton rather than sitting in front of it; screen blend
+          keeps it additive over the flaps it spills across.
+        */}
+        <AnimatePresence>
+          {opening && !reducedMotion && (
+            <motion.div
+              key="beam"
+              aria-hidden
+              className="pointer-events-none absolute z-10 blur-2xl"
+              style={{
+                width: 168,
+                height: 330,
+                bottom: "calc(50% + 108px)",
+                transformOrigin: "50% 100%",
+                mixBlendMode: "screen",
+                background: `linear-gradient(to top, ${glow}, transparent 82%)`,
+              }}
+              initial={{ opacity: 0, scaleY: 0.15, scaleX: 0.6 }}
+              animate={{ opacity: [0, 0, 0.9, 1], scaleY: [0.15, 0.15, 1, 1.35], scaleX: [0.6, 0.6, 1, 1.5] }}
+              exit={{ opacity: 0, transition: { duration: 0.25 } }}
+              transition={{
+                duration: OPEN_MS / 1000,
+                times: [0, GLOW_AT / (OPEN_MS / 1000), FLASH_AT / (OPEN_MS / 1000), 1],
+                ease: "easeIn",
+              }}
+            />
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {stage !== "reveal" && (
             <BlindBox
               key="box"
               accent={product.accent}
+              glow={glow}
               printed={isPrinted(product.id)}
               stage={stage}
               reducedMotion={!!reducedMotion}
@@ -165,32 +212,37 @@ export function BoxOpening({
         </AnimatePresence>
 
         {/*
-          The white-out. The box does not burst — the camera simply ends up
-          inside it, and the white card is all there is left to see. Holding
-          that white through the swap is what hides the cut from box to piece.
+          The blow-out. The light builds until the frame cannot hold it, goes
+          white in a fifth of a second, then holds long enough to cover the
+          swap from box to piece before clearing.
         */}
         <AnimatePresence>
           {(opening || stage === "reveal") && !reducedMotion && (
             <motion.div
-              key="whiteout"
+              key="flash"
               aria-hidden
               className="pointer-events-none absolute inset-0 z-30 bg-white"
               initial={{ opacity: 0 }}
-              animate={{ opacity: opening ? [0, 0, 1] : 0 }}
+              animate={{ opacity: opening ? [0, 0, 1, 1] : 0 }}
               exit={{ opacity: 0 }}
               transition={
                 opening
                   ? {
-                      duration: DIVE_MS / 1000,
-                      times: [0, WHITEOUT_AT / (DIVE_MS / 1000), 1],
+                      duration: OPEN_MS / 1000,
+                      times: [
+                        0,
+                        FLASH_AT / (OPEN_MS / 1000),
+                        (FLASH_AT + 0.22) / (OPEN_MS / 1000),
+                        1,
+                      ],
                       ease: "easeIn",
                     }
-                  : { duration: 0.7, ease: "easeOut" }
+                  : { duration: 0.55, ease: "easeOut" }
               }
             />
           )}
         </AnimatePresence>
-      </motion.div>
+      </div>
 
       {/* Caption area */}
       <div className="relative z-10 mt-2 flex min-h-[9rem] w-full max-w-md flex-col items-center text-center">
@@ -306,12 +358,14 @@ function DieCutDefs() {
 
 function BlindBox({
   accent,
+  glow,
   printed,
   stage,
   reducedMotion,
   onOpen,
 }: {
   accent: string;
+  glow: string;
   printed: boolean;
   stage: Stage;
   reducedMotion: boolean;
@@ -348,8 +402,31 @@ function BlindBox({
         // into stripes as it turns.
         transform: `${box.face(name).transform} translateZ(-0.5px) rotateY(180deg)`,
         background: `linear-gradient(170deg, ${from}, ${to})`,
+        overflow: "hidden",
       }}
-    />
+    >
+      {/*
+        The white card catching the light, painted onto the lining itself.
+        This has to live inside a face and not beside one: a blurred or blended
+        element as a direct child of the box flattens its 3D context, and the
+        carton collapses into a flat card.
+      */}
+      <motion.div
+        aria-hidden
+        style={{ position: "absolute", inset: "-40%", background: `radial-gradient(circle at 50% 100%, ${glow}, transparent 70%)` }}
+        initial={{ opacity: 0 }}
+        animate={opening && !reducedMotion ? { opacity: [0, 0, 0.75, 0.95] } : { opacity: 0 }}
+        transition={
+          opening && !reducedMotion
+            ? {
+                duration: OPEN_MS / 1000,
+                times: [0, GLOW_AT / (OPEN_MS / 1000), FLASH_AT / (OPEN_MS / 1000), 1],
+                ease: "easeIn",
+              }
+            : { duration: 0.2 }
+        }
+      />
+    </div>
   );
 
   /** One hinged flap: printed board outside, white card in. */
@@ -372,7 +449,7 @@ function BlindBox({
         initial={false}
         animate={{ rotateX: opening && !reducedMotion ? FLAP_WIDE : FLAP_SHUT }}
         transition={{
-          duration: 0.8,
+          duration: 1.1,
           delay: opening ? FLAP_START + delay : 0,
           // Overshoots a little past open, the way card springs when the
           // crease gives, then settles back.
@@ -426,15 +503,15 @@ function BlindBox({
       animate={
         opening && !reducedMotion
           ? {
-              // The dive, in three pulls rather than one. The middle pair of
-              // marks is the point of the whole shot — the box open, flaps
-              // splayed, still far enough back to read — so the camera eases
-              // through it before dropping over the rim. Run as a single
-              // accelerating move it blows straight past that beat.
-              scale: [1, 1.22, 1.62, 4.2],
-              rotateX: [-14, -34, -52, -74],
-              rotateY: [-26, -8, 10, 30],
-              y: [0, 8, 26, 300],
+              // No dive — but the box still has to tip far enough that you are
+              // looking into the mouth rather than at the front of a card.
+              // Held at the resting angle the flaps peel off the top edge and
+              // the light has nowhere visible to come from. It comes forward a
+              // little too, since nothing else is closing the distance now.
+              scale: [1, 1.3, 1.3],
+              rotateX: [-14, -48, -50],
+              rotateY: [-26, -26, -25],
+              y: [0, 14, 14],
             }
           : opening
             ? { rotateX: -14, rotateY: -26 }
@@ -443,9 +520,9 @@ function BlindBox({
       transition={
         opening && !reducedMotion
           ? {
-              duration: DIVE_MS / 1000,
-              times: [0, 0.26, 0.62, 1],
-              ease: ["easeOut", "easeInOut", "easeIn"],
+              duration: OPEN_MS / 1000,
+              times: [0, 0.28, 1],
+              ease: ["easeOut", "linear"],
             }
           : opening
             ? { duration: 0.2 }
