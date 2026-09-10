@@ -130,7 +130,18 @@ export function BoxOpening({
         transition={opening && !reducedMotion ? SPILL : { duration: 0.5 }}
       />
 
-      <div className="relative flex h-[34rem] w-full items-center justify-center" style={{ perspective: "1100px" }}>
+      {/*
+        The stage is sized for the box with its flaps up. Once they are gone
+        that height is a hole above the piece, pushing the buttons onto the
+        bottom edge of a phone — so it draws in for the reveal. The swap
+        happens while the frame is still white, so it is never seen.
+      */}
+      <div
+        className={`relative flex w-full items-center justify-center transition-[height] duration-500 ${
+          stage === "reveal" ? "h-[21rem] sm:h-[25rem]" : "h-[34rem]"
+        }`}
+        style={{ perspective: "1100px" }}
+      >
         {/*
           The light coming out of the box, in the colour of the tier inside it.
 
