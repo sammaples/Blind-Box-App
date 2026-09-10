@@ -100,19 +100,25 @@ function ProductCard({
 
         <OddsByRarity shelf={shelf} />
 
-        <div className="mt-auto border-t border-hairline pt-4 text-[11px] text-faint">
-          <p>
-            In stock now: {inStock.length} pieces ·{" "}
-            <span className="font-mono">{unitsLeft.toLocaleString()}</span> units
-          </p>
-        </div>
+        {/* Nothing on the shelf, nothing to report: "In stock now: 0 pieces ·
+            0 units" is a line that only ever says the card is empty, which the
+            button already says better. When it goes, the button takes over
+            holding itself to the bottom of the card. */}
+        {inStock.length > 0 && (
+          <div className="mt-auto border-t border-hairline pt-4 text-[11px] text-faint">
+            <p>
+              In stock now: {inStock.length} pieces ·{" "}
+              <span className="font-mono">{unitsLeft.toLocaleString()}</span> units
+            </p>
+          </div>
+        )}
 
         {/* The card exists to be bought from, so the button gets the full width
             rather than sharing a row with anything — and at this size it is
             also a proper thumb target on a phone, which the old pill was not.
             The price is not on it: the checkout sheet states it before anything
             is committed to, which is the moment it has to be right. */}
-        <div className="mt-5 pt-1">
+        <div className={inStock.length > 0 ? "mt-5 pt-1" : "mt-auto pt-1"}>
           <button
             type="button"
             onClick={onBuy}
