@@ -38,6 +38,22 @@ const GLOW_AT = 0.95;
 /** The blow-out, once the light has nowhere left to go. */
 const FLASH_AT = 2.15;
 
+/**
+ * Chase pulls, and only chase pulls, get the loud version.
+ *
+ * A chase is roughly one box in a hundred. If every tier shook and burst, the
+ * one that matters would look like all the others — so the rattle, the
+ * shockwave and the shards exist here and nowhere else, and every other tier
+ * keeps the calm opening exactly as it was.
+ *
+ * The box starts fighting once the light does. The rattle grows from nothing
+ * at GLOW_AT to violent by FLASH_AT, then stops dead as the frame goes white:
+ * the box is gone by the time the white clears, so it never has to settle.
+ */
+const CHASE_SHAKE_TIMES = [0, 0.365, 0.44, 0.52, 0.6, 0.68, 0.75, 0.8, 0.827, 1];
+const CHASE_SHAKE_X = [0, 0, -4, 6, -9, 13, -17, 20, 0, 0];
+const CHASE_SHAKE_TILT = [0, 0, -0.9, 1.3, -2, 2.8, -3.8, 4.4, 0, 0];
+
 /** Both halves of the spill run on the same ramp: nothing, then everything. */
 const SPILL = {
   duration: OPEN_MS / 1000,
@@ -102,6 +118,10 @@ export function BoxOpening({
 
   const glow = piece ? RARITY_COLOR[piece.rarity] : product.accent;
   const opening = stage === "opening";
+  // Known in time because the reveal call stores its result the moment it
+  // lands, well before the flaps finish.
+  const chase = piece?.rarity === "chase";
+  const loud = chase && !reducedMotion;
 
   return (
     <div className="relative flex w-full flex-col items-center">
@@ -124,8 +144,8 @@ export function BoxOpening({
         initial={false}
         animate={
           opening && !reducedMotion
-            ? { opacity: [0.1, 0.1, 0.6, 0.85] }
-            : { opacity: stage === "reveal" ? 0.26 : 0.1 }
+            ? { opacity: loud ? [0.1, 0.1, 0.85, 1] : [0.1, 0.1, 0.6, 0.85] }
+            : { opacity: stage === "reveal" ? (chase ? 0.42 : 0.26) : 0.1 }
         }
         transition={opening && !reducedMotion ? SPILL : { duration: 0.5 }}
       />
@@ -200,6 +220,7 @@ export function BoxOpening({
               key="box"
               accent={product.accent}
               glow={glow}
+              loud={loud}
               printed={isPrinted(product.id)}
               stage={stage}
               reducedMotion={!!reducedMotion}
@@ -219,13 +240,21 @@ export function BoxOpening({
               // nothing, which was the right move for a box that burst and the
               // wrong one for a camera that simply walked in.
               initial={
-                reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.88, y: 34 }
+                reducedMotion
+                  ? { opacity: 0 }
+                  : chase
+                    ? { opacity: 0, scale: 1.35, y: 0 }
+                    : { opacity: 0, scale: 0.88, y: 34 }
               }
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={
                 reducedMotion
                   ? { duration: 0.2 }
-                  : { duration: 0.75, ease: [0.16, 1, 0.3, 1] }
+                  : chase
+                    ? // Slammed down out of the white rather than eased up into
+                      // it: a chase should feel like it landed, not arrived.
+                      { type: "spring", stiffness: 260, damping: 14, mass: 0.8 }
+                    : { duration: 0.75, ease: [0.16, 1, 0.3, 1] }
               }
             >
               {/* light column */}
@@ -250,6 +279,19 @@ export function BoxOpening({
         </AnimatePresence>
 
       </div>
+
+      {/*
+        The pop, over the whole page and above the white.
+
+        It has to outrank the flash: fired underneath it, the burst goes off at
+        the exact moment the frame turns white and is never seen at all. Above
+        it, the shockwave lands just before the white and the shards carry on
+        across it, so the two read as one event rather than one swallowing the
+        other.
+      */}
+      <AnimatePresence>
+        {loud && opening && <ChaseBurst key="burst" color={glow} />}
+      </AnimatePresence>
 
       {/*
         The blow-out, over the whole page for the same reason as the bloom: the
@@ -368,6 +410,100 @@ const SIDE_TURN: Record<Side, string> = {
 };
 
 /**
+ * A chase coming out.
+ *
+ * A shockwave and a spray of shards, timed to land on the blow-out rather than
+ * after it — a burst that arrives once the frame is already white reads as a
+ * second, weaker event instead of the same one.
+ *
+ * Laid out from a fixed table rather than at random: this renders on the
+ * client only, but a rarity celebration that is different every time is harder
+ * to recognise as *the* chase moment, and the odd unlucky seed gives you a
+ * lopsided spray on the one pull that has to look right.
+ */
+const SHARD_COUNT = 26;
+
+function ChaseBurst({ color }: { color: string }) {
+  const shards = Array.from({ length: SHARD_COUNT }, (_, i) => {
+    // Evenly spaced, then nudged off the ring so it does not read as a clock
+    // face. The nudge is a function of the index, so it is the same spray on
+    // every chase ever pulled.
+    const angle = (i / SHARD_COUNT) * Math.PI * 2 + (i % 3) * 0.12;
+    const distance = 180 + (i % 5) * 46;
+    return {
+      x: Math.cos(angle) * distance,
+      y: Math.sin(angle) * distance - 30,
+      size: 5 + (i % 4) * 3,
+      round: i % 3 === 0,
+      spin: (i % 2 ? 1 : -1) * (160 + (i % 7) * 60),
+      delay: (i % 4) * 0.03,
+    };
+  });
+
+  const BURST = OPEN_MS / 1000 + 0.5;
+  /**
+   * Well before the white, not a hair before it.
+   *
+   * The burst has to happen while there is still a dark frame to happen
+   * against: fired at the blow-out, a gold shockwave lands on a white screen
+   * and is invisible. This gives it about four-tenths of a second in the
+   * clear, and the shards that are still travelling carry on across the white.
+   */
+  const POP = FLASH_AT - 0.45;
+
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-50 grid place-items-center">
+      {/* the shockwave */}
+      <motion.span
+        className="absolute rounded-full"
+        // White, not the tier colour: by the time the ring fires the whole
+        // frame is that colour, and gold on gold is a ring nobody sees.
+        style={{
+          width: 120,
+          height: 120,
+          border: "4px solid rgb(255 255 255 / 0.92)",
+          boxShadow: `0 0 30px ${color}, inset 0 0 20px ${color}`,
+        }}
+        initial={{ opacity: 0, scale: 0.2 }}
+        animate={{ opacity: [0, 0, 0.9, 0], scale: [0.2, 0.2, 1.6, 5.2] }}
+        transition={{
+          duration: BURST,
+          times: [0, POP / BURST, (POP + 0.16) / BURST, 1],
+          ease: "easeOut",
+        }}
+      />
+      {shards.map((sh, i) => (
+        <motion.span
+          key={i}
+          className="absolute"
+          style={{
+            width: sh.size,
+            height: sh.round ? sh.size : sh.size * 2.4,
+            background: "#fff",
+            borderRadius: sh.round ? 999 : 2,
+            boxShadow: `0 0 14px ${color}, 0 0 30px ${color}`,
+          }}
+          initial={{ opacity: 0, x: 0, y: 0, scale: 0.4, rotate: 0 }}
+          animate={{
+            opacity: [0, 0, 1, 0],
+            x: [0, 0, sh.x * 0.55, sh.x],
+            y: [0, 0, sh.y * 0.55, sh.y],
+            scale: [0.4, 0.4, 1, 0.7],
+            rotate: [0, 0, sh.spin * 0.5, sh.spin],
+          }}
+          transition={{
+            duration: BURST,
+            delay: sh.delay,
+            times: [0, POP / BURST, (POP + 0.2) / BURST, 1],
+            ease: [0.15, 0.7, 0.3, 1],
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/**
  * The die-cut.
  *
  * The tall flap is not a rectangle — it is punched into the same head the
@@ -399,6 +535,7 @@ function DieCutDefs() {
 function BlindBox({
   accent,
   glow,
+  loud,
   printed,
   stage,
   reducedMotion,
@@ -406,6 +543,8 @@ function BlindBox({
 }: {
   accent: string;
   glow: string;
+  /** A chase is inside, so the box fights on the way open. */
+  loud: boolean;
   printed: boolean;
   stage: Stage;
   reducedMotion: boolean;
@@ -554,6 +693,10 @@ function BlindBox({
               // Sits lower than centre while it is open. The flaps swing well
               // above the carton, and centred they crowd the back link.
               y: [0, 34, 34],
+              // The rattle is separate keyframes on their own clock, so it can
+              // grow across the light's build without disturbing the tip-in
+              // underneath it.
+              ...(loud ? { x: CHASE_SHAKE_X, rotateZ: CHASE_SHAKE_TILT } : { x: 0, rotateZ: 0 }),
             }
           : opening
             ? { rotateX: -14, rotateY: -26 }
@@ -565,6 +708,12 @@ function BlindBox({
               duration: OPEN_MS / 1000,
               times: [0, 0.28, 1],
               ease: ["easeOut", "linear"],
+              ...(loud
+                ? {
+                    x: { duration: OPEN_MS / 1000, times: CHASE_SHAKE_TIMES, ease: "linear" },
+                    rotateZ: { duration: OPEN_MS / 1000, times: CHASE_SHAKE_TIMES, ease: "linear" },
+                  }
+                : {}),
             }
           : opening
             ? { duration: 0.2 }
