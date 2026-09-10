@@ -38,6 +38,13 @@ const GLOW_AT = 0.95;
 /** The blow-out, once the light has nowhere left to go. */
 const FLASH_AT = 2.15;
 
+/** Both halves of the spill run on the same ramp: nothing, then everything. */
+const SPILL = {
+  duration: OPEN_MS / 1000,
+  times: [0, GLOW_AT / (OPEN_MS / 1000), FLASH_AT / (OPEN_MS / 1000), 1],
+  ease: "easeIn" as const,
+};
+
 export function BoxOpening({
   orderId,
   product,
@@ -126,33 +133,53 @@ export function BoxOpening({
 
         {/*
           The light coming out of the box, in the colour of the tier inside it.
-          Anchored to the mouth and scaled from its base, so it reads as
-          escaping the carton rather than sitting in front of it; screen blend
-          keeps it additive over the flaps it spills across.
+
+          Head on you never see into the carton, so the glow cannot be sold by
+          lighting an interior nobody can look at — it has to leave through the
+          top. Two parts do that: a hot core sitting in the mouth, and a column
+          rising off it. Both are anchored to the rim and scale from their base,
+          and both blend additively so they brighten the flaps they cross
+          instead of painting over them.
         */}
         <AnimatePresence>
           {opening && !reducedMotion && (
-            <motion.div
-              key="beam"
-              aria-hidden
-              className="pointer-events-none absolute z-10 blur-2xl"
-              style={{
-                width: 168,
-                height: 330,
-                bottom: "calc(50% + 108px)",
-                transformOrigin: "50% 100%",
-                mixBlendMode: "screen",
-                background: `linear-gradient(to top, ${glow}, transparent 82%)`,
-              }}
-              initial={{ opacity: 0, scaleY: 0.15, scaleX: 0.6 }}
-              animate={{ opacity: [0, 0, 0.9, 1], scaleY: [0.15, 0.15, 1, 1.35], scaleX: [0.6, 0.6, 1, 1.5] }}
-              exit={{ opacity: 0, transition: { duration: 0.25 } }}
-              transition={{
-                duration: OPEN_MS / 1000,
-                times: [0, GLOW_AT / (OPEN_MS / 1000), FLASH_AT / (OPEN_MS / 1000), 1],
-                ease: "easeIn",
-              }}
-            />
+            <motion.div key="spill" className="pointer-events-none absolute inset-0 z-10">
+              <motion.div
+                aria-hidden
+                className="absolute left-1/2 blur-xl"
+                style={{
+                  width: 132,
+                  height: 300,
+                  marginLeft: -66,
+                  bottom: "calc(50% + 118px)",
+                  transformOrigin: "50% 100%",
+                  mixBlendMode: "screen",
+                  background: `linear-gradient(to top, ${glow}, transparent 78%)`,
+                }}
+                initial={{ opacity: 0, scaleY: 0.1, scaleX: 0.5 }}
+                animate={{
+                  opacity: [0, 0, 1, 1],
+                  scaleY: [0.1, 0.1, 1, 1.4],
+                  scaleX: [0.5, 0.5, 1, 1.6],
+                }}
+                transition={SPILL}
+              />
+              <motion.div
+                aria-hidden
+                className="absolute left-1/2 rounded-full blur-lg"
+                style={{
+                  width: 170,
+                  height: 72,
+                  marginLeft: -85,
+                  bottom: "calc(50% + 96px)",
+                  mixBlendMode: "screen",
+                  background: `radial-gradient(closest-side, #fff, ${glow} 45%, transparent 75%)`,
+                }}
+                initial={{ opacity: 0, scale: 0.4 }}
+                animate={{ opacity: [0, 0, 1, 1], scale: [0.4, 0.4, 1, 1.5] }}
+                transition={SPILL}
+              />
+            </motion.div>
           )}
         </AnimatePresence>
 
@@ -503,15 +530,15 @@ function BlindBox({
       animate={
         opening && !reducedMotion
           ? {
-              // No dive — but the box still has to tip far enough that you are
-              // looking into the mouth rather than at the front of a card.
-              // Held at the resting angle the flaps peel off the top edge and
-              // the light has nowhere visible to come from. It comes forward a
-              // little too, since nothing else is closing the distance now.
-              scale: [1, 1.3, 1.3],
-              rotateX: [-14, -48, -50],
-              rotateY: [-26, -26, -25],
-              y: [0, 14, 14],
+              // Head on, the angle the box sits at everywhere else in the shop.
+              // The camera never moves off it — the box only steps toward you,
+              // since nothing else is closing the distance now. Seen this way
+              // the flaps splay outward against the background rather than
+              // opening into a mouth, and the light leaves through the top.
+              scale: [1, 1.26, 1.26],
+              rotateX: [-14, -16, -17],
+              rotateY: [-26, -24, -23],
+              y: [0, 6, 6],
             }
           : opening
             ? { rotateX: -14, rotateY: -26 }
