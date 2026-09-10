@@ -38,42 +38,40 @@ export function OpenExperience({
             className="mt-10 space-y-4"
           >
             {/*
-              No address here any more. A piece posted the moment it is opened
+              Two ways on, and only two. A piece posted the moment it is opened
               is a piece posted alone, and paying postage six times over a
-              fortnight is exactly what bundling exists to avoid — so the pull
-              goes to the collection and travels with whatever else is picked.
+              fortnight is what bundling exists to avoid — so the pull goes to
+              the collection, and the choice here is another box or send what
+              you have. There used to be a third link to the same collection
+              page under a different name, which is one more decision than the
+              moment deserves.
             */}
             <div className="rounded-2xl border border-hairline bg-ink-card p-6">
               <p className="text-[11px] uppercase tracking-[0.16em] text-faint">
                 In your collection
               </p>
               <p className="mt-2 text-sm leading-relaxed text-muted">
-                It keeps as long as you like. Send it whenever you want, on its own
-                or with everything else you have opened — a parcel costs one postage
-                however many pieces are in it.
+                It keeps as long as you like. Send it on its own or with everything
+                else you have opened — a parcel costs one postage however many
+                pieces are in it.
               </p>
-              <Link
-                href="/collection"
-                className="mt-4 inline-block rounded-xl bg-chalk px-5 py-3 text-sm font-semibold text-ink transition-transform hover:scale-[1.02] active:scale-[0.99]"
-              >
-                Ship your pieces
-              </Link>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <Link
+                  href="/#shop"
+                  className="rounded-xl bg-chalk px-5 py-3.5 text-center text-sm font-semibold text-ink transition-transform hover:scale-[1.02] active:scale-[0.99]"
+                >
+                  Buy another box
+                </Link>
+                <Link
+                  href="/collection"
+                  className="rounded-xl border border-hairline px-5 py-3.5 text-center text-sm font-semibold text-chalk transition-colors hover:border-white/35 hover:bg-white/[0.06]"
+                >
+                  Ship your pieces
+                </Link>
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/#shop"
-                className="flex-1 rounded-xl border border-hairline px-5 py-3 text-center text-sm font-medium text-muted transition-colors hover:border-white/30 hover:text-chalk"
-              >
-                Open another
-              </Link>
-              <Link
-                href="/collection"
-                className="flex-1 rounded-xl border border-hairline px-5 py-3 text-center text-sm font-medium text-muted transition-colors hover:border-white/30 hover:text-chalk"
-              >
-                My pulls
-              </Link>
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
