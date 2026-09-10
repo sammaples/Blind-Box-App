@@ -44,9 +44,12 @@ export default async function CollectionPage() {
         Everything you have opened, and where each physical piece is up to.
       </p>
 
-      <dl className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-3">
+      {/* No sealed count: a box is opened the moment it is bought, so the
+          number is zero for everyone and a stat that never moves is noise.
+          The unopened list below still catches the buyer who closed the tab
+          mid-open — that order is real, and this is its way back. */}
+      <dl className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-2">
         <Stat label="Boxes opened" value={String(pulls.length)} />
-        <Stat label="Sealed, unopened" value={String(sealed.length)} />
         <Stat
           label="Best pull"
           value={best ? best.piece.name : "—"}
