@@ -1,23 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Yellowtail } from "next/font/google";
+import { Lobster_Two } from "next/font/google";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AccountButton, AccountProvider, AdminLink } from "@/components/AccountBar";
 import "./globals.css";
 
 /**
- * The wordmark's face — a connected brush script, the one thing on the page
- * that is not the interface typeface. Its letters run into each other and sit
- * at slightly different heights, so the name flows rather than marching along
- * a ruled line the way an upright script does.
+ * The wordmark's face — a heavy brush script, the one thing on the page that is
+ * not the interface typeface. Bold italic on purpose: the weight and the lean
+ * are what make it read as a painted sign rather than handwriting.
  *
  * Loaded through next/font rather than a stylesheet link: it is self-hosted at
  * build time, so the name is painted in its own face on first frame instead of
  * appearing in a fallback and then jumping. `display: swap` keeps the header
  * readable if that ever fails.
  */
-const wordmark = Yellowtail({
-  weight: "400",
+const wordmark = Lobster_Two({
+  weight: "700",
+  style: "italic",
   subsets: ["latin"],
   display: "swap",
 });
@@ -60,16 +60,9 @@ function Header() {
             B
           </span>
           {/* A script sits small for its point size, so it is set larger than
-              the nav beside it and nudged up to share a baseline with it.
-
-              The couple of degrees of lift is the rest of it: a hand-painted
-              name is never set dead level, and without the tilt the script
-              reads as type that happens to be curly. Small on purpose — past
-              about three degrees it stops looking deliberate and starts
-              looking like a bug. The tile stays square and level; a tilted
-              icon just looks broken. */}
+              the nav beside it and nudged up to share a baseline with it. */}
           <span
-            className={`-rotate-[2.5deg] whitespace-nowrap text-[19px] leading-none -translate-y-px ${wordmark.className}`}
+            className={`whitespace-nowrap text-[19px] leading-none -translate-y-px ${wordmark.className}`}
           >
             Bricks
           </span>
