@@ -10,12 +10,22 @@ import {
   RARITY_LABEL,
 } from "@/lib/catalog";
 import { boxGeometry } from "@/lib/boxShape";
+import { playChaseWindup, type ChaseSound } from "@/lib/chaseSound";
 import { BoxPrint, isPrinted } from "./BoxPrint";
 import type { Piece, Product } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
 import { RarityChip } from "./ui";
 
-type Stage = "sealed" | "opening" | "reveal";
+/**
+ * `winding` is the beat between the tap and the flaps.
+ *
+ * It exists so the box can react before it opens. Every pull spends a moment
+ * there while the reveal call lands; a chase spends far longer, shaking and
+ * throwing colour, because that wait is the tell that something rare is
+ * coming. Nothing can open before the server has said what is inside anyway,
+ * so this is where that wait belongs.
+ */
+type Stage = "sealed" | "winding" | "opening" | "reveal";
 
 /**
  * The opening, in seconds along one timeline.
@@ -50,9 +60,34 @@ const FLASH_AT = 2.15;
  * at GLOW_AT to violent by FLASH_AT, then stops dead as the frame goes white:
  * the box is gone by the time the white clears, so it never has to settle.
  */
-const CHASE_SHAKE_TIMES = [0, 0.365, 0.44, 0.52, 0.6, 0.68, 0.75, 0.8, 0.827, 1];
-const CHASE_SHAKE_X = [0, 0, -4, 6, -9, 13, -17, 20, 0, 0];
-const CHASE_SHAKE_TILT = [0, 0, -0.9, 1.3, -2, 2.8, -3.8, 4.4, 0, 0];
+/** Long enough to notice, short enough not to feel like a hang. */
+const CHASE_WIND_MS = 2100;
+/** Everyone else: just the beat it takes the reveal call to land. */
+const WIND_MIN_MS = 420;
+
+/** The rattle, growing from a twitch to a fight across the wind-up. */
+const CHASE_SHAKE_TIMES = [0, 0.12, 0.24, 0.36, 0.48, 0.6, 0.7, 0.78, 0.86, 0.93, 1];
+const CHASE_SHAKE_X = [0, -3, 4, -6, 8, -11, 14, -18, 21, -24, 0];
+const CHASE_SHAKE_TILT = [0, -0.6, 0.9, -1.4, 1.9, -2.5, 3.2, -4, 4.7, -5.4, 0];
+
+/**
+ * The colours that flash across the frame while a chase winds up.
+ *
+ * Deliberately not the tier's gold: a rare pull announcing itself in one
+ * colour looks like the ordinary glow arriving early. Cycling through the
+ * whole rarity palette and back to gold reads as the machine hunting for an
+ * answer, and lands on the one it found.
+ */
+const CHASE_WIND_COLORS = [
+  "#fbbf24",
+  "#22d3ee",
+  "#f472b6",
+  "#a855f7",
+  "#4ade80",
+  "#fb7185",
+  "#60a5fa",
+  "#fbbf24",
+];
 
 /** Both halves of the spill run on the same ramp: nothing, then everything. */
 const SPILL = {
@@ -84,11 +119,16 @@ export function BoxOpening({
   const open = useCallback(async () => {
     if (stage !== "sealed") return;
     setError(null);
-    setStage("opening");
+    setStage("winding");
 
-    // The dive and the network call run together, so the box never stalls
-    // waiting on a response — and never opens before one arrives either.
-    const settle = new Promise((r) => setTimeout(r, reducedMotion ? 250 : OPEN_MS));
+    // Started from the tap itself, which is the only moment a browser will
+    // let audio begin. Silent until we know it is a chase — the riser is
+    // started here and cancelled immediately for everything else.
+    const startedAt = Date.now();
+    const waitUntil = (ms: number) =>
+      new Promise((r) => setTimeout(r, Math.max(0, ms - (Date.now() - startedAt))));
+
+    let sound: ChaseSound | null = null;
     try {
       const res = await fetch(`/api/orders/${orderId}/reveal`, { method: "POST" });
       const data = await res.json();
@@ -98,19 +138,29 @@ export function BoxOpening({
       const pulled = (data.piece ?? null) as Piece | null;
       if (!pulled) throw new Error("This order is missing its piece");
 
-      // Stored now, not after the wait: the glow is coloured by the tier, and
-      // it starts building well before the box is done opening. The figure
-      // itself stays gated on the reveal stage, so nothing is given away.
+      // Stored before the wait, not after: the wind-up, the rattle and the
+      // glow are all coloured by the tier. The figure stays gated on the
+      // reveal stage, so nothing is given away but the fact it is special.
       setPiece(pulled);
       setPulledOdds(data.order.pulledOdds ?? 0);
 
-      await settle;
+      const isChase = pulled.rarity === "chase";
+      const wind = reducedMotion ? 0 : isChase ? CHASE_WIND_MS : WIND_MIN_MS;
+      if (isChase && !reducedMotion) sound = playChaseWindup(wind);
+
+      await waitUntil(wind);
+      setStage("opening");
+      // The riser peaks as the box gives, so the hit lands on the flaps.
+      sound?.pop();
+
+      await waitUntil(wind + (reducedMotion ? 250 : OPEN_MS));
       // The flash is already covering the frame by now, so the swap from box
       // to piece happens behind it and is never seen.
       setStage("reveal");
       onRevealed?.(pulled);
     } catch (err) {
-      await settle;
+      sound?.stop();
+      await waitUntil(400);
       setStage("sealed");
       setError(err instanceof Error ? err.message : "Something went wrong");
     }
@@ -118,8 +168,9 @@ export function BoxOpening({
 
   const glow = piece ? RARITY_COLOR[piece.rarity] : product.accent;
   const opening = stage === "opening";
+  const winding = stage === "winding";
   // Known in time because the reveal call stores its result the moment it
-  // lands, well before the flaps finish.
+  // lands, before the wind-up is over.
   const chase = piece?.rarity === "chase";
   const loud = chase && !reducedMotion;
 
@@ -221,6 +272,7 @@ export function BoxOpening({
               accent={product.accent}
               glow={glow}
               loud={loud}
+              winding={winding}
               printed={isPrinted(product.id)}
               stage={stage}
               reducedMotion={!!reducedMotion}
@@ -279,6 +331,33 @@ export function BoxOpening({
         </AnimatePresence>
 
       </div>
+
+      {/*
+        The colour hunt.
+
+        Full-bleed and cycling the whole rarity palette while the box fights,
+        landing on gold. A rare pull announcing itself in its own colour from
+        the first frame just looks like the ordinary glow arriving early — the
+        point of throwing every colour is that you cannot tell yet, and then
+        suddenly you can.
+      */}
+      <AnimatePresence>
+        {loud && winding && (
+          <motion.div
+            key="hunt"
+            aria-hidden
+            className="pointer-events-none fixed inset-0 z-10"
+            style={{ mixBlendMode: "screen" }}
+            initial={{ opacity: 0 }}
+            animate={{
+              opacity: [0, 0.22, 0.16, 0.32, 0.24, 0.45, 0.34, 0.6, 0.75],
+              backgroundColor: CHASE_WIND_COLORS,
+            }}
+            exit={{ opacity: 0, transition: { duration: 0.2 } }}
+            transition={{ duration: CHASE_WIND_MS / 1000, ease: "linear" }}
+          />
+        )}
+      </AnimatePresence>
 
       {/*
         The pop, over the whole page and above the white.
@@ -349,15 +428,19 @@ export function BoxOpening({
             </motion.div>
           )}
 
-          {opening && (
+          {(winding || opening) && (
             <motion.p
               key="opening"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="text-sm tracking-[0.2em] text-muted uppercase"
+              className={`text-sm tracking-[0.2em] uppercase ${
+                loud && winding ? "font-semibold text-chalk" : "text-muted"
+              }`}
             >
-              Opening…
+              {/* The only word said before the reveal that is not said for
+                  every tier. It names the wait without naming the piece. */}
+              {loud && winding ? "Something rare…" : "Opening…"}
             </motion.p>
           )}
 
@@ -410,11 +493,12 @@ const SIDE_TURN: Record<Side, string> = {
 };
 
 /**
- * A chase coming out.
+ * A chase coming out: a spray of shards.
  *
- * A shockwave and a spray of shards, timed to land on the blow-out rather than
- * after it — a burst that arrives once the frame is already white reads as a
- * second, weaker event instead of the same one.
+ * Timed to land before the blow-out rather than after it — a burst that
+ * arrives once the frame is already white reads as a second, weaker event
+ * instead of the same one. There was a shockwave ring here too; it read as a
+ * drawn circle sitting on top of the box rather than as anything the box did.
  *
  * Laid out from a fixed table rather than at random: this renders on the
  * client only, but a rarity celebration that is different every time is harder
@@ -453,25 +537,6 @@ function ChaseBurst({ color }: { color: string }) {
 
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 z-50 grid place-items-center">
-      {/* the shockwave */}
-      <motion.span
-        className="absolute rounded-full"
-        // White, not the tier colour: by the time the ring fires the whole
-        // frame is that colour, and gold on gold is a ring nobody sees.
-        style={{
-          width: 120,
-          height: 120,
-          border: "4px solid rgb(255 255 255 / 0.92)",
-          boxShadow: `0 0 30px ${color}, inset 0 0 20px ${color}`,
-        }}
-        initial={{ opacity: 0, scale: 0.2 }}
-        animate={{ opacity: [0, 0, 0.9, 0], scale: [0.2, 0.2, 1.6, 5.2] }}
-        transition={{
-          duration: BURST,
-          times: [0, POP / BURST, (POP + 0.16) / BURST, 1],
-          ease: "easeOut",
-        }}
-      />
       {shards.map((sh, i) => (
         <motion.span
           key={i}
@@ -536,6 +601,7 @@ function BlindBox({
   accent,
   glow,
   loud,
+  winding,
   printed,
   stage,
   reducedMotion,
@@ -543,8 +609,10 @@ function BlindBox({
 }: {
   accent: string;
   glow: string;
-  /** A chase is inside, so the box fights on the way open. */
+  /** A chase is inside, so the box fights before it opens. */
   loud: boolean;
+  /** Wound up and rattling, flaps still shut. */
+  winding: boolean;
   printed: boolean;
   stage: Stage;
   reducedMotion: boolean;
@@ -680,7 +748,20 @@ function BlindBox({
       style={{ width: box.width, height: box.height, transformStyle: "preserve-3d" }}
       initial={{ rotateX: -14, rotateY: -26 }}
       animate={
-        opening && !reducedMotion
+        winding && loud
+          ? {
+              // Wound up and fighting, flaps still shut. The rattle is the
+              // whole point of this beat: the box has to look like it is
+              // holding something in before it lets it out.
+              rotateX: -14,
+              rotateY: -26,
+              scale: 1.06,
+              x: CHASE_SHAKE_X,
+              rotateZ: CHASE_SHAKE_TILT,
+            }
+          : winding
+            ? { rotateX: -14, rotateY: -26, scale: 1.02, x: 0, rotateZ: 0 }
+            : opening && !reducedMotion
           ? {
               // Head on, the angle the box sits at everywhere else in the shop.
               // The camera never moves off it — the box only steps toward you,
@@ -693,27 +774,30 @@ function BlindBox({
               // Sits lower than centre while it is open. The flaps swing well
               // above the carton, and centred they crowd the back link.
               y: [0, 34, 34],
-              // The rattle is separate keyframes on their own clock, so it can
-              // grow across the light's build without disturbing the tip-in
-              // underneath it.
-              ...(loud ? { x: CHASE_SHAKE_X, rotateZ: CHASE_SHAKE_TILT } : { x: 0, rotateZ: 0 }),
+              // Steady again by now. Everything violent happened during the
+              // wind-up; the opening itself is the same calm move for every
+              // tier, which is what makes the wind-up read as the special part.
+              x: 0,
+              rotateZ: 0,
             }
           : opening
             ? { rotateX: -14, rotateY: -26 }
             : { rotateX: -14, rotateY: -26, y: [0, -10, 0] }
       }
       transition={
-        opening && !reducedMotion
+        winding && loud
+          ? {
+              duration: CHASE_WIND_MS / 1000,
+              x: { duration: CHASE_WIND_MS / 1000, times: CHASE_SHAKE_TIMES, ease: "linear" },
+              rotateZ: { duration: CHASE_WIND_MS / 1000, times: CHASE_SHAKE_TIMES, ease: "linear" },
+            }
+          : winding
+            ? { duration: 0.35 }
+            : opening && !reducedMotion
           ? {
               duration: OPEN_MS / 1000,
               times: [0, 0.28, 1],
               ease: ["easeOut", "linear"],
-              ...(loud
-                ? {
-                    x: { duration: OPEN_MS / 1000, times: CHASE_SHAKE_TIMES, ease: "linear" },
-                    rotateZ: { duration: OPEN_MS / 1000, times: CHASE_SHAKE_TIMES, ease: "linear" },
-                  }
-                : {}),
             }
           : opening
             ? { duration: 0.2 }
