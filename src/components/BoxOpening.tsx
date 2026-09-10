@@ -10,7 +10,7 @@ import {
   RARITY_LABEL,
 } from "@/lib/catalog";
 import { boxGeometry } from "@/lib/boxShape";
-import { playChaseWindup, type ChaseSound } from "@/lib/chaseSound";
+import { playOpenSound, type OpenSound } from "@/lib/openSound";
 import { BoxPrint, isPrinted } from "./BoxPrint";
 import type { Piece, Product } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
@@ -49,48 +49,52 @@ const GLOW_AT = 0.95;
 const FLASH_AT = 2.15;
 
 /**
- * Chase pulls, and only chase pulls, get the loud version.
+ * Every box fights before it opens. A chase fights for longer.
  *
- * A chase is roughly one box in a hundred. If every tier shook and burst, the
- * one that matters would look like all the others — so the rattle, the colour
- * hunt, the riser, the rays and the shards exist here and nowhere else, and
- * every other tier keeps the calm opening exactly as it was.
+ * The wind-up is where a pull happens: the box rattles against shut flaps,
+ * light builds behind it, and then the flaps give. That belongs to every
+ * tier — an ordinary box that simply flops open is a page transition, not an
+ * opening — so the rattle, the rays and the sound are what every pull gets.
  *
- * All of the fighting happens before the box opens, not during: it rattles
- * harder and harder against shut flaps while colour hunts across the frame,
- * and the opening itself is the same steady move every tier gets. That is what
- * the wind-up buys — by the time the flaps give, you already know.
+ * What separates a chase is how long the wait runs and what happens during
+ * it. Twice the rattle, colour hunting across the whole frame, a ladder of
+ * bells instead of a swell, brighter rays, and shards on the hit. A chase is
+ * roughly one box in a hundred; if it were only a louder version of the same
+ * thing, the wind-up would be telling you nothing you could not already see.
  */
 /** Long enough to notice, short enough not to feel like a hang. */
 const CHASE_WIND_MS = 2100;
-/** Everyone else: just the beat it takes the reveal call to land. */
-const WIND_MIN_MS = 420;
+/** Everyone else: the same rattle, about half as long. */
+const WIND_MS = 1140;
 
 /**
  * The rattle: one steady buzz, the same the whole way through.
  *
  * Frequency is what makes this read as something trying to get out. Eleven
- * swings across two seconds is a box rocking; this is twenty-two, about one
- * every 95ms, fast enough to blur and still resolve as a direction each way.
+ * swings across two seconds is a box rocking; this is one every 95ms, fast
+ * enough to blur and still resolve as a direction each way.
  *
  * It does not build. An amplitude that ramps means the first half of the
  * wind-up is a box barely moving, which reads as nothing happening rather
  * than as tension — the box is either fighting or it is not. So every swing
  * is the same throw, from the first to the last.
  *
- * Generated rather than typed out: the point is the shape, and two dozen
- * hand-written numbers hide it.
+ * And it is the same throw for every tier. A chase does not shake harder, it
+ * shakes for longer: the swing count follows the wind, so both boxes fight
+ * with exactly the same violence and only the wait is different. That keeps
+ * the chase's tell in what it does — the colour, the bells — rather than in a
+ * number nobody can compare against a box they are not opening.
  */
-const SHAKE_SWINGS = 22;
+const SWING_MS = 95;
 
-function buildShake(throwX: number, throwTilt: number) {
+function buildShake(throwX: number, throwTilt: number, windMs: number) {
+  const swings = Math.max(2, Math.round(windMs / SWING_MS));
   const times: number[] = [];
   const x: number[] = [];
   const tilt: number[] = [];
-  for (let i = 0; i <= SHAKE_SWINGS; i++) {
-    const at = i / SHAKE_SWINGS;
-    times.push(at);
-    if (i === 0 || i === SHAKE_SWINGS) {
+  for (let i = 0; i <= swings; i++) {
+    times.push(i / swings);
+    if (i === 0 || i === swings) {
       // Starts and ends on centre, so it neither snaps in nor leaves the box
       // parked off to one side when the flaps take over.
       x.push(0);
@@ -104,10 +108,16 @@ function buildShake(throwX: number, throwTilt: number) {
   return { times, x, tilt };
 }
 
-const CHASE_SHAKE = buildShake(22, 4.8);
-const CHASE_SHAKE_TIMES = CHASE_SHAKE.times;
-const CHASE_SHAKE_X = CHASE_SHAKE.x;
-const CHASE_SHAKE_TILT = CHASE_SHAKE.tilt;
+const SHAKE = {
+  chase: buildShake(22, 4.8, CHASE_WIND_MS),
+  calm: buildShake(22, 4.8, WIND_MS),
+};
+
+/** How long this box gets to fight. Derived, so the timer and the rattle
+    that runs against it can never disagree about the length of the wait. */
+function windFor(chase: boolean, reducedMotion: boolean) {
+  return reducedMotion ? 0 : chase ? CHASE_WIND_MS : WIND_MS;
+}
 
 /**
  * The colours that flash across the frame while a chase winds up.
@@ -167,7 +177,7 @@ export function BoxOpening({
     const waitUntil = (ms: number) =>
       new Promise((r) => setTimeout(r, Math.max(0, ms - (Date.now() - startedAt))));
 
-    let sound: ChaseSound | null = null;
+    let sound: OpenSound | null = null;
     try {
       const res = await fetch(`/api/orders/${orderId}/reveal`, { method: "POST" });
       const data = await res.json();
@@ -184,8 +194,9 @@ export function BoxOpening({
       setPulledOdds(data.order.pulledOdds ?? 0);
 
       const isChase = pulled.rarity === "chase";
-      const wind = reducedMotion ? 0 : isChase ? CHASE_WIND_MS : WIND_MIN_MS;
-      if (isChase && !reducedMotion) sound = playChaseWindup(wind);
+      const wind = windFor(isChase, !!reducedMotion);
+      // Every box makes a noise now; a chase makes a different one.
+      if (!reducedMotion) sound = playOpenSound(wind, { loud: isChase });
 
       await waitUntil(wind);
       setStage("opening");
@@ -212,6 +223,11 @@ export function BoxOpening({
   // lands, before the wind-up is over.
   const chase = piece?.rarity === "chase";
   const loud = chase && !reducedMotion;
+  // Whatever is inside, the box fights for it — the rattle is not the chase's
+  // any more. It still has to wait for the reveal call, because the wind it
+  // runs against is a different length for a chase.
+  const shaking = !!piece && !reducedMotion;
+  const windMs = windFor(!!chase, !!reducedMotion);
 
   return (
     <div className="relative flex w-full flex-col items-center">
@@ -313,10 +329,12 @@ export function BoxOpening({
         </AnimatePresence>
 
         {/*
-          The rays, chase only, above the spill they grow out of.
+          The rays. Every box lets light out; a chase just lets more out.
         */}
         <AnimatePresence>
-          {loud && opening && <ChaseRays key="rays" color={glow} />}
+          {opening && !reducedMotion && (
+            <OpeningRays key="rays" color={glow} loud={loud} />
+          )}
         </AnimatePresence>
 
         <AnimatePresence>
@@ -326,6 +344,8 @@ export function BoxOpening({
               accent={product.accent}
               glow={glow}
               loud={loud}
+              shaking={shaking}
+              windMs={windMs}
               winding={winding}
               printed={isPrinted(product.id)}
               stage={stage}
@@ -560,6 +580,11 @@ const SIDE_TURN: Record<Side, string> = {
  * other makes the fan shimmer instead of sitting still, which is the difference
  * between light and a drawn sunburst.
  *
+ * Every tier gets them, at about three-fifths brightness and reach for the
+ * ordinary ones. That is enough for an ordinary box to look like it is giving
+ * something up, and far enough short of a chase that the two never read as the
+ * same event — which is the only thing the difference has to do.
+ *
  * Everything below the rim is masked away. The rays belong to the opening, and
  * a full disc would put half of them across the front of a box that is very
  * obviously solid.
@@ -570,10 +595,13 @@ const SIDE_TURN: Record<Side, string> = {
  */
 const RAY_RADIUS = 460;
 
-function ChaseRays({ color }: { color: string }) {
+function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
   const secs = OPEN_MS / 1000;
   /** Struck as the flaps part, at full reach by the blow-out. */
   const times = [0, GLOW_AT / secs, FLASH_AT / secs, 1];
+  /** How hard the fan burns, and how far past the box it reaches. */
+  const lift = loud ? 1 : 0.6;
+  const reach = loud ? 1 : 0.82;
 
   const disc = {
     position: "absolute" as const,
@@ -623,7 +651,11 @@ function ChaseRays({ color }: { color: string }) {
           background: `repeating-conic-gradient(from 6deg, ${color} 0deg, ${color} 6deg, transparent 6deg, transparent 30deg)`,
         }}
         initial={{ scale: 0.2, rotate: 0, opacity: 0 }}
-        animate={{ scale: [0.2, 0.24, 1, 1.3], rotate: [0, 0, -13, -21], opacity: [0, 0, 0.85, 0.95] }}
+        animate={{
+          scale: [0.2, 0.24, reach, 1.3 * reach],
+          rotate: [0, 0, -13, -21],
+          opacity: [0, 0, 0.85 * lift, 0.95 * lift],
+        }}
         transition={{ duration: secs, times, ease: "easeOut" }}
       />
       {/* narrow, white, hard — the spokes you actually read as rays */}
@@ -637,7 +669,11 @@ function ChaseRays({ color }: { color: string }) {
             "repeating-conic-gradient(from 0deg, #fff 0deg, #fff 2.2deg, transparent 2.2deg, transparent 15deg)",
         }}
         initial={{ scale: 0.2, rotate: 0, opacity: 0 }}
-        animate={{ scale: [0.2, 0.26, 1, 1.34], rotate: [0, 0, 9, 15], opacity: [0, 0, 0.8, 0.92] }}
+        animate={{
+          scale: [0.2, 0.26, reach, 1.34 * reach],
+          rotate: [0, 0, 9, 15],
+          opacity: [0, 0, 0.8 * lift, 0.92 * lift],
+        }}
         transition={{ duration: secs, times, ease: "easeOut" }}
       />
     </motion.div>
@@ -753,6 +789,8 @@ function BlindBox({
   accent,
   glow,
   loud,
+  shaking,
+  windMs,
   winding,
   printed,
   stage,
@@ -761,8 +799,12 @@ function BlindBox({
 }: {
   accent: string;
   glow: string;
-  /** A chase is inside, so the box fights before it opens. */
+  /** A chase is inside. Only the extras it alone gets hang off this. */
   loud: boolean;
+  /** The pull is known, so the box can start fighting. Every tier does. */
+  shaking: boolean;
+  /** How long the fight lasts — the rattle is built to fill exactly this. */
+  windMs: number;
   /** Wound up and rattling, flaps still shut. */
   winding: boolean;
   printed: boolean;
@@ -773,6 +815,8 @@ function BlindBox({
   const box = boxGeometry(140);
   const opening = stage === "opening";
   const W = box.width;
+  // Same throw either way; the chase curve is simply longer.
+  const shake = loud ? SHAKE.chase : SHAKE.calm;
 
   const outerFace = (name: Parameters<typeof box.face>[0], shade: number) => ({
     ...box.face(name),
@@ -900,7 +944,7 @@ function BlindBox({
       style={{ width: box.width, height: box.height, transformStyle: "preserve-3d" }}
       initial={{ rotateX: -14, rotateY: -26 }}
       animate={
-        winding && loud
+        winding && shaking
           ? {
               // Wound up and fighting, flaps still shut. The rattle is the
               // whole point of this beat: the box has to look like it is
@@ -908,11 +952,13 @@ function BlindBox({
               rotateX: -14,
               rotateY: -26,
               scale: 1.06,
-              x: CHASE_SHAKE_X,
-              rotateZ: CHASE_SHAKE_TILT,
+              x: shake.x,
+              rotateZ: shake.tilt,
             }
           : winding
-            ? { rotateX: -14, rotateY: -26, scale: 1.02, x: 0, rotateZ: 0 }
+            ? // The half-beat before the reveal call lands and the box learns
+              // what it is holding. Too short to do anything with but lean in.
+              { rotateX: -14, rotateY: -26, scale: 1.02, x: 0, rotateZ: 0 }
             : opening && !reducedMotion
           ? {
               // Head on, the angle the box sits at everywhere else in the shop.
@@ -937,11 +983,11 @@ function BlindBox({
             : { rotateX: -14, rotateY: -26, y: [0, -10, 0] }
       }
       transition={
-        winding && loud
+        winding && shaking
           ? {
-              duration: CHASE_WIND_MS / 1000,
-              x: { duration: CHASE_WIND_MS / 1000, times: CHASE_SHAKE_TIMES, ease: "linear" },
-              rotateZ: { duration: CHASE_WIND_MS / 1000, times: CHASE_SHAKE_TIMES, ease: "linear" },
+              duration: windMs / 1000,
+              x: { duration: windMs / 1000, times: shake.times, ease: "linear" },
+              rotateZ: { duration: windMs / 1000, times: shake.times, ease: "linear" },
             }
           : winding
             ? { duration: 0.35 }
