@@ -107,17 +107,26 @@ function ProductCard({
             rather than sharing a row with the price — and at this size it is
             also a proper thumb target on a phone, which the old pill was not. */}
         <div className="mt-5 pt-1">
-          <p className="font-mono text-xl">
-            <Price cents={product.priceCents} />
-          </p>
           <button
             type="button"
             onClick={onBuy}
             disabled={soldOut}
-            className="mt-3 w-full rounded-2xl py-4 text-base font-semibold text-ink transition-transform hover:scale-[1.02] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
+            className="w-full rounded-2xl py-4 text-base font-semibold text-ink transition-transform hover:scale-[1.02] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
             style={{ background: soldOut ? "#3a3a44" : product.accent }}
           >
-            {soldOut ? "Sold out" : "Buy one box"}
+            {soldOut ? (
+              "Sold out"
+            ) : (
+              <>
+                Buy one box ·{" "}
+                {/* Mono for the figure, as every other price in the app is —
+                    digits that line up are easier to read at a glance than
+                    proportional ones, and the checkout button matches. */}
+                <span className="font-mono">
+                  <Price cents={product.priceCents} />
+                </span>
+              </>
+            )}
           </button>
         </div>
       </div>
