@@ -43,16 +43,23 @@ export function OpenExperience({
               collection is a second explanation of a screen that already
               explained itself.
             */}
-            <div className="grid gap-3 sm:grid-cols-2">
+            {/*
+              Side by side from 384px up, which covers every common phone from
+              the 390 class upward. "Ship your pieces" needs 131px of line plus
+              its padding, and two columns cannot give it that on anything
+              narrower — measured, not guessed: at 380 the label still wraps.
+              Below the breakpoint the pair stacks rather than breaking.
+            */}
+            <div className="grid gap-3 min-[384px]:grid-cols-2">
               <Link
                 href="/#shop"
-                className="rounded-xl bg-chalk px-5 py-3.5 text-center text-sm font-semibold text-ink transition-transform hover:scale-[1.02] active:scale-[0.99]"
+                className="rounded-xl bg-chalk px-4 py-3.5 text-center text-sm font-semibold text-ink transition-transform hover:scale-[1.02] active:scale-[0.99]"
               >
                 Open another
               </Link>
               <Link
                 href="/collection"
-                className="rounded-xl border border-hairline px-5 py-3.5 text-center text-sm font-semibold text-chalk transition-colors hover:border-white/35 hover:bg-white/[0.06]"
+                className="rounded-xl border border-hairline px-4 py-3.5 text-center text-sm font-semibold text-chalk transition-colors hover:border-white/35 hover:bg-white/[0.06]"
               >
                 Ship your pieces
               </Link>
