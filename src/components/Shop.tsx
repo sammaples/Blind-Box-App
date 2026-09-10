@@ -104,8 +104,10 @@ function ProductCard({
         </div>
 
         {/* The card exists to be bought from, so the button gets the full width
-            rather than sharing a row with the price — and at this size it is
-            also a proper thumb target on a phone, which the old pill was not. */}
+            rather than sharing a row with anything — and at this size it is
+            also a proper thumb target on a phone, which the old pill was not.
+            The price is not on it: the checkout sheet states it before anything
+            is committed to, which is the moment it has to be right. */}
         <div className="mt-5 pt-1">
           <button
             type="button"
@@ -114,19 +116,7 @@ function ProductCard({
             className="w-full rounded-2xl py-4 text-base font-semibold text-ink transition-transform hover:scale-[1.02] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
             style={{ background: soldOut ? "#3a3a44" : product.accent }}
           >
-            {soldOut ? (
-              "Sold out"
-            ) : (
-              <>
-                Buy a box ·{" "}
-                {/* Mono for the figure, as every other price in the app is —
-                    digits that line up are easier to read at a glance than
-                    proportional ones, and the checkout button matches. */}
-                <span className="font-mono">
-                  <Price cents={product.priceCents} />
-                </span>
-              </>
-            )}
+            {soldOut ? "Sold out" : "Buy a box"}
           </button>
         </div>
       </div>
