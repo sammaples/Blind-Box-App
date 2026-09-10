@@ -51,8 +51,11 @@ function Header() {
     <header className="sticky top-0 z-40 border-b border-hairline/70 bg-ink/70 backdrop-blur-xl">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
+          {/* The letter carries the tile, so it is set to fill it — a small
+              glyph adrift in a white square reads as a placeholder. 18 on 24
+              is as large as the script goes before its tail meets the edge. */}
           <span
-            className={`grid size-6 place-items-center rounded-md bg-chalk pb-0.5 text-[13px] leading-none text-ink ${wordmark.className}`}
+            className={`grid size-6 place-items-center rounded-md bg-chalk pb-px text-[18px] leading-none text-ink ${wordmark.className}`}
           >
             B
           </span>
