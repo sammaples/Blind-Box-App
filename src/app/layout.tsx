@@ -52,15 +52,14 @@ function Header() {
           <span
             className={`grid size-6 place-items-center rounded-md bg-chalk pb-0.5 text-[13px] leading-none text-ink ${wordmark.className}`}
           >
-            R
+            B
           </span>
-          {/* A script sits small for its point size and its descenders drop
-              below the line, so it is set larger than the nav beside it and
-              nudged up to share a baseline with it. */}
+          {/* A script sits small for its point size, so it is set larger than
+              the nav beside it and nudged up to share a baseline with it. */}
           <span
             className={`whitespace-nowrap text-[19px] leading-none -translate-y-px ${wordmark.className}`}
           >
-            Rip n&apos; Ship
+            Bricks
           </span>
         </Link>
         {/* Nothing in here may wrap: a two-line header on a phone pushes the
