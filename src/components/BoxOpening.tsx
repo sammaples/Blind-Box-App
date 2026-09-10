@@ -130,7 +130,7 @@ export function BoxOpening({
         transition={opening && !reducedMotion ? SPILL : { duration: 0.5 }}
       />
 
-      <div className="relative flex h-[30rem] w-full items-center justify-center sm:h-[34rem]" style={{ perspective: "1100px" }}>
+      <div className="relative flex h-[34rem] w-full items-center justify-center" style={{ perspective: "1100px" }}>
         {/*
           The light coming out of the box, in the colour of the tier inside it.
 
@@ -151,7 +151,7 @@ export function BoxOpening({
                   width: 132,
                   height: 300,
                   marginLeft: -66,
-                  bottom: "calc(50% + 118px)",
+                  bottom: "calc(50% + 90px)",
                   transformOrigin: "50% 100%",
                   mixBlendMode: "screen",
                   background: `linear-gradient(to top, ${glow}, transparent 78%)`,
@@ -171,7 +171,7 @@ export function BoxOpening({
                   width: 170,
                   height: 72,
                   marginLeft: -85,
-                  bottom: "calc(50% + 96px)",
+                  bottom: "calc(50% + 68px)",
                   mixBlendMode: "screen",
                   background: `radial-gradient(closest-side, #fff, ${glow} 45%, transparent 75%)`,
                 }}
@@ -540,7 +540,9 @@ function BlindBox({
               scale: [1, 1.38, 1.38],
               rotateX: [-14, -16, -17],
               rotateY: [-26, -24, -23],
-              y: [0, 6, 6],
+              // Sits lower than centre while it is open. The flaps swing well
+              // above the carton, and centred they crowd the back link.
+              y: [0, 34, 34],
             }
           : opening
             ? { rotateX: -14, rotateY: -26 }
