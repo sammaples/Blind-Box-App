@@ -603,15 +603,20 @@ function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
   const lift = loud ? 1 : 0.6;
   const reach = loud ? 1 : 0.82;
 
-  const disc = {
+  /**
+   * Both discs sit inside this, square and centred on the rim, so the wedges
+   * all converge at the mouth. The wrapper crops the half that would fall
+   * down the front of the carton.
+   */
+  const arc = {
     position: "absolute" as const,
     left: 0,
-    // Centred on the rim: the wedges all converge at the mouth, and the
-    // wrapper crops the half that would fall down the front of the carton.
     bottom: -RAY_RADIUS,
     width: RAY_RADIUS * 2,
     height: RAY_RADIUS * 2,
   };
+
+  const disc = { position: "absolute" as const, inset: 0 };
 
   /**
    * How far the fan carries, and in which direction.
@@ -626,6 +631,22 @@ function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
    */
   const falloff =
     "radial-gradient(ellipse 34% 62% at 50% 50%, rgb(0 0 0 / 0.5) 0%, #000 14%, rgb(0 0 0 / 0.55) 46%, transparent 92%)";
+
+  /**
+   * Which way light is allowed to leave.
+   *
+   * Up and out to about sixty degrees either side, and nothing beyond that.
+   * The rays running flat out of the rim were the ones that gave the effect
+   * away: light escaping a box goes up through the hole in the top, and a
+   * horizontal shaft has to have come through a wall. Shortening them was not
+   * enough — at any length they still pointed the wrong way.
+   *
+   * This lives on a wrapper rather than on the discs, so it stays put while
+   * the rays turn underneath it: the cut is a property of the box, not of the
+   * light, and it should not rotate with it.
+   */
+  const cone =
+    "conic-gradient(from 0deg, #000 0deg, #000 52deg, transparent 76deg, transparent 284deg, #000 308deg, #000 360deg)";
 
   return (
     <motion.div
@@ -651,6 +672,7 @@ function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
       exit={{ opacity: 0, transition: { duration: 0.2 } }}
       transition={{ duration: secs, times, ease: "easeIn" }}
     >
+      <div style={{ ...arc, maskImage: cone, WebkitMaskImage: cone }}>
       {/*
         Wide, coloured, soft — the body of the light.
 
@@ -699,6 +721,7 @@ function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
         }}
         transition={{ duration: secs, times, ease: "easeOut" }}
       />
+      </div>
     </motion.div>
   );
 }
