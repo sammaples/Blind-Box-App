@@ -613,9 +613,19 @@ function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
     height: RAY_RADIUS * 2,
   };
 
-  /** Bright at the mouth, gone before the edge — rays thin out, they do not stop. */
+  /**
+   * How far the fan carries, and in which direction.
+   *
+   * An ellipse rather than a circle, and a tall one: the rays reach a long
+   * way straight up and give out quickly to the sides. A circular falloff
+   * throws them just as far sideways, and a fan that wide stops reading as
+   * light leaving a box and starts reading as a sunburst drawn behind one.
+   *
+   * The tail is long and low on purpose — rays thin out, they do not stop,
+   * and an edge is the thing that gives a gradient away as a shape.
+   */
   const falloff =
-    "radial-gradient(closest-side, rgb(0 0 0 / 0.5) 0%, #000 16%, rgb(0 0 0 / 0.72) 44%, transparent 78%)";
+    "radial-gradient(ellipse 34% 62% at 50% 50%, rgb(0 0 0 / 0.5) 0%, #000 14%, rgb(0 0 0 / 0.55) 46%, transparent 92%)";
 
   return (
     <motion.div
@@ -641,38 +651,51 @@ function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
       exit={{ opacity: 0, transition: { duration: 0.2 } }}
       transition={{ duration: secs, times, ease: "easeIn" }}
     >
-      {/* wide, coloured, soft — the body of the light */}
+      {/*
+        Wide, coloured, soft — the body of the light.
+
+        Each wedge fades in and back out across its own width rather than
+        starting and stopping, which is what stops twenty beams reading as
+        twenty painted triangles. The blur then has something to work with:
+        near the mouth the rays merge into one glow and only resolve as
+        separate shafts further out, which is how light actually behaves.
+      */}
       <motion.div
         style={{
           ...disc,
-          filter: "blur(9px)",
+          filter: "blur(18px)",
           maskImage: falloff,
           WebkitMaskImage: falloff,
-          background: `repeating-conic-gradient(from 6deg, ${color} 0deg, ${color} 6deg, transparent 6deg, transparent 30deg)`,
+          background: `repeating-conic-gradient(from 6deg, transparent 0deg, ${color} 2.2deg, transparent 4.4deg, transparent 18deg)`,
         }}
         initial={{ scale: 0.2, rotate: 0, opacity: 0 }}
         animate={{
           scale: [0.2, 0.24, reach, 1.3 * reach],
           rotate: [0, 0, -13, -21],
-          opacity: [0, 0, 0.85 * lift, 0.95 * lift],
+          opacity: [0, 0, 0.78 * lift, 0.88 * lift],
         }}
         transition={{ duration: secs, times, ease: "easeOut" }}
       />
-      {/* narrow, white, hard — the spokes you actually read as rays */}
+      {/*
+        Narrow and white — the spokes you actually read as rays.
+        Forty of them rather than twenty-four, each half as wide and soft at
+        both edges. More, finer and blurrier reads as light; fewer and harder
+        reads as a drawing of light.
+      */}
       <motion.div
         style={{
           ...disc,
-          filter: "blur(2px)",
+          filter: "blur(6px)",
           maskImage: falloff,
           WebkitMaskImage: falloff,
           background:
-            "repeating-conic-gradient(from 0deg, #fff 0deg, #fff 2.2deg, transparent 2.2deg, transparent 15deg)",
+            "repeating-conic-gradient(from 0deg, transparent 0deg, rgb(255 255 255 / 0.92) 0.75deg, transparent 1.5deg, transparent 9deg)",
         }}
         initial={{ scale: 0.2, rotate: 0, opacity: 0 }}
         animate={{
           scale: [0.2, 0.26, reach, 1.34 * reach],
           rotate: [0, 0, 9, 15],
-          opacity: [0, 0, 0.8 * lift, 0.92 * lift],
+          opacity: [0, 0, 0.7 * lift, 0.82 * lift],
         }}
         transition={{ duration: secs, times, ease: "easeOut" }}
       />
