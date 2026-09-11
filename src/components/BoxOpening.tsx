@@ -43,8 +43,18 @@ type Stage = "sealed" | "winding" | "opening" | "reveal";
 const OPEN_MS = 2600;
 /** The flaps start peeling once the box has finished tipping. */
 const FLAP_START = 0.35;
-/** Light begins escaping as the flaps part, and builds from there. */
-const GLOW_AT = 0.95;
+/**
+ * White at the mouth the instant the crease gives.
+ *
+ * Something has to be escaping before anything can be shaped like a ray. A
+ * fan that arrives out of a dark box reads as an effect switching on; white
+ * spilling first, and rays resolving out of it a fifth of a second later,
+ * reads as light finding the gap and then finding its edges — which is the
+ * order it happens in.
+ */
+const WHITE_AT = 0.38;
+/** Colour and rays follow it out, with the flaps barely a fifth open. */
+const GLOW_AT = 0.58;
 /** The blow-out, once the light has nowhere left to go. */
 const FLASH_AT = 2.15;
 
@@ -138,12 +148,46 @@ const CHASE_WIND_COLORS = [
   "#fbbf24",
 ];
 
-/** Both halves of the spill run on the same ramp: nothing, then everything. */
+/** Nothing, then everything. The page-wide bloom rides this one. */
 const SPILL = {
   duration: OPEN_MS / 1000,
   times: [0, GLOW_AT / (OPEN_MS / 1000), FLASH_AT / (OPEN_MS / 1000), 1],
   ease: "easeIn" as const,
 };
+
+/**
+ * The shape light actually leaves a box in.
+ *
+ * One long ease-in from nothing to everything looks right on paper and is
+ * wrong on screen: it spends most of its run at a value too small to see, so
+ * moving its start earlier changes the numbers and not the picture. Light
+ * does not creep out of a gap, it gets out the moment there is a gap — so
+ * this jumps to something visible within three-tenths of a second of the
+ * crease giving, and only then settles into the long climb to the blow-out.
+ *
+ * The four segments are: hold dark, break out, build, hold at full.
+ */
+const POUR_MS = 0.3;
+const POUR_EASE: ["linear", "easeOut", "easeIn", "linear"] = [
+  "linear",
+  "easeOut",
+  "easeIn",
+  "linear",
+];
+
+function pour(at: number) {
+  const secs = OPEN_MS / 1000;
+  return {
+    duration: secs,
+    times: [0, at / secs, (at + POUR_MS) / secs, FLASH_AT / secs, 1],
+    ease: POUR_EASE,
+  };
+}
+
+/** White first, out of the crease. */
+const WHITE_SPILL = pour(WHITE_AT);
+/** Then the colour, and the rays with it. */
+const COLOUR_SPILL = pour(GLOW_AT);
 
 export function BoxOpening({
   orderId,
@@ -250,10 +294,18 @@ export function BoxOpening({
         initial={false}
         animate={
           opening && !reducedMotion
-            ? { opacity: loud ? [0.1, 0.1, 0.85, 1] : [0.1, 0.1, 0.6, 0.85] }
+            ? {
+                // On the white ramp, and with a step early enough to see.
+                // This is the one piece of the spill the carton cannot stand
+                // in front of, so it is what actually sells the moment the
+                // crease gives — the page warms before anything has a shape.
+                opacity: loud
+                  ? [0.1, 0.1, 0.34, 0.85, 1]
+                  : [0.1, 0.1, 0.26, 0.6, 0.85],
+              }
             : { opacity: stage === "reveal" ? (chase ? 0.42 : 0.26) : 0.1 }
         }
-        transition={opening && !reducedMotion ? SPILL : { duration: 0.5 }}
+        transition={opening && !reducedMotion ? WHITE_SPILL : { duration: 0.5 }}
       />
 
       {/*
@@ -290,24 +342,33 @@ export function BoxOpening({
                 aria-hidden
                 className="absolute left-1/2 blur-xl"
                 style={{
-                  width: 132,
+                  // Wider than the flaps are, on purpose. A shaft narrower
+                  // than the lid is a shaft entirely behind the lid until the
+                  // lid is gone, and by then the moment has passed.
+                  width: 212,
                   height: 300,
-                  marginLeft: -66,
+                  marginLeft: -106,
                   // On the rim, not inside the box. Behind the carton,
                   // anything below this line is simply swallowed — the spill
                   // only exists from the mouth up.
                   bottom: "calc(50% + 116px)",
                   transformOrigin: "50% 100%",
                   mixBlendMode: "screen",
-                  background: `linear-gradient(to top, ${glow}, transparent 78%)`,
+                  // White at the base, tier colour above it. What escapes a
+                  // gap first is not a colour, it is brightness; the colour
+                  // is what you see once there is enough of it to see.
+                  background: `linear-gradient(to top, #fff, ${glow} 38%, transparent 82%)`,
                 }}
-                initial={{ opacity: 0, scaleY: 0.1, scaleX: 0.5 }}
+                initial={{ opacity: 0, scaleY: 0.15, scaleX: 0.45 }}
                 animate={{
-                  opacity: [0, 0, 1, 1],
-                  scaleY: [0.1, 0.1, 1, 1.4],
-                  scaleX: [0.5, 0.5, 1, 1.6],
+                  // Tall fast. Anything short is hidden behind flaps that are
+                  // still standing over the mouth, so a shaft that creeps up
+                  // is a shaft nobody sees until it no longer matters.
+                  opacity: [0, 0, 0.8, 1, 1],
+                  scaleY: [0.15, 0.15, 0.85, 1, 1.4],
+                  scaleX: [0.4, 0.4, 0.7, 1, 1.45],
                 }}
-                transition={SPILL}
+                transition={WHITE_SPILL}
               />
               <motion.div
                 aria-hidden
@@ -320,9 +381,15 @@ export function BoxOpening({
                   mixBlendMode: "screen",
                   background: `radial-gradient(closest-side, #fff, ${glow} 45%, transparent 75%)`,
                 }}
-                initial={{ opacity: 0, scale: 0.4 }}
-                animate={{ opacity: [0, 0, 1, 1], scale: [0.4, 0.4, 1, 1.5] }}
-                transition={SPILL}
+                // Smaller at the start than it used to be, because it now has
+                // longer to grow: this is the bead of white in the gap before
+                // it is a glow, and it should look like one.
+                initial={{ opacity: 0, scale: 0.22 }}
+                animate={{
+                  opacity: [0, 0, 0.65, 1, 1],
+                  scale: [0.22, 0.22, 0.55, 1, 1.6],
+                }}
+                transition={WHITE_SPILL}
               />
             </motion.div>
           )}
@@ -596,9 +663,12 @@ const SIDE_TURN: Record<Side, string> = {
 const RAY_RADIUS = 460;
 
 function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
-  const secs = OPEN_MS / 1000;
-  /** Struck as the flaps part, at full reach by the blow-out. */
-  const times = [0, GLOW_AT / secs, FLASH_AT / secs, 1];
+  /**
+   * Struck as the flaps part, at full reach by the blow-out — and visible
+   * within a breath of being struck, rather than creeping up from nothing.
+   * Same four segments as the spill they grow out of.
+   */
+  const ramp = COLOUR_SPILL;
   /** How hard the fan burns, and how far past the box it reaches. */
   const lift = loud ? 1 : 0.6;
   const reach = loud ? 1 : 0.82;
@@ -668,9 +738,9 @@ function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
         mixBlendMode: "screen",
       }}
       initial={{ opacity: 0 }}
-      animate={{ opacity: [0, 0, 1, 1] }}
+      animate={{ opacity: [0, 0, 0.55, 1, 1] }}
       exit={{ opacity: 0, transition: { duration: 0.2 } }}
-      transition={{ duration: secs, times, ease: "easeIn" }}
+      transition={ramp}
     >
       <div style={{ ...arc, maskImage: cone, WebkitMaskImage: cone }}>
       {/*
@@ -692,11 +762,15 @@ function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
         }}
         initial={{ scale: 0.2, rotate: 0, opacity: 0 }}
         animate={{
-          scale: [0.2, 0.24, reach, 1.3 * reach],
-          rotate: [0, 0, -13, -21],
-          opacity: [0, 0, 0.78 * lift, 0.88 * lift],
+          // The break-out scale is not a taste call: below about 0.6 the fan
+          // is shorter than the flaps standing over the mouth, so it is a fan
+          // nobody can see. It still starts small and still grows the whole
+          // way — it just starts from something that clears the lid.
+          scale: [0.2, 0.22, 0.62, reach, 1.3 * reach],
+          rotate: [0, 0, -4, -13, -21],
+          opacity: [0, 0, 0.55 * lift, 0.78 * lift, 0.88 * lift],
         }}
-        transition={{ duration: secs, times, ease: "easeOut" }}
+        transition={ramp}
       />
       {/*
         Narrow and white — the spokes you actually read as rays.
@@ -715,11 +789,11 @@ function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
         }}
         initial={{ scale: 0.2, rotate: 0, opacity: 0 }}
         animate={{
-          scale: [0.2, 0.26, reach, 1.34 * reach],
-          rotate: [0, 0, 9, 15],
-          opacity: [0, 0, 0.7 * lift, 0.82 * lift],
+          scale: [0.2, 0.24, 0.66, reach, 1.34 * reach],
+          rotate: [0, 0, 3, 9, 15],
+          opacity: [0, 0, 0.5 * lift, 0.7 * lift, 0.82 * lift],
         }}
-        transition={{ duration: secs, times, ease: "easeOut" }}
+        transition={ramp}
       />
       </div>
     </motion.div>
