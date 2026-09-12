@@ -1140,16 +1140,23 @@ function BlindBox({
       {lining("bottom", "#d8d9de", "#b4b5bb")}
 
       {/*
-        The flaps. The die-cut is the one the eye follows, so it goes on the
-        near wall where it peels toward the camera, and it leads by a beat —
-        all four moving at once reads as a mechanism, not a box being opened.
+        The flaps, in opposite pairs.
 
-        It is also the shortest it can be and still show its ears. On the far
-        wall, or much longer than this, the head swings up out of the frame and
-        the die-cut is never seen at all.
+        Front and back carry the die-cut head and are the same length; left and
+        right are plain and shorter. A real carton is cut from one flat sheet,
+        and a sheet is symmetric — a head on the near wall and a plain rectangle
+        on the far one is two different boxes sharing a lid.
+
+        Each pair moves together and the heads lead by a beat. All four at once
+        reads as a mechanism rather than a box being opened, and the heads are
+        what the eye follows, so they go first.
+
+        The length is the shortest that still shows the ears. The clip path is
+        in object-bounding-box units, so it stretches with whatever it is given:
+        the pair have to share a length or they are two different heads.
       */}
       {flap("front", W * 0.82, 0, true)}
-      {flap("back", W * 0.5, 0.08, false)}
+      {flap("back", W * 0.82, 0, true)}
       {flap("left", W * 0.46, 0.15, false)}
       {flap("right", W * 0.46, 0.15, false)}
     </motion.button>
