@@ -561,7 +561,10 @@ export function BoxOpening({
               exit={{ opacity: 0, y: -8 }}
               className="flex flex-col items-center gap-3"
             >
-              <p className="text-sm text-muted">{product.name} · sealed</p>
+              {/* Just the name. "Sealed" was describing the picture: there is
+                  a shut box on the screen, and the only thing anyone needs
+                  told is what to do with it. */}
+              <p className="text-sm text-muted">{product.name}</p>
               {/*
                 No button. The box is the button — it always was, it just had
                 a second one sitting under it taking the taps that should have
@@ -573,7 +576,7 @@ export function BoxOpening({
                 a real <button> with its own focus ring and label.
               */}
               <motion.p
-                className="text-xs uppercase tracking-[0.22em] text-faint"
+                className="text-base font-semibold uppercase tracking-[0.18em] text-muted"
                 animate={reducedMotion ? undefined : { opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
               >
