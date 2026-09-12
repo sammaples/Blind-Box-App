@@ -19,8 +19,17 @@ export function OpenExperience({
 }) {
   const [revealed, setRevealed] = useState(initialPiece !== null);
 
+  /*
+   * Tighter on a phone than on anything else.
+   *
+   * The reveal is one tall column — piece, name, blurb, odds, then the
+   * buttons — and on a 375x812 screen the second link ran 28px past the
+   * bottom. Forty pixels of page padding at each end is air a desktop can
+   * afford and a small phone cannot, so the padding gives way rather than
+   * the piece.
+   */
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 py-10 sm:px-8">
+    <div className="mx-auto w-full max-w-2xl px-5 py-6 sm:px-8 sm:py-10">
       <BoxOpening
         orderId={initialOrder.id}
         product={product}
@@ -35,7 +44,7 @@ export function OpenExperience({
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8, duration: 0.5 }}
-            className="mt-10"
+            className="mt-6 sm:mt-10"
           >
             {/*
               Two ways on, and nothing else. The pull has just been named and
@@ -60,9 +69,11 @@ export function OpenExperience({
             <div className="flex flex-col gap-2">
               <Link
                 href="/#shop"
-                className="rounded-2xl bg-chalk px-6 py-5 text-center text-xl font-bold tracking-tight text-ink transition-transform hover:scale-[1.02] active:scale-[0.99]"
+                className="gloss rounded-2xl px-6 py-5 text-center text-2xl font-bold tracking-tight text-ink transition-transform hover:scale-[1.02] active:scale-[0.99]"
               >
-                Open another
+                {/* The label rides above the sweep and the cap, both of which
+                    sit on negative z inside the button's own stacking context. */}
+                <span className="relative">Open another</span>
               </Link>
               <Link
                 href="/collection"
