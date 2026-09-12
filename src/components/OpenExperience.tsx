@@ -69,7 +69,7 @@ export function OpenExperience({
             <div className="flex flex-col gap-2">
               <Link
                 href="/#shop"
-                className="gloss rounded-2xl px-6 py-5 text-center text-2xl font-bold tracking-tight text-ink transition-transform hover:scale-[1.02] active:scale-[0.99]"
+                className="gloss gloss-chalk rounded-2xl px-6 py-4 text-center text-2xl font-bold tracking-tight text-ink transition-transform hover:scale-[1.02] active:scale-[0.99]"
               >
                 {/* The label rides above the sweep and the cap, both of which
                     sit on negative z inside the button's own stacking context. */}

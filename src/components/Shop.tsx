@@ -129,10 +129,14 @@ function ProductCard({
                state gets light text on the grey (7.3:1) rather than the
                accent's dark ink dimmed into it, which came out at 1.4:1. The
                flat grey and the cursor are what say it cannot be pressed. */
+            /* The gloss only on a button that can actually be pressed: a
+               shimmer is an invitation, and "Sold out" is not inviting
+               anything. The finish sits over the accent rather than
+               replacing it, so each box keeps its own colour. */
             className={`w-full rounded-2xl py-4 text-base font-semibold transition-transform disabled:cursor-not-allowed disabled:hover:scale-100 ${
               soldOut || comingSoon
                 ? "text-chalk/80"
-                : "text-ink hover:scale-[1.02] active:scale-[0.99]"
+                : "gloss text-ink hover:scale-[1.02] active:scale-[0.99]"
             }`}
             style={{ background: soldOut || comingSoon ? "#3a3a44" : product.accent }}
           >

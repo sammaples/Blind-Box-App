@@ -40,7 +40,7 @@ export default async function HomePage() {
         <div className="mt-10 flex flex-wrap items-center gap-3">
           <Link
             href="#shop"
-            className="rounded-full bg-chalk px-7 py-3.5 text-sm font-semibold text-ink transition-transform hover:scale-[1.03] active:scale-[0.98]"
+            className="gloss gloss-chalk rounded-full px-7 py-3.5 text-sm font-semibold text-ink transition-transform hover:scale-[1.03] active:scale-[0.98]"
           >
             Buy a box
           </Link>

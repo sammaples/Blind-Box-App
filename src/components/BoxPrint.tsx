@@ -37,7 +37,13 @@ const INK = [
   "#f8fafc", "#cbd5e1", "#1e293b", "#b45309",
 ];
 
-const GROUND = "#a3d0f2";
+/**
+ * The paper the figures are printed on, and the colour of the carton's own
+ * folded edges — exported so the crease at the mouth can match the wall it
+ * is folding away from rather than approximating it.
+ */
+export const PRINT_GROUND = "#a3d0f2";
+const GROUND = PRINT_GROUND;
 
 /**
  * Deterministic scatter.

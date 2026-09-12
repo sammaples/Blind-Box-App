@@ -11,7 +11,7 @@ import {
 } from "@/lib/catalog";
 import { boxGeometry } from "@/lib/boxShape";
 import { playOpenSound, type OpenSound } from "@/lib/openSound";
-import { BoxPrint, isPrinted } from "./BoxPrint";
+import { BoxPrint, isPrinted, PRINT_GROUND } from "./BoxPrint";
 import type { Piece, Product } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
 import { RarityChip } from "./ui";
@@ -645,6 +645,24 @@ export function BoxOpening({
 const FLAP_SHUT = -90;
 const FLAP_WIDE = -208;
 
+/**
+ * The crease, and why it has to be drawn.
+ *
+ * Walls and flaps are both zero-thickness planes meeting along one line, and
+ * the die-cut takes another 6% off each end of that line to make the head's
+ * jaw. So the fold was not a fold at all — it was a slot, and you could see
+ * the page straight through the corners of it as the box came open.
+ *
+ * A band along the hinge end of every flap closes it, and closing it is the
+ * smaller half of the point: a carton bends at a crease, and a crease is a
+ * line you can see. Board printed on one side folds to show both, so the band
+ * is the print's own blue where it faces out and bare card grey where it
+ * faces in — the same two colours the flap already has, on the one strip of
+ * it that is neither fully.
+ */
+const SEAM_DEPTH = 6;
+const SEAM_INNER = "#d9dade";
+
 type Side = "front" | "back" | "left" | "right";
 
 /** Turns a flap to stand on its own wall before it is hinged. */
@@ -919,9 +937,16 @@ function DieCutDefs() {
         {/* ears — at the free edge, where the flap tips away from the hinge */}
         <ellipse cx={0.2} cy={0.79} rx={0.17} ry={0.185} />
         <ellipse cx={0.8} cy={0.79} rx={0.17} ry={0.185} />
-        {/* domed crown and the square jaw that meets the hinge */}
+        {/* domed crown, and the square jaw that meets the hinge.
+            The jaw runs the full width and all the way to the fold on
+            purpose. Inset even slightly — it used to start 2% down and 6% in
+            from each end — and the punch eats the fold line itself, which
+            leaves a slot along the hinge and an open corner at each end of
+            it that you can see the page straight through. The head's shape
+            is the ellipses; this rectangle is only what fills in behind
+            them, so it has nothing to gain from being small. */}
         <ellipse cx={0.5} cy={0.56} rx={0.44} ry={0.3} />
-        <rect x={0.06} y={0.02} width={0.88} height={0.55} />
+        <rect x={0} y={0} width={1} height={0.57} />
       </clipPath>
     </svg>
   );
@@ -1051,6 +1076,20 @@ function BlindBox({
             background: "linear-gradient(170deg, #f4f4f6, #cfd0d4)",
           }}
         />
+        {/* The crease, inside face: bare card. Deliberately not clipped — the
+            die-cut is what opened the slot, so anything closing it has to sit
+            outside the punch. */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: SEAM_DEPTH,
+            backfaceVisibility: "hidden",
+            background: SEAM_INNER,
+          }}
+        />
         {/* Printed board — face up on a shut box, and the last thing to turn
             away as the flap peels back. The lid carries the same print as the
             walls; a plain-coloured top gives away that it is not one carton. */}
@@ -1073,6 +1112,22 @@ function BlindBox({
             style={{ position: "absolute", inset: 0, background: "rgb(0 0 0 / 0.12)" }}
           />
         </div>
+        {/* And the outside face: the wall's own colour, so the crease reads as
+            the board folding rather than as a line drawn across it. */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: SEAM_DEPTH,
+            transform: "rotateY(180deg)",
+            backfaceVisibility: "hidden",
+            background: printed
+              ? PRINT_GROUND
+              : `color-mix(in srgb, ${accent} 40%, #17171d)`,
+          }}
+        />
       </motion.div>
     </div>
   );

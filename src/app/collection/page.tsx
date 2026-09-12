@@ -127,7 +127,7 @@ export default async function CollectionPage() {
             <p className="text-sm text-muted">Nothing opened yet.</p>
             <Link
               href="/#shop"
-              className="mt-4 inline-block rounded-full bg-chalk px-6 py-3 text-sm font-semibold text-ink"
+              className="gloss gloss-chalk mt-4 inline-block rounded-full px-6 py-3 text-sm font-semibold text-ink"
             >
               Buy your first box
             </Link>
