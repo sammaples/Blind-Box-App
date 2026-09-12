@@ -661,6 +661,28 @@ const FLAP_WIDE = -208;
  * it that is neither fully.
  */
 const SEAM_DEPTH = 2;
+
+/**
+ * The ribbon.
+ *
+ * A blind box you have to cut into is a better object than one that merely
+ * opens, so this one is wrapped: two bands crossing under the base, up all
+ * four walls, over the lid, and tied. It is white rather than the tier
+ * colour — the whole point of the wrap is that it tells you nothing about
+ * what is inside, and a coloured ribbon on a blind box is a hint.
+ *
+ * It is drawn per face rather than as one object, because there is no one
+ * object: the bands are flat on six planes that happen to line up, which is
+ * also true of real ribbon on a real box.
+ */
+const RIBBON_W = 22;
+const RIBBON_FACE = "linear-gradient(90deg, #e6e6ea 0%, #ffffff 28%, #fdfdfe 62%, #d8d9de 100%)";
+/** The shadow a raised band casts on the wall it crosses. */
+const RIBBON_LIFT = "0 0 0 0.5px rgb(0 0 0 / 0.07), 2px 0 5px rgb(0 0 0 / 0.16), -2px 0 5px rgb(0 0 0 / 0.1)";
+/** Long enough to read as a knot giving way, short enough to stay a pop. */
+const BOW_POP_MS = 460;
+/** Wider than the lid it sits on, the way a tied bow always is. */
+const BOW_SIZE = 116;
 const SEAM_INNER = "#d9dade";
 
 type Side = "front" | "back" | "left" | "right";
@@ -917,6 +939,56 @@ function ChaseBurst({ color }: { color: string }) {
 }
 
 /**
+ * A bow, drawn flat.
+ *
+ * Two loops, two tails and a knot, all in the same near-white as the bands so
+ * it reads as the same ribbon tied rather than an ornament placed on top. The
+ * loops carry a faint grey on their inside edge only — that one shading is
+ * what stops four white shapes reading as a single white blob, and it is
+ * cheaper than any amount of gradient.
+ *
+ * It lies in the plane of the lid, so it is seen foreshortened from the
+ * camera's angle. Drawn at its true proportions it would read as a sticker;
+ * the loops are deliberately deep to survive being squashed.
+ */
+function Bow({ size }: { size: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      fill="none"
+      style={{ overflow: "visible", filter: "drop-shadow(0 2px 3px rgb(0 0 0 / 0.3))" }}
+    >
+      {/* tails, behind everything */}
+      <path
+        d="M46 54 C 38 70, 24 82, 10 88 L 22 96 C 36 88, 45 74, 50 60 Z"
+        fill="#ececed"
+      />
+      <path
+        d="M54 54 C 62 70, 76 82, 90 88 L 78 96 C 64 88, 55 74, 50 60 Z"
+        fill="#f6f6f8"
+      />
+      {/* loops */}
+      <path
+        d="M50 50 C 32 14, 2 22, 8 46 C 12 62, 36 60, 50 50 Z"
+        fill="#fbfbfc"
+      />
+      <path
+        d="M50 50 C 68 14, 98 22, 92 46 C 88 62, 64 60, 50 50 Z"
+        fill="#ffffff"
+      />
+      {/* the fold inside each loop, the only shading in the whole shape */}
+      <path d="M50 50 C 36 44, 20 40, 12 44" stroke="rgb(0 0 0 / 0.16)" strokeWidth={2.4} strokeLinecap="round" />
+      <path d="M50 50 C 64 44, 80 40, 88 44" stroke="rgb(0 0 0 / 0.12)" strokeWidth={2.4} strokeLinecap="round" />
+      {/* knot */}
+      <ellipse cx={50} cy={50} rx={11} ry={8.5} fill="#ffffff" />
+      <ellipse cx={50} cy={50} rx={11} ry={8.5} fill="none" stroke="rgb(0 0 0 / 0.12)" strokeWidth={1.4} />
+    </svg>
+  );
+}
+
+/**
  * The die-cut.
  *
  * The tall flap is not a rectangle — it is punched into the same head the
@@ -984,6 +1056,8 @@ function BlindBox({
   const W = box.width;
   // Same throw either way; the chase curve is simply longer.
   const shake = loud ? SHAKE.chase : SHAKE.calm;
+  /** Still wrapped. The knot goes on the tap, not on the flaps. */
+  const sealed = stage === "sealed";
 
   const outerFace = (name: Parameters<typeof box.face>[0], shade: number) => ({
     ...box.face(name),
@@ -996,6 +1070,36 @@ function BlindBox({
 
   const wrap = (name: Parameters<typeof box.face>[0]) =>
     printed ? <BoxPrint face={name} style={{ zIndex: -1 }} /> : null;
+
+  /**
+   * One band of ribbon, lying on the face it crosses.
+   *
+   * Both directions are the same element turned ninety degrees, and both fade
+   * on the tap rather than on the opening — the knot goes first and the wrap
+   * comes off with it, so the carton is bare by the time a flap moves. These
+   * are plain divs kept across renders, so a CSS transition has a previous
+   * value to move from.
+   */
+  const band = (key: string, across: boolean) => (
+    <div
+      key={key}
+      aria-hidden
+      style={{
+        position: "absolute",
+        ...(across
+          ? { left: 0, right: 0, top: "50%", height: RIBBON_W, marginTop: -RIBBON_W / 2 }
+          : { top: 0, bottom: 0, left: "50%", width: RIBBON_W, marginLeft: -RIBBON_W / 2 }),
+        background: RIBBON_FACE,
+        backgroundSize: across ? "auto 100%" : undefined,
+        boxShadow: RIBBON_LIFT,
+        opacity: sealed ? 1 : 0,
+        // Held, then gone. The knot is what was holding the wrap on, so the
+        // bands have to outlive it by a beat or the two read as one fade.
+        transition: `opacity 380ms ease-in ${BOW_POP_MS * 0.34}ms`,
+        pointerEvents: "none",
+      }}
+    />
+  );
 
   /**
    * The lining. Board is printed on one side only, so the inside of the carton
@@ -1111,6 +1215,9 @@ function BlindBox({
             aria-hidden
             style={{ position: "absolute", inset: 0, background: "rgb(0 0 0 / 0.12)" }}
           />
+          {/* The band carries on over the lid. Four of these meet under the
+              knot, which is the only reason the wrap holds the box shut. */}
+          {band(`r-flap-${side}`, false)}
         </div>
         {/* And the outside face: the wall's own colour, so the crease reads as
             the board folding rather than as a line drawn across it. */}
@@ -1128,6 +1235,72 @@ function BlindBox({
               : `color-mix(in srgb, ${accent} 40%, #17171d)`,
           }}
         />
+      </motion.div>
+    </div>
+  );
+
+  /**
+   * The bow, lying in the plane of the lid.
+   *
+   * Same transform as a top face, pushed a few pixels clear of it so it does
+   * not fight the flaps for the same pixels. On the tap it swells and goes —
+   * a knot does not fade, it lets go — and everything else about the opening
+   * is unchanged behind it.
+   */
+  const bow = (
+    <div
+      key="bow"
+      aria-hidden
+      style={{
+        position: "absolute",
+        left: "50%",
+        top: 0,
+        width: BOW_SIZE,
+        height: BOW_SIZE,
+        marginLeft: -BOW_SIZE / 2,
+        marginTop: -BOW_SIZE * 0.84,
+        backfaceVisibility: "visible",
+        // Standing, not lying. Flat in the lid plane it is seen almost
+        // edge-on from this camera and reads as a white smear; a real bow
+        // does not lie flat either. It hinges at its base on the lid line
+        // and leans back, which is how a bow on a box photographs.
+        transformOrigin: "50% 100%",
+        transform: "rotateX(52deg)",
+        pointerEvents: "none",
+        display: "grid",
+        placeItems: "center",
+      }}
+    >
+      {/*
+        The placement and the pop are separate elements on purpose. Given both
+        a transform string and something to animate, framer-motion composes
+        `transform` from its own values and the string is simply gone — so the
+        bow would sit untransformed inside the carton, which is exactly where
+        it went the first time. The outer div holds the plane; this one only
+        swells and fades within it.
+      */}
+      <motion.div
+        style={{ display: "grid", placeItems: "center" }}
+        initial={false}
+        animate={
+          sealed
+            ? { opacity: 1, scale: 1, rotate: 0 }
+            : { opacity: 0, scale: reducedMotion ? 1 : 1.6, rotate: reducedMotion ? 0 : -9 }
+        }
+        transition={
+          sealed
+            ? { duration: BOW_POP_MS / 1000, ease: "easeOut" }
+            : {
+                // It swells before it goes. Fading and swelling on the same
+                // curve is a knot dissolving; a knot lets go, so the shape
+                // gets a moment at full strength on its way out.
+                scale: { duration: BOW_POP_MS / 1000, ease: [0.2, 1.6, 0.4, 1] },
+                rotate: { duration: BOW_POP_MS / 1000, ease: "easeOut" },
+                opacity: { duration: 0.3, delay: 0.14, ease: "easeIn" },
+              }
+        }
+      >
+        <Bow size={BOW_SIZE} />
       </motion.div>
     </div>
   );
@@ -1205,12 +1378,20 @@ function BlindBox({
     >
       <DieCutDefs />
 
-      {/* printed walls */}
-      <div style={outerFace("front", 0.25)}>{wrap("front")}</div>
-      <div style={outerFace("back", 0.55)}>{wrap("back")}</div>
-      <div style={outerFace("left", 0.45)}>{wrap("left")}</div>
-      <div style={outerFace("right", 0.5)}>{wrap("right")}</div>
-      <div style={outerFace("bottom", 0.6)}>{wrap("bottom")}</div>
+      {/* printed walls, each crossed by the band that runs over it */}
+      <div style={outerFace("front", 0.25)}>{wrap("front")}{band("r-front", false)}</div>
+      <div style={outerFace("back", 0.55)}>{wrap("back")}{band("r-back", false)}</div>
+      <div style={outerFace("left", 0.45)}>{wrap("left")}{band("r-left", false)}</div>
+      <div style={outerFace("right", 0.5)}>{wrap("right")}{band("r-right", false)}</div>
+      {/* Under the base both bands meet, which is where a wrap actually
+          closes — and the one place nobody will ever see it. It is here
+          because leaving it out is the kind of shortcut that shows the
+          moment the box tips. */}
+      <div style={outerFace("bottom", 0.6)}>
+        {wrap("bottom")}
+        {band("r-bottom-v", false)}
+        {band("r-bottom-h", true)}
+      </div>
 
       {/* white lining, seen once the flaps are back */}
       {lining("front", "#e9e9ec", "#c3c4c9")}
@@ -1239,6 +1420,8 @@ function BlindBox({
       {flap("back", W * 0.82, 0, true)}
       {flap("left", W * 0.46, 0.15, false)}
       {flap("right", W * 0.46, 0.15, false)}
+
+      {bow}
     </motion.button>
   );
 }
