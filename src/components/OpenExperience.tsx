@@ -44,22 +44,29 @@ export function OpenExperience({
               explained itself.
             */}
             {/*
-              Side by side from 384px up, which covers every common phone from
-              the 390 class upward. "Ship your pieces" needs 131px of line plus
-              its padding, and two columns cannot give it that on anything
-              narrower — measured, not guessed: at 380 the label still wraps.
-              Below the breakpoint the pair stacks rather than breaking.
+              Not a pair of equals.
+
+              These two were side by side and the same size, which is the
+              layout you use when you do not know which one someone wants.
+              Opening another is what almost everyone here is about to do, and
+              shipping is a thing you do once a fortnight after a dozen of
+              them — so one is a slab across the full width and the other is a
+              quiet line under it.
+
+              Stacking is the cost of the size: "Ship your pieces" needs 131px
+              of line plus padding, so a column narrow enough to leave room for
+              a much bigger primary is a column it wraps in.
             */}
-            <div className="grid gap-3 min-[384px]:grid-cols-2">
+            <div className="flex flex-col gap-2">
               <Link
                 href="/#shop"
-                className="rounded-xl bg-chalk px-4 py-3.5 text-center text-sm font-semibold text-ink transition-transform hover:scale-[1.02] active:scale-[0.99]"
+                className="rounded-2xl bg-chalk px-6 py-5 text-center text-xl font-bold tracking-tight text-ink transition-transform hover:scale-[1.02] active:scale-[0.99]"
               >
                 Open another
               </Link>
               <Link
                 href="/collection"
-                className="rounded-xl border border-hairline px-4 py-3.5 text-center text-sm font-semibold text-chalk transition-colors hover:border-white/35 hover:bg-white/[0.06]"
+                className="rounded-xl px-4 py-3 text-center text-sm font-medium text-muted transition-colors hover:text-chalk"
               >
                 Ship your pieces
               </Link>

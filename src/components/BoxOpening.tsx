@@ -313,10 +313,14 @@ export function BoxOpening({
         that height is a hole above the piece, pushing the buttons onto the
         bottom edge of a phone — so it draws in for the reveal. The swap
         happens while the frame is still white, so it is never seen.
+
+        The reveal height is set by what has to fit under it, not by the piece:
+        at 21rem the second link ran 8px past the bottom of a 390x844 phone.
+        Measured, not guessed, and worth re-measuring if those buttons grow.
       */}
       <div
         className={`relative flex w-full items-center justify-center transition-[height] duration-500 ${
-          stage === "reveal" ? "h-[21rem] sm:h-[25rem]" : "h-[34rem]"
+          stage === "reveal" ? "h-[20rem] sm:h-[25rem]" : "h-[34rem]"
         }`}
         style={{ perspective: "1100px" }}
       >
@@ -558,13 +562,23 @@ export function BoxOpening({
               className="flex flex-col items-center gap-3"
             >
               <p className="text-sm text-muted">{product.name} · sealed</p>
-              <button
-                type="button"
-                onClick={open}
-                className="rounded-full bg-chalk px-8 py-3.5 text-sm font-semibold text-ink transition-transform hover:scale-[1.03] active:scale-[0.98]"
+              {/*
+                No button. The box is the button — it always was, it just had
+                a second one sitting under it taking the taps that should have
+                gone to the thing everyone reaches for anyway. What is left
+                here is a label, not a control: it names the gesture and gets
+                out of the way.
+
+                Nothing is lost for keyboards or screen readers; the carton is
+                a real <button> with its own focus ring and label.
+              */}
+              <motion.p
+                className="text-xs uppercase tracking-[0.22em] text-faint"
+                animate={reducedMotion ? undefined : { opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
               >
-                Open the box
-              </button>
+                Tap the box to open
+              </motion.p>
               {error && <p className="text-xs text-rose-400">{error}</p>}
             </motion.div>
           )}
@@ -1060,6 +1074,9 @@ function BlindBox({
       type="button"
       onClick={onOpen}
       aria-label="Open the blind box"
+      // Only while it is a thing you can press. Once it is opening, a box
+      // that flinches under the cursor is a box that looks broken.
+      whileTap={stage === "sealed" && !reducedMotion ? { scale: 0.96 } : undefined}
       className="absolute z-10 cursor-pointer rounded-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-white/60"
       style={{ width: box.width, height: box.height, transformStyle: "preserve-3d" }}
       initial={{ rotateX: -14, rotateY: -26 }}
