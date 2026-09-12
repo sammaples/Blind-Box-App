@@ -72,8 +72,13 @@ const FLASH_AT = 2.15;
  * roughly one box in a hundred; if it were only a louder version of the same
  * thing, the wind-up would be telling you nothing you could not already see.
  */
-/** Long enough to notice, short enough not to feel like a hang. */
-const CHASE_WIND_MS = 2100;
+/**
+ * Long enough to notice, short enough not to feel like a hang.
+ *
+ * A multiple of the swing so the rattle ends on centre rather than mid-throw:
+ * 28 swings at 95ms. Change one and check the other.
+ */
+const CHASE_WIND_MS = 2660;
 /** Everyone else: the same rattle, about half as long. */
 const WIND_MS = 1140;
 

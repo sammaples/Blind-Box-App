@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Onboarding } from "@/components/Onboarding";
+import { ScrollToHash } from "@/components/ScrollToHash";
 import { SetBrowser } from "@/components/SetBrowser";
 import { Shop } from "@/components/Shop";
 import { SectionLabel } from "@/components/ui";
@@ -26,6 +27,9 @@ export default async function HomePage() {
   return (
     <>
       <Onboarding />
+      {/* "Open another" aims at #shop from another route; without this the
+          fragment can resolve before the section exists and land at the top. */}
+      <ScrollToHash />
 
       <section className="relative mx-auto w-full max-w-6xl px-5 pt-16 pb-20 sm:px-8 sm:pt-24">
         <h1 className="max-w-3xl text-balance text-5xl font-semibold leading-[0.98] tracking-[-0.03em] sm:text-7xl">
