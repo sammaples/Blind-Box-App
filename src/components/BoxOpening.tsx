@@ -934,19 +934,35 @@ function DieCutDefs() {
   return (
     <svg aria-hidden width={0} height={0} style={{ position: "absolute" }}>
       <clipPath id={HEAD_CLIP_ID} clipPathUnits="objectBoundingBox">
-        {/* ears — at the free edge, where the flap tips away from the hinge */}
+        {/* Ears, at the free edge where the flap tips away from the hinge.
+            Their outer edge is the widest point of the whole punch, at
+            x=0.03 and x=0.97, which is what the flap's own sides are set to
+            meet. */}
         <ellipse cx={0.2} cy={0.79} rx={0.17} ry={0.185} />
         <ellipse cx={0.8} cy={0.79} rx={0.17} ry={0.185} />
-        {/* domed crown, and the square jaw that meets the hinge.
-            The jaw runs the full width and all the way to the fold on
-            purpose. Inset even slightly — it used to start 2% down and 6% in
-            from each end — and the punch eats the fold line itself, which
-            leaves a slot along the hinge and an open corner at each end of
-            it that you can see the page straight through. The head's shape
-            is the ellipses; this rectangle is only what fills in behind
-            them, so it has nothing to gain from being small. */}
+        {/*
+          The domed crown, and the jaw that meets the hinge.
+
+          The jaw is as wide as the ears are, and stops exactly level with
+          their widest point. Both halves of that matter. Any wider and the
+          head ends in a square shoulder before the flap carries on out to its
+          own edge — head, a jog sideways, then straight down. Any shorter and
+          the ear meets the flap's side partway up, which is the same corner
+          in a different place. Level and equal, the outer edge of the ear
+          simply becomes the edge of the flap.
+
+          Widening the head to the flap instead also joins cleanly, and was
+          tried: the flap is barely wider than the head, so the ears have to
+          grow to 40% of the animal to reach its edges and the whole thing
+          turns into a cloud.
+
+          It still runs all the way to the fold. Inset vertically even
+          slightly — it used to start 2% down — and the punch eats the fold
+          line, leaving a slot along the hinge. What is left at the two hinge
+          corners is covered by the crease band, which is not clipped.
+        */}
         <ellipse cx={0.5} cy={0.56} rx={0.44} ry={0.3} />
-        <rect x={0} y={0} width={1} height={0.57} />
+        <rect x={0.03} y={0} width={0.94} height={0.79} />
       </clipPath>
     </svg>
   );
