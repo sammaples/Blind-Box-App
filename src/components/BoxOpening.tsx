@@ -660,7 +660,7 @@ const FLAP_WIDE = -208;
  * faces in — the same two colours the flap already has, on the one strip of
  * it that is neither fully.
  */
-const SEAM_DEPTH = 6;
+const SEAM_DEPTH = 2;
 const SEAM_INNER = "#d9dade";
 
 type Side = "front" | "back" | "left" | "right";
