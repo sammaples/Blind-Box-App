@@ -25,7 +25,7 @@ const STEPS = [
   {
     n: "03",
     title: "Collect",
-    body: "Your pieces are stored in My Pulls until you're ready for them.",
+    body: "Everything you open goes straight to My Pulls until you want to ship them.",
   },
   {
     n: "04",
