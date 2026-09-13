@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Onboarding } from "@/components/Onboarding";
 import { ScrollToHash } from "@/components/ScrollToHash";
 import { SetBrowser } from "@/components/SetBrowser";
 import { Shop } from "@/components/Shop";
@@ -26,7 +25,6 @@ export default async function HomePage() {
 
   return (
     <>
-      <Onboarding />
       {/* "Open another" aims at #shop from another route; without this the
           fragment can resolve before the section exists and land at the top. */}
       <ScrollToHash />
