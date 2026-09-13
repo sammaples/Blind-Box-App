@@ -30,7 +30,7 @@ const STEPS = [
   {
     n: "04",
     title: "Ship Them",
-    body: "Pick the ones to send. They come in one box — always $5, no matter how many.",
+    body: "Pick the ones you want to send and ship them all for $5, no matter how many.",
   },
 ];
 
