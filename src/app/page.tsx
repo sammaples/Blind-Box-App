@@ -24,12 +24,12 @@ const STEPS = [
   { n: "02", title: "Open it", body: "Tap it and see what you got." },
   {
     n: "03",
-    title: "We hold it",
+    title: "Collect",
     body: "Your pieces are stored in My Pulls until you're ready for them.",
   },
   {
     n: "04",
-    title: "Send them together",
+    title: "Ship Them",
     body: "Pick the ones to send. They come in one box — always $5, no matter how many.",
   },
 ];
