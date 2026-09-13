@@ -7,10 +7,31 @@ import { PRODUCTS } from "@/lib/catalog";
 import { shelfFor } from "@/lib/stock";
 import type { StockEntry } from "@/lib/types";
 
+/**
+ * Four steps, because there are four.
+ *
+ * The old third step said "we ship it", which stopped being true when
+ * bundling arrived: nothing ships until you choose to send it, and what you
+ * send goes in one parcel. That is the part people get wrong if nobody tells
+ * them — they expect a box per pull and a postage charge per box.
+ *
+ * Written short and flat on purpose. No "curated", no "seamlessly", no
+ * sentence that needs reading twice. The price is a number rather than a
+ * policy, because "flat rate" is a phrase people skip and "$5" is not.
+ */
 const STEPS = [
-  { n: "01", title: "Choose a box", body: "Pick from our selection of boxes you want to open." },
-  { n: "02", title: "Open it", body: "Tap to open and reveal your prize." },
-  { n: "03", title: "We ship it", body: "Your items are packed and shipped directly to you." },
+  { n: "01", title: "Pick a box", body: "Buy any box in the shop." },
+  { n: "02", title: "Open it", body: "Tap it and see what you got." },
+  {
+    n: "03",
+    title: "We hold it",
+    body: "Your pieces stay in My pulls until you want them. No rush.",
+  },
+  {
+    n: "04",
+    title: "Send them together",
+    body: "Pick the ones to send. They come in one box — always $5, no matter how many.",
+  },
 ];
 
 export const dynamic = "force-dynamic";
@@ -53,7 +74,9 @@ export default async function HomePage() {
         <div className="mt-16">
           <SectionLabel>How it works</SectionLabel>
         </div>
-        <ol className="mt-5 grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-3">
+        {/* Two up on a small screen and four across on a wide one. Three
+            columns for four steps leaves one stranded on its own row. */}
+        <ol className="mt-5 grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((step) => (
             <li key={step.n} className="bg-ink-card p-6">
               <p className="font-mono text-xs text-faint">{step.n}</p>

@@ -108,9 +108,9 @@ export function ShipBundle({ pulls }: { pulls: ShippablePull[] }) {
       </div>
 
       <p className="mt-2 max-w-prose text-sm text-muted">
-        Everything you send together travels in one parcel, so it costs one
-        postage however many pieces are in it. Pieces keep until you are ready —
-        there is no hurry to send them.
+        Everything you tick goes in one box for a flat $5, however many pieces
+        that is. Pieces keep until you are ready — there is no hurry to send
+        them.
       </p>
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -172,7 +172,7 @@ export function ShipBundle({ pulls }: { pulls: ShippablePull[] }) {
                   <p className="text-sm">
                     <span className="font-semibold">{picked.size}</span>{" "}
                     {picked.size === 1 ? "piece" : "pieces"} in this parcel
-                    <span className="text-faint"> · one postage</span>
+                    <span className="text-faint"> · $5 shipping</span>
                   </p>
                   <button
                     type="button"
