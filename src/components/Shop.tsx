@@ -386,7 +386,14 @@ function CheckoutSheet({
               type="button"
               onClick={buy}
               disabled={busy}
-              className="mt-5 w-full rounded-xl py-3.5 text-sm font-semibold text-ink transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60"
+              /* Same finish as the card's "Buy a box", for the same reason:
+                 this is the press that spends the money, so it should read as
+                 the most object-like thing on the sheet. It drops while the
+                 charge is in flight — a button shimmering at you is asking to
+                 be pressed, and this one is already busy. */
+              className={`mt-5 w-full rounded-xl py-3.5 text-sm font-semibold text-ink transition-transform disabled:opacity-60 ${
+                busy ? "" : "gloss hover:scale-[1.01] active:scale-[0.99]"
+              }`}
               style={{ background: product.accent }}
             >
               {busy ? "Ripping…" : `Rip · $${(product.priceCents / 100).toFixed(2)}`}

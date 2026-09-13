@@ -187,6 +187,57 @@ body {
   52%, 100% { transform: translateX(390%) skewX(-18deg); }
 }
 
+/* The loud finish, for the one button the whole screen exists to get pressed.
+   A brighter white is not available — the chalk face is already near white, so
+   white over white is nothing, which is exactly how the first attempt at this
+   looked. What reads as more is contrast: a slightly deeper face so the
+   highlight has somewhere to climb from, a dark shoulder either side of the
+   bright core the way a real specular streak darkens the surface beside it,
+   and a second dimmer band trailing the first so the light catches twice.
+   Faster and wider too, but still sweep-and-rest — never a loading bar. */
+.gloss-loud {
+  --gloss-cap: 0.72;
+  background: linear-gradient(180deg, #eceef4 0%, #d8dae4 45%, #b4b7c6 100%);
+}
+
+.gloss-loud::before {
+  width: 72%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(0 0 0 / 0.11) 9%,
+    rgb(255 255 255 / var(--gloss-sweep)) 21%,
+    rgb(255 255 255 / var(--gloss-sweep)) 25%,
+    rgb(0 0 0 / 0.09) 37%,
+    transparent 47%,
+    transparent 57%,
+    rgb(0 0 0 / 0.06) 65%,
+    rgb(255 255 255 / calc(var(--gloss-sweep) * 0.8)) 75%,
+    rgb(0 0 0 / 0.05) 85%,
+    transparent 96%
+  );
+  /* Its own travel and its own clock, not the base one. Two things were
+     hiding the light and neither was brightness. The base sweep starts and
+     ends far off the button, so most of its run is the band flying through
+     empty space; and its ease-in-out spends that time at the ends, sprinting
+     through the middle — which is exactly where the button is. Measured, the
+     light was on the face 16% of the cycle, and the first louder version only
+     got that to 18%.
+
+     So: a range that clears the edges and stops there, and a linear crossing
+     so the band moves at the speed it looks like it is moving. The light is
+     now on the button about two thirds of the time, twice as often per minute,
+     and it still parks off the edge between passes rather than looping. */
+  animation-name: gloss-sweep-loud;
+  animation-duration: 2.2s;
+  animation-timing-function: linear;
+}
+
+@keyframes gloss-sweep-loud {
+  0% { transform: translateX(-140%) skewX(-18deg); }
+  76%, 100% { transform: translateX(140%) skewX(-18deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .float-soft,
   .shimmer-text {
