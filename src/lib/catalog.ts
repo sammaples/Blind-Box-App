@@ -1,4 +1,4 @@
-import type { Category, Palette, PatternKind, Piece, Product, Rarity } from "./types";
+import type { Category, Palette, PatternKind, Piece, Product, Rarity, Tier } from "./types";
 
 /**
  * The reference catalogue: every piece that exists, generated deterministically
@@ -100,6 +100,20 @@ const SERIES_THEMES: readonly SeriesTheme[] = [
  * each series contributes the same total probability to a mixed pool.
  * ------------------------------------------------------------------ */
 
+/**
+ * Where one piece sits: which box it comes out of, and how it ranks inside
+ * that box.
+ *
+ * Rarity is relative to the tier, not to the shop. A Flag is the rare of a
+ * bronze box and would be unremarkable in a gold one; grading it against
+ * every piece on sale would leave the cheap box with no rare in it at all,
+ * which is the one thing a blind box cannot be.
+ */
+interface Grade {
+  tier: Tier;
+  rarity: Rarity;
+}
+
 interface TypeSpec {
   type: string;
   /** The shop category this lineup slot belongs to. Null where none fits. */
@@ -107,11 +121,17 @@ interface TypeSpec {
   /** One entry per piece of this type in the series. */
   weights: readonly number[];
   pattern: PatternKind;
-  rarity: Rarity;
+  /** One per weight, in the same order: which box that piece is sold in. */
+  grades: readonly Grade[];
   /** Hue offset from the series hue, applied per piece. */
   hueShift: number;
   colorways: readonly string[];
 }
+
+const bronze = (rarity: Rarity): Grade => ({ tier: "bronze", rarity });
+const silver = (rarity: Rarity): Grade => ({ tier: "silver", rarity });
+const gold = (rarity: Rarity): Grade => ({ tier: "gold", rarity });
+const diamond = (rarity: Rarity): Grade => ({ tier: "diamond", rarity });
 
 const TYPE_SPECS: readonly TypeSpec[] = [
   {
@@ -119,7 +139,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
     category: null,
     weights: [90, 90],
     pattern: "solid",
-    rarity: "common",
+    grades: [bronze("common"), bronze("common")],
     hueShift: 0,
     colorways: ["B", "E", "@", "R", "!"],
   },
@@ -128,7 +148,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
     category: "jellybean",
     weights: [100],
     pattern: "jelly",
-    rarity: "common",
+    grades: [bronze("common")],
     hueShift: 26,
     colorways: ["Lime", "Grape", "Soda", "Peach", "Mint", "Cherry", "Melon"],
   },
@@ -137,7 +157,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
     category: "cute",
     weights: [90],
     pattern: "split",
-    rarity: "common",
+    grades: [bronze("common")],
     hueShift: -34,
     colorways: ["Marshmallow", "Cloudy", "Sprinkle", "Milk Tea", "Pudding"],
   },
@@ -146,7 +166,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
     category: "pattern",
     weights: [80, 80],
     pattern: "checker",
-    rarity: "common",
+    grades: [bronze("common"), bronze("common")],
     hueShift: 48,
     colorways: ["Checker", "Argyle", "Houndstooth", "Tartan", "Halftone"],
   },
@@ -155,7 +175,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
     category: "flag",
     weights: [90],
     pattern: "stripes",
-    rarity: "common",
+    grades: [bronze("rare")],
     hueShift: 120,
     colorways: ["Tricolour", "Ensign", "Pennant", "Standard", "Banner"],
   },
@@ -164,7 +184,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
     category: "animal",
     weights: [80],
     pattern: "camo",
-    rarity: "common",
+    grades: [silver("common")],
     hueShift: 74,
     colorways: ["Leopard", "Tiger", "Koi", "Tortoise", "Snow Hare"],
   },
@@ -173,7 +193,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
     category: "horror",
     weights: [70],
     pattern: "drip",
-    rarity: "rare",
+    grades: [silver("common")],
     hueShift: 172,
     colorways: ["Nightcrawler", "Wax Museum", "Bad Signal", "Grave Shift"],
   },
@@ -182,7 +202,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
     category: "scifi",
     weights: [70],
     pattern: "chrome",
-    rarity: "rare",
+    grades: [silver("rare")],
     hueShift: 198,
     colorways: ["Exosuit", "Ion Drive", "Rover", "Satellite", "Cold Fusion"],
   },
@@ -191,7 +211,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
     category: "artist",
     weights: [50, 45, 40],
     pattern: "gradient",
-    rarity: "rare",
+    grades: [gold("rare"), gold("rare"), silver("ultra")],
     hueShift: 96,
     colorways: [
       "Studio Proof",
@@ -208,7 +228,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
     category: "hero",
     weights: [20],
     pattern: "stars",
-    rarity: "rare",
+    grades: [gold("ultra")],
     hueShift: 210,
     colorways: ["Cape", "Insignia", "Sidekick", "Vigilante"],
   },
@@ -217,7 +237,7 @@ const TYPE_SPECS: readonly TypeSpec[] = [
     category: "secret",
     weights: [5],
     pattern: "chrome",
-    rarity: "chase",
+    grades: [diamond("ultra")],
     hueShift: 180,
     colorways: ["Secret"],
   },
@@ -230,7 +250,11 @@ const GRAIL_SERIES = new Set([1, 13, 21, 27, 34, 42, 50]);
  * Piece construction
  * ------------------------------------------------------------------ */
 
-function paletteFor(hue: number, spec: TypeSpec, key: string): Palette {
+function paletteFor(
+  hue: number,
+  spec: Pick<TypeSpec, "pattern" | "hueShift">,
+  key: string,
+): Palette {
   const jitter = (hash(key) % 18) - 9;
   const h = hue + spec.hueShift + jitter;
 
@@ -308,13 +332,14 @@ const BLURBS: Record<string, readonly string[]> = {
 function buildPiece(seriesNo: number, spec: TypeSpec, index: number): Piece {
   const theme = SERIES_THEMES[seriesNo - 1];
   const key = `s${seriesNo}-${spec.type}-${index}`;
+  const grade = spec.grades[index];
   const isGrail = spec.type === "Secret" && GRAIL_SERIES.has(seriesNo);
   // Offset by index off a series-level hash, so two pieces of the same type in
   // one series can never land on the same colourway name.
   const colorway =
     spec.type === "Secret"
       ? isGrail
-        ? "Chase"
+        ? "Grail"
         : "Secret"
       : spec.colorways[
           (hash(`s${seriesNo}-${spec.type}`) + index) % spec.colorways.length
@@ -333,7 +358,11 @@ function buildPiece(seriesNo: number, spec: TypeSpec, index: number): Piece {
     type: spec.type,
     category: spec.category,
     scale: "100%",
-    rarity: isGrail ? "chase" : spec.rarity,
+    tier: grade.tier,
+    // No 100% is a chase any more: the chase slot in every box is a 400%, so
+    // the hidden series piece tops out at ultra and the big format takes over
+    // from there.
+    rarity: grade.rarity,
     pattern: spec.pattern,
     palette: paletteFor(theme.hue, spec, key),
     weight: spec.weights[index],
@@ -383,61 +412,70 @@ interface BigSpec {
   name: string;
   hue: number;
   pattern: PatternKind;
-  rarity: Rarity;
+  /** Ranks the set from commonest to scarcest, which is what picks its tier. */
   weight: number;
   blurb: string;
 }
 
 const BIG_SPECS: readonly BigSpec[] = [
-  { name: "Bone White", hue: 210, pattern: "solid", rarity: "common", weight: 110, blurb: "Unpainted resin white. The shape, and nothing else." },
-  { name: "Carbon", hue: 220, pattern: "solid", rarity: "common", weight: 105, blurb: "Deep matte black with a faint pearl in the flake." },
-  { name: "Signal Orange", hue: 26, pattern: "solid", rarity: "common", weight: 100, blurb: "Safety-cone orange, gloss finish, impossible to ignore." },
-  { name: "Jelly Grape", hue: 288, pattern: "jelly", rarity: "common", weight: 95, blurb: "Clear violet cast with a frosted interior." },
-  { name: "Jelly Soda", hue: 196, pattern: "jelly", rarity: "common", weight: 92, blurb: "Bottle-glass blue. Reads almost liquid under a spotlight." },
-  { name: "Sakura Fade", hue: 340, pattern: "gradient", rarity: "common", weight: 70, blurb: "Airbrushed pink-to-white fade over the shoulders." },
-  { name: "Court Checker", hue: 12, pattern: "checker", rarity: "common", weight: 66, blurb: "Two-inch check wrapped clean across the body seam." },
-  { name: "Ranger Camo", hue: 96, pattern: "camo", rarity: "common", weight: 64, blurb: "Four-colour woodland pattern, hand-masked in layers." },
-  { name: "Track Stripe", hue: 232, pattern: "stripes", rarity: "common", weight: 62, blurb: "Racing stripes down the centreline, tape-edge crisp." },
-  { name: "Tiger Coat", hue: 34, pattern: "camo", rarity: "common", weight: 58, blurb: "Brushstroke markings laid over a warm amber base." },
-  { name: "Midnight Drip", hue: 268, pattern: "drip", rarity: "rare", weight: 44, blurb: "Gloss drip pulled down a matte body. Wet forever." },
-  { name: "Static Ghost", hue: 250, pattern: "drip", rarity: "rare", weight: 42, blurb: "Glow-in-the-dark shell with a broadcast-static overlay." },
-  { name: "Chrome Silver", hue: 205, pattern: "chrome", rarity: "rare", weight: 40, blurb: "Full vac-metallised mirror. Fingerprints are the enemy." },
-  { name: "Chrome Gold", hue: 44, pattern: "chrome", rarity: "rare", weight: 36, blurb: "Warm mirror gold over a polished base coat." },
-  { name: "Studio Overspray", hue: 320, pattern: "gradient", rarity: "rare", weight: 34, blurb: "Artist edition. Every body sprayed individually." },
-  { name: "Ink Wash", hue: 214, pattern: "gradient", rarity: "rare", weight: 32, blurb: "Sumi-style wash that pools darker in the joints." },
-  { name: "Colour Field", hue: 160, pattern: "split", rarity: "rare", weight: 30, blurb: "Hard-edge colour blocking across four panels." },
-  { name: "Constellation", hue: 244, pattern: "stars", rarity: "rare", weight: 20, blurb: "Foil star map applied over deep navy." },
-  { name: "Prism Cut", hue: 300, pattern: "gradient", rarity: "rare", weight: 18, blurb: "Refractive coat that shifts hue with viewing angle." },
-  { name: "Molten Core", hue: 14, pattern: "gradient", rarity: "rare", weight: 16, blurb: "Internal LED-orange glow bleeding through a dark shell." },
-  { name: "Blueprint Edition", hue: 218, pattern: "stripes", rarity: "rare", weight: 15, blurb: "Technical drawing of itself, printed on itself." },
-  { name: "Porcelain Crackle", hue: 190, pattern: "checker", rarity: "rare", weight: 14, blurb: "Kiln-crackle glaze, individually fired and numbered." },
-  { name: "Solar Flare", hue: 40, pattern: "chrome", rarity: "chase", weight: 8, blurb: "Chase. Heat-shift metallic that never photographs right." },
-  { name: "Deep Field", hue: 262, pattern: "stars", rarity: "chase", weight: 7, blurb: "Chase. Star field under six coats of clear." },
-  { name: "Anatomy Cut", hue: 350, pattern: "split", rarity: "chase", weight: 6, blurb: "Chase. Sectioned body showing the internals." },
-  { name: "First Sample", hue: 30, pattern: "solid", rarity: "chase", weight: 3, blurb: "Chase. Factory test shot, unpainted, stamped and dated." },
-  { name: "Gold Standard", hue: 46, pattern: "chrome", rarity: "chase", weight: 2, blurb: "Chase. Solid-look gold, fewer than fifty in circulation." },
-  { name: "Artist Proof 1/1", hue: 0, pattern: "gradient", rarity: "chase", weight: 1, blurb: "Chase. A single piece exists. It is signed on the foot." },
+  { name: "Bone White", hue: 210, pattern: "solid", weight: 110, blurb: "Unpainted resin white. The shape, and nothing else." },
+  { name: "Carbon", hue: 220, pattern: "solid", weight: 105, blurb: "Deep matte black with a faint pearl in the flake." },
+  { name: "Signal Orange", hue: 26, pattern: "solid", weight: 100, blurb: "Safety-cone orange, gloss finish, impossible to ignore." },
+  { name: "Jelly Grape", hue: 288, pattern: "jelly", weight: 95, blurb: "Clear violet cast with a frosted interior." },
+  { name: "Jelly Soda", hue: 196, pattern: "jelly", weight: 92, blurb: "Bottle-glass blue. Reads almost liquid under a spotlight." },
+  { name: "Sakura Fade", hue: 340, pattern: "gradient", weight: 70, blurb: "Airbrushed pink-to-white fade over the shoulders." },
+  { name: "Court Checker", hue: 12, pattern: "checker", weight: 66, blurb: "Two-inch check wrapped clean across the body seam." },
+  { name: "Ranger Camo", hue: 96, pattern: "camo", weight: 64, blurb: "Four-colour woodland pattern, hand-masked in layers." },
+  { name: "Track Stripe", hue: 232, pattern: "stripes", weight: 62, blurb: "Racing stripes down the centreline, tape-edge crisp." },
+  { name: "Tiger Coat", hue: 34, pattern: "camo", weight: 58, blurb: "Brushstroke markings laid over a warm amber base." },
+  { name: "Midnight Drip", hue: 268, pattern: "drip", weight: 44, blurb: "Gloss drip pulled down a matte body. Wet forever." },
+  { name: "Static Ghost", hue: 250, pattern: "drip", weight: 42, blurb: "Glow-in-the-dark shell with a broadcast-static overlay." },
+  { name: "Chrome Silver", hue: 205, pattern: "chrome", weight: 40, blurb: "Full vac-metallised mirror. Fingerprints are the enemy." },
+  { name: "Chrome Gold", hue: 44, pattern: "chrome", weight: 36, blurb: "Warm mirror gold over a polished base coat." },
+  { name: "Studio Overspray", hue: 320, pattern: "gradient", weight: 34, blurb: "Artist edition. Every body sprayed individually." },
+  { name: "Ink Wash", hue: 214, pattern: "gradient", weight: 32, blurb: "Sumi-style wash that pools darker in the joints." },
+  { name: "Colour Field", hue: 160, pattern: "split", weight: 30, blurb: "Hard-edge colour blocking across four panels." },
+  { name: "Constellation", hue: 244, pattern: "stars", weight: 20, blurb: "Foil star map applied over deep navy." },
+  { name: "Prism Cut", hue: 300, pattern: "gradient", weight: 18, blurb: "Refractive coat that shifts hue with viewing angle." },
+  { name: "Molten Core", hue: 14, pattern: "gradient", weight: 16, blurb: "Internal LED-orange glow bleeding through a dark shell." },
+  { name: "Blueprint Edition", hue: 218, pattern: "stripes", weight: 15, blurb: "Technical drawing of itself, printed on itself." },
+  { name: "Porcelain Crackle", hue: 190, pattern: "checker", weight: 14, blurb: "Kiln-crackle glaze, individually fired and numbered." },
+  { name: "Solar Flare", hue: 40, pattern: "chrome", weight: 8, blurb: "Chase. Heat-shift metallic that never photographs right." },
+  { name: "Deep Field", hue: 262, pattern: "stars", weight: 7, blurb: "Chase. Star field under six coats of clear." },
+  { name: "Anatomy Cut", hue: 350, pattern: "split", weight: 6, blurb: "Chase. Sectioned body showing the internals." },
+  { name: "First Sample", hue: 30, pattern: "solid", weight: 3, blurb: "Chase. Factory test shot, unpainted, stamped and dated." },
+  { name: "Gold Standard", hue: 46, pattern: "chrome", weight: 2, blurb: "Chase. Solid-look gold, fewer than fifty in circulation." },
+  { name: "Artist Proof 1/1", hue: 0, pattern: "gradient", weight: 1, blurb: "Chase. A single piece exists. It is signed on the foot." },
 ];
+
+/**
+ * The 400%s are the chase now — every one of them, in every box.
+ *
+ * That is the whole point of the tier ladder: what you are hoping for is not a
+ * better paint job at the same size, it is the big one. So the large format
+ * stops being a shelf you can buy directly and becomes the thing hiding at the
+ * bottom of a box, and `rarity` says so for all of them.
+ *
+ * Which box each hides in follows scarcity. BIG_SPECS is ordered by weight,
+ * commonest first, so cutting it into four gives bronze the approachable
+ * colourways and leaves diamond the grails — the test shot, the solid gold,
+ * the one-of-one. A dearer box is dearer because of what is at the bottom of
+ * it, and this is where that promise is actually kept.
+ */
+const BIG_TIERS: readonly Tier[] = ["bronze", "silver", "gold", "diamond"];
 
 export const BIG_PIECES: readonly Piece[] = BIG_SPECS.map((spec, i) => ({
   id: `big-${i}-${spec.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
   name: spec.name,
   setName: "400% Collection",
   series: null,
-  type: spec.rarity === "chase" ? "Secret" : "Standard",
-  category: spec.rarity === "chase" ? ("secret" as const) : null,
+  type: "Secret",
+  category: "secret" as const,
   scale: "400%",
-  rarity: spec.rarity,
+  tier: BIG_TIERS[Math.floor((i * BIG_TIERS.length) / BIG_SPECS.length)],
+  rarity: "chase",
   pattern: spec.pattern,
-  palette: paletteFor(spec.hue, {
-    type: spec.name,
-    category: null,
-    weights: [spec.weight],
-    pattern: spec.pattern,
-    rarity: spec.rarity,
-    hueShift: 0,
-    colorways: [spec.name],
-  }, `big-${spec.name}`),
+  palette: paletteFor(spec.hue, { pattern: spec.pattern, hueShift: 0 }, `big-${spec.name}`),
   weight: spec.weight,
   blurb: spec.blurb,
   imageUrl: null,
@@ -448,36 +486,80 @@ export const BIG_PIECES: readonly Piece[] = BIG_SPECS.map((spec, i) => ({
  * Products and their pools
  * ------------------------------------------------------------------ */
 
+/**
+ * The ladder.
+ *
+ * The shop used to sell two boxes divided by size, which made the choice a
+ * question about shelf space rather than about the pull. Tiers ask the
+ * question people actually turn up with — how much do I want to spend on a
+ * chance — and every rung answers it the same way: a pool of 100%s to collect,
+ * and one 400% at the bottom that gets better the higher you climb.
+ *
+ * Prices are four numbers in one place on purpose. They are the thing most
+ * likely to move once the shop has sold anything, and nothing else reads them.
+ */
 export const PRODUCTS: readonly Product[] = [
   {
-    id: "hundred",
-    name: "100% Blind Box",
-    tagline: "One authentic 100% figure from our live list of pieces.",
+    id: "bronze",
+    name: "Bronze Box",
+    tagline: "The everyday box. One 100% figure, with a 400% hiding in the run.",
     description:
-      "A single 100% figure, drawn from everything currently in stock. The line-up changes as inventory moves — what is listed below is what is in the warehouse right now, and every rate is that piece's share of it.",
-    priceCents: 2400,
+      "Where the collecting happens. A single 100% figure drawn from the bronze shelf as it stands today — mostly the standard colourways, with a rare in the mix and a 400% chase at the bottom of the run. What is listed below is what is in the warehouse right now, and every rate is that piece's share of it.",
+    priceCents: 1800,
     highlights: [
       "One guaranteed 100% figure",
-      "Drawn from live stock, never a fixed list",
-      "Chase pieces sit in the same pool",
+      "A rare in every series lineup",
+      "400% chase in the pool while stock lasts",
     ],
-    accent: "#f97316",
-    scale: "100%",
+    accent: "#c2795a",
+    tier: "bronze",
   },
   {
-    id: "four-hundred",
-    name: "400% Blind Box",
-    tagline: "One authentic 400% figure from our live list of pieces.",
+    id: "silver",
+    name: "Silver Box",
+    tagline: "A better shelf. Rares and an ultra join the pool.",
     description:
-      "The large format, guaranteed. One 400% figure drawn from the 400% shelf as it stands today — including the chase pieces, while they last.",
-    priceCents: 18500,
+      "The step up. The same live-stock draw, over a shelf that trades the plainest colourways for an ultra rare and a scarcer 400% chase. Fewer pieces in the pool than bronze, and better ones.",
+    priceCents: 3200,
     highlights: [
-      "One guaranteed 400% figure",
-      "Drawn from live stock, never a fixed list",
-      "Chase pieces stay in until the last one sells",
+      "One guaranteed 100% figure",
+      "Ultra rares in the pool",
+      "A scarcer 400% chase than bronze",
     ],
-    accent: "#22d3ee",
-    scale: "400%",
+    accent: "#b6bcc8",
+    tier: "silver",
+  },
+  {
+    id: "gold",
+    name: "Gold Box",
+    tagline: "No commons. Artist rares and ultras only.",
+    description:
+      "The artist shelf. Every piece in this pool is a rare or an ultra — the hand-sprayed editions and the hero pieces — and the 400% chases behind them are the short-run ones. A small pool by design: there is nothing in it you would be disappointed to draw.",
+    priceCents: 6500,
+    highlights: [
+      "No common pieces in the pool at all",
+      "Artist editions and hero ultras",
+      "Short-run 400% chases",
+    ],
+    accent: "#e0b64e",
+    tier: "gold",
+  },
+  {
+    id: "diamond",
+    name: "Diamond Box",
+    tagline: "The secrets, and the grails behind them.",
+    description:
+      "The hidden pieces, sold on purpose. Every 100% in this pool is a series secret, and the 400% chases are the ones that barely exist — the factory test shot, the solid gold, the signed one-of-one. The smallest pool in the shop.",
+    priceCents: 14000,
+    highlights: [
+      "Series secret pieces only",
+      "The scarcest 400% chases in the shop",
+      "The smallest pool we sell",
+    ],
+    accent: "#7fd7e8",
+    tier: "diamond",
+    // Listed and stockable, not yet buyable — the large format behind this
+    // tier goes out through the drop-shipper, and that is not wired up.
     comingSoon: true,
   },
 ];
@@ -590,6 +672,37 @@ export function pieceSubtitle(
 }
 
 /** Rarest first, which is the order a filter row should read in. */
+/* ------------------------------------------------------------------ *
+ * Tiers
+ * ------------------------------------------------------------------ */
+
+/** Cheapest first — the order every picker, filter and shelf tab shows. */
+export const TIER_ORDER: readonly Tier[] = ["bronze", "silver", "gold", "diamond"];
+
+export const TIER_LABEL: Record<Tier, string> = {
+  bronze: "Bronze",
+  silver: "Silver",
+  gold: "Gold",
+  diamond: "Diamond",
+};
+
+/**
+ * One colour per tier, and it is the product's own accent rather than a second
+ * palette kept alongside it: a bronze chip in the console and a bronze box in
+ * the shop going out of step would be a bug nobody would think to look for.
+ */
+export const TIER_ACCENT: Record<Tier, string> = Object.fromEntries(
+  TIER_ORDER.map((tier) => [
+    tier,
+    PRODUCTS.find((p) => p.tier === tier)?.accent ?? "#8a8a95",
+  ]),
+) as Record<Tier, string>;
+
+/** The box that sells a tier, for naming a shelf after what it actually is. */
+export function productForTier(tier: Tier): Product | undefined {
+  return PRODUCTS.find((p) => p.tier === tier);
+}
+
 export const RARITY_ORDER: readonly Rarity[] = ["chase", "ultra", "rare", "common"];
 
 export const RARITY_LABEL: Record<Rarity, string> = {

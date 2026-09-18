@@ -13,9 +13,12 @@ import {
   RARITY_LABEL,
   RARITY_ORDER,
   seriesLabel,
+  TIER_ACCENT,
+  TIER_LABEL,
+  TIER_ORDER,
 } from "@/lib/catalog";
 import { UNITS_BY_RARITY } from "@/lib/inventory";
-import type { AuditBatch, Category, Palette, PatternKind, Rarity, Scale } from "@/lib/types";
+import type { AuditBatch, Category, Palette, PatternKind, Rarity, Scale, Tier } from "@/lib/types";
 
 /** The slice of a piece the console needs. */
 export interface AdminPiece {
@@ -25,6 +28,7 @@ export interface AdminPiece {
   series: number | null;
   category: Category | null;
   scale: Scale;
+  tier: Tier;
   rarity: Rarity;
   pattern: PatternKind;
   palette: Palette;
@@ -38,10 +42,19 @@ type Change = { pieceId: string; op: "add" | "set" | "pull"; units?: number };
 /** Must match the phrase the reset endpoint checks for. */
 const RESET_PHRASE = "RESET";
 
-const SHELVES: { scale: Scale; label: string; accent: string }[] = [
-  { scale: "100%", label: "100% shelf", accent: "#f97316" },
-  { scale: "400%", label: "400% shelf", accent: "#22d3ee" },
-];
+/**
+ * One shelf per box, because a shelf is now exactly what a box draws from.
+ * Labels and colours come from the catalogue rather than being restated here —
+ * a console calling something gold that the shop sells as silver is the kind of
+ * disagreement that only shows up once stock has already moved.
+ */
+const SHELVES: { tier: Tier; label: string; accent: string }[] = TIER_ORDER.map(
+  (tier) => ({
+    tier,
+    label: `${TIER_LABEL[tier]} shelf`,
+    accent: TIER_ACCENT[tier],
+  }),
+);
 
 /**
  * The inventory console. Stock lives in the database, so restocking is a few
@@ -68,7 +81,7 @@ export function AdminConsole({
   // zero until a full page load, which looks exactly like a save that failed.
   useEffect(() => setLevels(stock), [stock]);
   useEffect(() => setLog(audit), [audit]);
-  const [scale, setScale] = useState<Scale>("100%");
+  const [tier, setTier] = useState<Tier>("bronze");
   // The catalogue opens first. Adding a product and stocking it are the two
   // things done most often, and both start from a list of what already exists.
   const [tab, setTab] = useState<"catalogue" | "shelf" | "add" | "log">("catalogue");
@@ -120,7 +133,7 @@ export function AdminConsole({
 
   const shelf = useMemo(() => {
     const rows = pieces
-      .filter((p) => p.scale === scale && levels[p.id])
+      .filter((p) => p.tier === tier && levels[p.id])
       .map((piece) => {
         const { stocked, sold } = levels[piece.id];
         return { piece, stocked, sold, available: Math.max(0, stocked - sold) };
@@ -135,7 +148,7 @@ export function AdminConsole({
           RARITY_ORDER.indexOf(a.piece.rarity) - RARITY_ORDER.indexOf(b.piece.rarity) ||
           a.piece.name.localeCompare(b.piece.name),
       );
-  }, [pieces, levels, scale]);
+  }, [pieces, levels, tier]);
 
   const unitsLeft = shelf.reduce((sum, r) => sum + r.available, 0);
   const unitsSold = shelf.reduce((sum, r) => sum + r.sold, 0);
@@ -144,13 +157,15 @@ export function AdminConsole({
   /* --------------------------- series shortcuts ------------------------- */
 
   const seriesRows = useMemo(() => {
-    if (scale !== "100%") return [];
+    // Every tier holds pieces from every series, so the shortcut stocks the
+    // slice of a series that belongs to the shelf you are looking at — not the
+    // whole series, which would put gold pieces on the bronze shelf.
     const map = new Map<
       number,
       { label: string; total: number; stocked: number; available: number }
     >();
     for (const piece of pieces) {
-      if (piece.scale !== "100%" || piece.series === null || piece.archived) continue;
+      if (piece.tier !== tier || piece.series === null || piece.archived) continue;
       const row = map.get(piece.series) ?? {
         // Whatever the shop calls this set, not a name invented here.
         label: seriesLabel(piece),
@@ -169,11 +184,11 @@ export function AdminConsole({
     return [...map.entries()]
       .map(([series, row]) => ({ series, ...row }))
       .sort((a, b) => b.available - a.available || a.series - b.series);
-  }, [pieces, levels, scale]);
+  }, [pieces, levels, tier]);
 
   const stockSeries = (series: number) => {
     const changes = pieces
-      .filter((p) => p.series === series && p.scale === "100%")
+      .filter((p) => p.series === series && p.tier === tier)
       .map((p) => ({
         pieceId: p.id,
         op: "set" as const,
@@ -184,7 +199,7 @@ export function AdminConsole({
 
   const pullSeries = (series: number) => {
     const changes = pieces
-      .filter((p) => p.series === series && p.scale === "100%" && levels[p.id])
+      .filter((p) => p.series === series && p.tier === tier && levels[p.id])
       .map((p) => ({ pieceId: p.id, op: "pull" as const }));
     void send(changes, `Series ${series} pulled from the shelf`);
   };
@@ -221,12 +236,12 @@ export function AdminConsole({
       <div className="mt-7 flex flex-wrap gap-2">
         {SHELVES.map((s) => (
           <button
-            key={s.scale}
+            key={s.tier}
             type="button"
-            onClick={() => setScale(s.scale)}
+            onClick={() => setTier(s.tier)}
             className="rounded-full px-4 py-2 text-[13px] font-medium transition-colors"
             style={
-              scale === s.scale
+              tier === s.tier
                 ? { background: s.accent, color: "#08080b" }
                 : { color: "#8b8b99", boxShadow: "inset 0 0 0 1px #26262f" }
             }
@@ -260,7 +275,7 @@ export function AdminConsole({
       )}
 
       {/* series shortcuts */}
-      {scale === "100%" && seriesRows.length > 0 && (
+      {seriesRows.length > 0 && (
         <section className="mt-8">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-faint">
             Stock a whole series
@@ -341,7 +356,7 @@ export function AdminConsole({
       {tab === "shelf" && <ShelfTable rows={shelf} busy={busy} onChange={send} />}
       {tab === "add" && (
         <AddPieces
-          pieces={pieces.filter((p) => p.scale === scale && !p.archived && !levels[p.id])}
+          pieces={pieces.filter((p) => p.tier === tier && !p.archived && !levels[p.id])}
           busy={busy}
           onChange={send}
           byId={byId}
@@ -603,7 +618,7 @@ function AddPieces({
       {matches.length === 0 && (
         <p className="mt-6 rounded-2xl border border-dashed border-hairline p-10 text-center text-sm text-muted">
           {byId.size > 0 && pieces.length === 0
-            ? "Every piece at this scale is already on the shelf."
+            ? "Every piece in this box is already on the shelf."
             : "Nothing matches that search."}
         </p>
       )}
@@ -711,6 +726,7 @@ interface ImportPreview {
     id: string;
     name: string;
     scale: string;
+    tier: Tier;
     rarity: string;
     quantity: number | null;
     hasImage: boolean;
@@ -740,7 +756,7 @@ function Catalogue({
   const [open, setOpen] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
-  const [scaleFilter, setScaleFilter] = useState<Scale | "all">("all");
+  const [tierFilter, setTierFilter] = useState<Tier | "all">("all");
   const [csv, setCsv] = useState<string>("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
@@ -755,7 +771,7 @@ function Catalogue({
     const q = query.trim().toLowerCase();
     return pieces
       .filter((p) => showArchived || !p.archived)
-      .filter((p) => scaleFilter === "all" || p.scale === scaleFilter)
+      .filter((p) => tierFilter === "all" || p.tier === tierFilter)
       .filter(
         (p) =>
           q === "" ||
@@ -764,7 +780,7 @@ function Catalogue({
           p.id.toLowerCase().includes(q),
       )
       .slice(0, 120);
-  }, [pieces, query, showArchived, scaleFilter]);
+  }, [pieces, query, showArchived, tierFilter]);
 
   const post = async (path: string, body: unknown) => {
     const res = await fetch(path, {
@@ -917,7 +933,7 @@ function Catalogue({
           // Show it: a new product landing on page four of an unfiltered list
           // looks exactly like a save that did not happen.
           setQuery(product.name);
-          setScaleFilter(product.scale);
+          setTierFilter(product.tier);
           setOpen(product.id);
           router.refresh();
         }}
@@ -960,6 +976,7 @@ function Catalogue({
           <h3 className="text-sm font-semibold">Upload a catalogue</h3>
           <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-muted">
             A CSV with a header row. <span className="text-chalk">name</span> and{" "}
+            <span className="text-chalk">tier</span> and{" "}
             <span className="text-chalk">scale</span> are required;{" "}
             <span className="text-chalk">set</span>, <span className="text-chalk">series</span>,{" "}
             <span className="text-chalk">rarity</span>, <span className="text-chalk">category</span>,{" "}
@@ -1018,7 +1035,7 @@ function Catalogue({
                 <ul className="mt-3 space-y-1">
                   {preview.sample.map((row) => (
                     <li key={row.id} className="font-mono text-[11px] text-muted">
-                      {row.name} · {row.scale} · {row.rarity}
+                      {row.name} · {TIER_LABEL[row.tier]} · {row.scale} · {row.rarity}
                       {row.quantity !== null && ` · ${row.quantity} units`}
                       {row.hasImage && " · photo"}
                     </li>
@@ -1099,18 +1116,18 @@ function Catalogue({
             className="w-full rounded-xl border border-hairline bg-ink px-4 py-2.5 text-sm outline-none transition-colors focus:border-white/30 sm:min-w-56 sm:flex-1"
           />
           <div className="flex gap-1 rounded-xl border border-hairline p-1">
-            {(["all", "100%", "400%"] as const).map((choice) => (
+            {(["all", ...TIER_ORDER] as const).map((choice) => (
               <button
                 key={choice}
                 type="button"
-                onClick={() => setScaleFilter(choice)}
+                onClick={() => setTierFilter(choice)}
                 className={`rounded-lg px-3 py-1.5 text-[12px] transition-colors ${
-                  scaleFilter === choice
+                  tierFilter === choice
                     ? "bg-white/12 text-chalk"
                     : "text-muted hover:text-chalk"
                 }`}
               >
-                {choice === "all" ? "Both boxes" : choice}
+                {choice === "all" ? "Every box" : TIER_LABEL[choice]}
               </button>
             ))}
           </div>
@@ -1161,6 +1178,7 @@ function Catalogue({
                   setName: piece.setName,
                   series: piece.series,
                   scale: piece.scale,
+                  tier: piece.tier,
                   rarity: piece.rarity,
                   category: piece.category,
                   imageUrl: piece.imageUrl,

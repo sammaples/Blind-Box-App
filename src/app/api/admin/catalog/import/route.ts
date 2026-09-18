@@ -46,6 +46,9 @@ export async function POST(request: Request) {
         id: r.piece.id,
         name: r.piece.name,
         scale: r.piece.scale,
+        // Which box each row lands in, so the preview answers the question the
+        // column exists to ask before anything is written.
+        tier: r.piece.tier,
         rarity: r.piece.rarity,
         quantity: r.quantity ?? null,
         hasImage: r.piece.imageUrl !== null,

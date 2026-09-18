@@ -43,6 +43,7 @@ export default async function AdminPage() {
         category: p.category,
         series: p.series,
         scale: p.scale,
+        tier: p.tier,
         rarity: p.rarity,
         pattern: p.pattern,
         palette: p.palette,

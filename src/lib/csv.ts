@@ -1,6 +1,6 @@
 import { CATEGORY_ORDER, LEGACY_RARITY, toCategory } from "./catalog";
-import type { Rarity, Scale } from "./types";
-import { buildPiece, RARITIES, SCALES, slugFor } from "./pieces";
+import type { Rarity, Scale, Tier } from "./types";
+import { buildPiece, RARITIES, SCALES, slugFor, TIERS } from "./pieces";
 import type { Piece } from "./types";
 
 /**
@@ -83,7 +83,14 @@ const HEADER_ALIASES: Record<string, string> = {
   scale: "scale",
   size: "scale",
   rarity: "rarity",
-  tier: "rarity",
+  // "tier" used to be a second word for rarity here. It now names the box a
+  // piece is sold in, which is the more consequential of the two — put it on
+  // the wrong row and a grail goes out in the cheap box — so it takes the
+  // column, and rarity keeps "grade" for anyone who wants a synonym.
+  grade: "rarity",
+  tier: "tier",
+  box: "tier",
+  boxtier: "tier",
   image: "image",
   imageurl: "image",
   photo: "image",
@@ -106,6 +113,12 @@ function normaliseScale(value: string): Scale | null {
   if (v === "100" || v === "100%" || v === "1x") return "100%";
   if (v === "400" || v === "400%" || v === "4x") return "400%";
   return null;
+}
+
+/** Which box the piece is sold in. The column that decides what it competes with. */
+function normaliseTier(value: string): Tier | null {
+  const v = value.trim().toLowerCase().replace(/[\s_-]/g, "").replace(/box$/, "");
+  return (TIERS as readonly string[]).includes(v) ? (v as Tier) : null;
 }
 
 /**
@@ -136,9 +149,11 @@ export interface ImportResult {
 }
 
 export const CSV_TEMPLATE =
-  "name,set,series,scale,rarity,image,quantity,notes\n" +
-  "Sky Blue Bear,Series 47,47,100%,common,https://example.com/sky.jpg,12,Gloss finish\n" +
-  "Chrome Chase,400% Collection,,400%,chase,https://example.com/chrome.jpg,1,One of one\n";
+  // Carries a category column because a numbered series piece is rejected
+  // without one — a template that fails its own import is worse than none.
+  "name,set,series,tier,scale,rarity,category,image,quantity,notes\n" +
+  "Sky Blue Bear,Series 47,47,bronze,100%,common,cute,https://example.com/sky.jpg,12,Gloss finish\n" +
+  "Chrome Grail,400% Collection,,diamond,400%,chase,,https://example.com/chrome.jpg,1,One of one\n";
 
 /**
  * Reads a catalogue spreadsheet. Every row is validated independently: a bad
@@ -157,7 +172,7 @@ export function importCatalogue(text: string): ImportResult {
     return {
       rows: [],
       errors: [
-        "No 'name' column found. The first row must be a header — name and scale are required.",
+        "No 'name' column found. The first row must be a header — name, tier and scale are required.",
       ],
       columns,
     };
@@ -166,6 +181,17 @@ export function importCatalogue(text: string): ImportResult {
     return {
       rows: [],
       errors: ["No 'scale' column found. Each piece needs 100% or 400%."],
+      columns,
+    };
+  }
+  if (!columns.includes("tier")) {
+    return {
+      rows: [],
+      errors: [
+        "No 'tier' column found. Each piece needs the box it is sold in: " +
+          "bronze, silver, gold or diamond. If your sheet uses 'tier' to mean " +
+          "how rare a piece is, rename that column to 'rarity'.",
+      ],
       columns,
     };
   }
@@ -192,6 +218,14 @@ export function importCatalogue(text: string): ImportResult {
     if (!scale) {
       errors.push(
         `Line ${line}: "${get("scale")}" is not a scale — use 100% or 400%.`,
+      );
+      continue;
+    }
+
+    const tier = normaliseTier(get("tier"));
+    if (!tier) {
+      errors.push(
+        `Line ${line}: "${get("tier")}" is not a box — use bronze, silver, gold or diamond.`,
       );
       continue;
     }
@@ -242,6 +276,7 @@ export function importCatalogue(text: string): ImportResult {
       setName: get("set"),
       series,
       scale,
+      tier,
       rarity,
       category,
       imageUrl: get("image"),

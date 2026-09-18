@@ -12,10 +12,11 @@ import {
   resetShop,
   savePieces,
   SCALES,
+  TIERS,
   setPieceArchived,
 } from "@/lib/pieces";
 import { applyStockChanges } from "@/lib/stock";
-import type { Rarity, Scale } from "@/lib/types";
+import type { Rarity, Scale, Tier } from "@/lib/types";
 
 /** What has to be typed to empty the shop. Shown in the console beside the box. */
 const RESET_PHRASE = "RESET";
@@ -112,6 +113,17 @@ export async function POST(request: Request) {
     );
   }
 
+  // Which box sells it. Validated here and not only in the form, because the
+  // form is not the only way to reach this — and a piece in the wrong box is
+  // sold at the wrong price to the wrong pool.
+  const tier = (body.tier ?? "bronze") as Tier;
+  if (!TIERS.includes(tier)) {
+    return NextResponse.json(
+      { error: "Tier must be bronze, silver, gold or diamond" },
+      { status: 400 },
+    );
+  }
+
   const rarity = (body.rarity ?? "common") as Rarity;
   if (!RARITIES.includes(rarity)) {
     return NextResponse.json({ error: "That is not a rarity" }, { status: 400 });
@@ -161,6 +173,7 @@ export async function POST(request: Request) {
     setName: typeof body.setName === "string" ? body.setName : "",
     series,
     scale,
+    tier,
     rarity,
     category,
     imageUrl: body.imageUrl,

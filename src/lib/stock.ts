@@ -50,7 +50,7 @@ export async function shelfFor(productId: string): Promise<StockEntry[]> {
   const product = getProduct(productId);
   if (!product) return [];
 
-  const rows = (await warehouse()).filter((r) => r.piece.scale === product.scale);
+  const rows = (await warehouse()).filter((r) => r.piece.tier === product.tier);
   const remaining = rows.reduce((sum, r) => sum + r.available, 0);
 
   return rows.map((row) => ({
@@ -75,7 +75,7 @@ export async function unitsLeft(productId: string): Promise<number> {
 export async function reserve(productId: string, draw: Draw, build: BuildOrder) {
   const product = getProduct(productId);
   if (!product) return null;
-  return backend().reserve(product.scale, draw, build);
+  return backend().reserve(product.tier, draw, build);
 }
 
 /* ------------------------------------------------------------------ *
@@ -106,7 +106,7 @@ export async function applyStockChanges(changes: readonly AdminStockChange[]) {
   for (const change of changes) {
     const piece = pieces.get(change.pieceId);
     if (!piece) continue;
-    resolved.push({ ...change, scale: piece.scale });
+    resolved.push({ ...change, tier: piece.tier });
   }
   return backend().applyStockChanges(resolved);
 }

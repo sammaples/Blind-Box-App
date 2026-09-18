@@ -42,7 +42,23 @@ export type PatternKind =
   | "drip"
   | "gradient";
 
+/**
+ * How big the figure physically is. Unchanged by the move to tiers: a 400% is
+ * a different object to make, box and post, and the drop-shipper who handles
+ * the large format needs to know which is which. What it no longer decides is
+ * which box you can find it in — that is the tier.
+ */
 export type Scale = "100%" | "400%";
+
+/**
+ * Which box a piece comes out of, and the only thing that decides a pool.
+ *
+ * The shop used to sell by size: a 100% box and a 400% box, each drawing from
+ * everything of that size. Tiers sell by what is inside instead — a dearer box
+ * holds better pieces and hides a bigger chase — so the ladder is the price
+ * ladder, and a piece belongs to exactly one rung of it.
+ */
+export type Tier = "bronze" | "silver" | "gold" | "diamond";
 
 export interface Palette {
   /** Main body colour. */
@@ -67,6 +83,8 @@ export interface Piece {
   /** What kind of figure it is. Null on a one-off with none chosen. */
   category: Category | null;
   scale: Scale;
+  /** Which box this piece can come out of. One tier, never two. */
+  tier: Tier;
   rarity: Rarity;
   pattern: PatternKind;
   palette: Palette;
@@ -101,7 +119,8 @@ export interface Product {
   highlights: string[];
   /** Accent colour used for the product's UI treatment. */
   accent: string;
-  scale: Scale;
+  /** The shelf this box draws from. Its pool is every piece of this tier. */
+  tier: Tier;
   /**
    * Announced but not on sale yet. The box is listed and its shelf is public,
    * but it cannot be bought — enforced at the API, not only in the UI.

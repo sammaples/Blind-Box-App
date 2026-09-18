@@ -2,7 +2,7 @@ import "server-only";
 import { ALL_PIECES as DEMO_PIECES, toCategory } from "./catalog";
 import { backend } from "./db";
 import type { ResetSummary } from "./db/types";
-import type { Piece, Rarity, Scale } from "./types";
+import type { Piece, Rarity, Scale, Tier } from "./types";
 
 /**
  * The shop's catalogue: the pieces it actually sells.
@@ -13,6 +13,8 @@ import type { Piece, Rarity, Scale } from "./types";
  */
 
 export const SCALES: readonly Scale[] = ["100%", "400%"];
+/** Cheapest first, which is the order every picker and filter shows them in. */
+export const TIERS: readonly Tier[] = ["bronze", "silver", "gold", "diamond"];
 export const RARITIES: readonly Rarity[] = ["common", "rare", "ultra", "chase"];
 
 /** Every piece, archived included. Archived ones still resolve for old orders. */
@@ -104,6 +106,7 @@ export interface PieceInput {
   setName?: string;
   series?: number | null;
   scale: Scale;
+  tier?: Tier;
   rarity?: Rarity;
   category?: unknown;
   imageUrl?: unknown;
@@ -145,6 +148,10 @@ export function buildPiece(input: PieceInput): Piece {
   const scale: Scale = SCALES.includes(input.scale) ? input.scale : "100%";
   const rarity: Rarity =
     input.rarity && RARITIES.includes(input.rarity) ? input.rarity : "common";
+  // Bronze is the default because it is the box that holds the most and asks
+  // the least: a piece listed without a tier should land somewhere it can be
+  // sold, not somewhere that quietly makes it a grail.
+  const tier: Tier = input.tier && TIERS.includes(input.tier) ? input.tier : "bronze";
 
   return {
     id: input.id?.trim() || slugFor(input.name, scale),
@@ -157,6 +164,7 @@ export function buildPiece(input: PieceInput): Piece {
     type: "",
     category: toCategory(input.category),
     scale,
+    tier,
     rarity,
     pattern: "solid",
     palette: { base: "", accent: "", detail: "", wash: "" },

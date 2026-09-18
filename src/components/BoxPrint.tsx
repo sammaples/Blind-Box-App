@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { BoxFace } from "@/lib/boxShape";
+import { PRODUCTS } from "@/lib/catalog";
 
 /**
  * A printed box wrap: the app's own figures scattered across a pale blue
@@ -159,8 +160,15 @@ export function BoxPrint({ face, style }: { face: BoxFace; style?: CSSProperties
   );
 }
 
-/** Products whose box is printed rather than plain. */
-const PRINTED = new Set(["hundred"]);
+/**
+ * Products whose box is printed rather than plain.
+ *
+ * Every tier, now that every tier is a real carton with figures in it. This
+ * used to name the single 100% box by id, which meant the rename to tiers
+ * would have quietly left every box opening plain — the kind of thing no
+ * typechecker catches, because a product id is only ever a string.
+ */
+const PRINTED = new Set<string>(PRODUCTS.map((p) => p.id));
 
 export function isPrinted(productId: string): boolean {
   return PRINTED.has(productId);

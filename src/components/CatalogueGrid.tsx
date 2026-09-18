@@ -2,9 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { PieceImage } from "@/components/PieceImage";
-import { formatOdds, pieceSubtitle, RARITY_COLOR, RARITY_LABEL } from "@/lib/catalog";
+import {
+  formatOdds,
+  pieceSubtitle,
+  RARITY_COLOR,
+  RARITY_LABEL,
+  TIER_ACCENT,
+  TIER_LABEL,
+} from "@/lib/catalog";
 import { useScrollLock } from "@/lib/useScrollLock";
-import type { Category, Rarity, Scale } from "@/lib/types";
+import type { Category, Rarity, Scale, Tier } from "@/lib/types";
 
 /**
  * The catalogue as a wall of photographs.
@@ -27,6 +34,7 @@ export interface GridPiece {
   category: Category | null;
   series: number | null;
   scale: Scale;
+  tier: Tier;
   rarity: Rarity;
   imageUrl: string | null;
   archived: boolean;
@@ -73,10 +81,11 @@ export function CatalogueGrid({
   const open = pieces.find((p) => p.id === openId) ?? null;
 
   // Everything left in the pool for this piece's shelf, which is what turns a
-  // unit count into a pull rate.
-  const poolFor = (scale: Scale) =>
+  // unit count into a pull rate. The shelf is the tier: a piece competes for
+  // the draw against the others in its own box, whatever size any of them are.
+  const poolFor = (tier: Tier) =>
     pieces
-      .filter((p) => p.scale === scale && !p.archived)
+      .filter((p) => p.tier === tier && !p.archived)
       .reduce((sum, p) => sum + available(levels[p.id]), 0);
 
   return (
@@ -96,7 +105,7 @@ export function CatalogueGrid({
         <StockSheet
           piece={open}
           level={levels[open.id] ?? null}
-          pool={poolFor(open.scale)}
+          pool={poolFor(open.tier)}
           busy={busy}
           onClose={() => setOpenId(null)}
           onChange={onChange}
@@ -178,6 +187,17 @@ function Card({
       <div className="p-3">
         <p className="truncate text-[15px] font-semibold leading-tight">{piece.name}</p>
         <div className="mt-1.5 flex items-center gap-2">
+          {/* Which box sells it, then how big it is: two different facts, and
+              the first is the one that decides what it is in the draw with. */}
+          <span
+            className="rounded-md px-1.5 py-0.5 text-[11px] font-medium"
+            style={{
+              background: `color-mix(in srgb, ${TIER_ACCENT[piece.tier]} 22%, transparent)`,
+              color: TIER_ACCENT[piece.tier],
+            }}
+          >
+            {TIER_LABEL[piece.tier]}
+          </span>
           <span className="rounded-md bg-white/[0.07] px-1.5 py-0.5 font-mono text-[11px] text-muted">
             {piece.scale}
           </span>
@@ -312,7 +332,7 @@ function StockSheet({
             <RarityBadge rarity={piece.rarity} />
             <h3 className="mt-2 text-lg font-semibold leading-tight">{piece.name}</h3>
             <p className="mt-1 truncate text-[12px] text-faint">
-              {piece.scale} ·{" "}
+              {TIER_LABEL[piece.tier]} box · {piece.scale} ·{" "}
               {pieceSubtitle(piece, "No set")}
             </p>
           </div>
@@ -407,7 +427,7 @@ function StockSheet({
                     <span className="font-mono text-muted">
                       {formatOdds(projected(amount))}
                     </span>{" "}
-                    of the {piece.scale} shelf — a rate is just its share of the units
+                    of the {TIER_LABEL[piece.tier]} shelf — a rate is just its share of the units
                     left, so every other piece shifts a little too.
                   </>
                 ) : (

@@ -7,7 +7,7 @@ import type {
   Collector,
   Order,
   Piece,
-  Scale,
+  Tier,
   Shipment,
 } from "../types";
 import { LEGACY_RARITY, toCategory } from "../catalog";
@@ -44,7 +44,7 @@ interface Db {
   loginTokens: LoginToken[];
   orders: Order[];
   shipments: Shipment[];
-  stock: Record<string, { scale: Scale; stocked: number; sold: number }>;
+  stock: Record<string, { tier: Tier; stocked: number; sold: number }>;
   audit: AuditEntry[];
 }
 
@@ -130,8 +130,8 @@ export function createJsonBackend(): Backend {
       await transact((db) => {
         // Only an untouched warehouse gets seeded — never a running one.
         if (Object.keys(db.stock).length > 0) return;
-        for (const [pieceId, { scale, units: count }] of units) {
-          db.stock[pieceId] = { scale, stocked: count, sold: 0 };
+        for (const [pieceId, { tier, units: count }] of units) {
+          db.stock[pieceId] = { tier, stocked: count, sold: 0 };
         }
       });
     },
@@ -388,13 +388,13 @@ export function createJsonBackend(): Backend {
       const db = await read();
       return Object.entries(db.stock).map(([pieceId, row]) => ({
         pieceId,
-        scale: row.scale,
+        tier: row.tier,
         stocked: row.stocked,
         sold: row.sold,
       }));
     },
 
-    async reserve(scale, draw: Draw, build: BuildOrder): Promise<Reservation | null> {
+    async reserve(tier, draw: Draw, build: BuildOrder): Promise<Reservation | null> {
       return transact((db) => {
         const archived = new Set(
           db.pieces.filter((p) => p.archived).map((p) => p.id),
@@ -402,7 +402,7 @@ export function createJsonBackend(): Backend {
         const available = Object.entries(db.stock)
           .filter(
             ([pieceId, row]) =>
-              row.scale === scale && row.stocked > row.sold && !archived.has(pieceId),
+              row.tier === tier && row.stocked > row.sold && !archived.has(pieceId),
           )
           .map(([pieceId, row]) => [pieceId, row.stocked - row.sold] as const)
           .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
@@ -429,7 +429,7 @@ export function createJsonBackend(): Backend {
 
         for (const change of changes) {
           const row = db.stock[change.pieceId] ?? {
-            scale: change.scale,
+            tier: change.tier,
             stocked: 0,
             sold: 0,
           };

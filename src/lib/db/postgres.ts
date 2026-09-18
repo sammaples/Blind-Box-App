@@ -11,6 +11,7 @@ import type {
   Piece,
   Rarity,
   Scale,
+  Tier,
 } from "../types";
 import type {
   Backend,
@@ -140,6 +141,7 @@ function toPiece(r: Row): Piece {
     type: "",
     category: toCategory(r.category),
     scale: r.scale as Scale,
+    tier: r.tier as Tier,
     rarity,
     pattern: "solid" as PatternKind,
     palette: {
@@ -217,10 +219,10 @@ export function createPostgresBackend(connectionString: string): Backend {
         const { rows } = await client.query("select count(*)::int as n from stock");
         if (rows[0].n > 0) return;
 
-        for (const [pieceId, { scale, units: count }] of units) {
+        for (const [pieceId, { tier, units: count }] of units) {
           await client.query(
-            "insert into stock (piece_id, scale, stocked, sold) values ($1, $2, $3, 0)",
-            [pieceId, scale, count],
+            "insert into stock (piece_id, tier, stocked, sold) values ($1, $2, $3, 0)",
+            [pieceId, tier, count],
           );
         }
       });
@@ -405,13 +407,14 @@ export function createPostgresBackend(connectionString: string): Backend {
         for (const p of pieces) {
           await client.query(
             `insert into catalog_pieces
-               (id, name, set_name, series, scale, rarity, image_url, notes, archived_at, category)
-             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+               (id, name, set_name, series, scale, tier, rarity, image_url, notes, archived_at, category)
+             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
              on conflict (id) do update set
                name       = excluded.name,
                set_name   = excluded.set_name,
                series     = excluded.series,
                scale      = excluded.scale,
+               tier       = excluded.tier,
                rarity     = excluded.rarity,
                image_url  = excluded.image_url,
                notes      = excluded.notes,
@@ -423,6 +426,7 @@ export function createPostgresBackend(connectionString: string): Backend {
               p.setName,
               p.series,
               p.scale,
+              p.tier,
               p.rarity,
               p.imageUrl,
               p.blurb,
@@ -439,8 +443,8 @@ export function createPostgresBackend(connectionString: string): Backend {
       // product already answers to it, and the caller wants a new row.
       const { rowCount } = await query(
         `insert into catalog_pieces
-           (id, name, set_name, series, scale, rarity, image_url, notes, archived_at, category)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+           (id, name, set_name, series, scale, tier, rarity, image_url, notes, archived_at, category)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
          on conflict (id) do nothing`,
         [
           piece.id,
@@ -448,6 +452,7 @@ export function createPostgresBackend(connectionString: string): Backend {
           piece.setName,
           piece.series,
           piece.scale,
+          piece.tier,
           piece.rarity,
           piece.imageUrl,
           piece.blurb,
@@ -543,13 +548,13 @@ export function createPostgresBackend(connectionString: string): Backend {
       const { rows } = await query("select * from stock");
       return rows.map((r) => ({
         pieceId: r.piece_id as string,
-        scale: r.scale as Scale,
+        tier: r.tier as Tier,
         stocked: r.stocked as number,
         sold: r.sold as number,
       }));
     },
 
-    async reserve(scale, draw: Draw, build: BuildOrder): Promise<Reservation | null> {
+    async reserve(tier, draw: Draw, build: BuildOrder): Promise<Reservation | null> {
       return withTx(async (client) => {
         // The draw depends on the whole shelf, so the whole shelf is locked for
         // the length of the transaction. Buyers of one shelf serialise; buyers
@@ -562,10 +567,10 @@ export function createPostgresBackend(connectionString: string): Backend {
              from stock s
              join catalog_pieces c
                on c.id = s.piece_id and c.archived_at is null
-            where s.scale = $1 and s.stocked > s.sold
+            where s.tier = $1 and s.stocked > s.sold
             order by s.piece_id
               for update of s`,
-          [scale],
+          [tier],
         );
         if (rows.length === 0) return null;
 
@@ -637,10 +642,10 @@ export function createPostgresBackend(connectionString: string): Backend {
             await client.query("delete from stock where piece_id = $1", [change.pieceId]);
           } else {
             await client.query(
-              `insert into stock (piece_id, scale, stocked, sold)
+              `insert into stock (piece_id, tier, stocked, sold)
                values ($1, $2, $3, 0)
                on conflict (piece_id) do update set stocked = excluded.stocked`,
-              [change.pieceId, change.scale, next],
+              [change.pieceId, change.tier, next],
             );
           }
 

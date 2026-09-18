@@ -9,7 +9,8 @@ import {
   RARITY_ORDER,
   SERIES_NUMBERS,
 } from "@/lib/catalog";
-import type { Category, Rarity, Scale } from "@/lib/types";
+import { TIER_ACCENT } from "@/lib/catalog";
+import type { Category, Rarity, Scale, Tier } from "@/lib/types";
 
 /**
  * The listing form: one product, created or corrected.
@@ -24,19 +25,24 @@ import type { Category, Rarity, Scale } from "@/lib/types";
  * in a title is a correction and not a duplicate listing.
  */
 
-const SCALE_CHOICES: { scale: Scale; label: string; note: string; accent: string }[] = [
-  {
-    scale: "100%",
-    label: "100% Blind Box",
-    note: "The standard-size box",
-    accent: "#f97316",
-  },
-  {
-    scale: "400%",
-    label: "400% Blind Box",
-    note: "The eleven-inch box",
-    accent: "#22d3ee",
-  },
+/**
+ * Two separate questions, and they used to be one.
+ *
+ * Which box a piece is sold in is now a price decision — the tier — while how
+ * big the figure is stays a fact about the object. Asking them together is
+ * what the old single picker did, and it is why a 400% could only ever be sold
+ * on its own shelf. Now a 400% is what hides at the bottom of a tier.
+ */
+const TIER_CHOICES: { tier: Tier; label: string; note: string; accent: string }[] = [
+  { tier: "bronze", label: "Bronze Box", note: "The everyday box", accent: TIER_ACCENT.bronze },
+  { tier: "silver", label: "Silver Box", note: "Rares and an ultra", accent: TIER_ACCENT.silver },
+  { tier: "gold", label: "Gold Box", note: "No commons at all", accent: TIER_ACCENT.gold },
+  { tier: "diamond", label: "Diamond Box", note: "Secrets and grails", accent: TIER_ACCENT.diamond },
+];
+
+const SCALE_CHOICES: { scale: Scale; label: string; note: string }[] = [
+  { scale: "100%", label: "100%", note: "The standard figure" },
+  { scale: "400%", label: "400%", note: "The eleven-inch figure" },
 ];
 
 /** What the server did to the file, so the resize is not a silent change. */
@@ -62,7 +68,7 @@ function describeResize({ width, height, bytes, source }: ResizeReport): string 
 export interface NewProduct {
   id: string;
   name: string;
-  scale: Scale;
+  tier: Tier;
 }
 
 /**
@@ -91,6 +97,7 @@ export interface EditableProduct {
   setName: string;
   series: number | null;
   scale: Scale;
+  tier: Tier;
   rarity: Rarity;
   imageUrl: string | null;
   blurb?: string;
@@ -107,6 +114,7 @@ export function AddProduct({
   onCancel: () => void;
 }) {
   const [scale, setScale] = useState<Scale>(editing?.scale ?? "100%");
+  const [tier, setTier] = useState<Tier>(editing?.tier ?? "bronze");
   const [name, setName] = useState(editing?.name ?? "");
   const originalSeries = seriesChoiceFor(editing);
   const [series, setSeries] = useState(originalSeries);
@@ -171,6 +179,7 @@ export function AddProduct({
           id: editing?.id,
           name,
           scale,
+          tier,
           rarity,
           setName: setNameToSave(),
           series: series === NON_SERIES_CHOICE ? null : Number(series),
@@ -184,7 +193,7 @@ export function AddProduct({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Could not save that product");
-      onSaved({ id: data.piece.id, name: data.piece.name, scale: data.piece.scale });
+      onSaved({ id: data.piece.id, name: data.piece.name, tier: data.piece.tier });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save that product");
     } finally {
@@ -229,14 +238,14 @@ export function AddProduct({
           Which blind box
         </legend>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
-          {SCALE_CHOICES.map((choice) => (
+          {TIER_CHOICES.map((choice) => (
             <button
-              key={choice.scale}
+              key={choice.tier}
               type="button"
-              onClick={() => setScale(choice.scale)}
-              aria-pressed={scale === choice.scale}
+              onClick={() => setTier(choice.tier)}
+              aria-pressed={tier === choice.tier}
               className={`rounded-xl border p-3.5 text-left transition-colors ${
-                scale === choice.scale
+                tier === choice.tier
                   ? "border-white/35 bg-white/[0.07]"
                   : "border-hairline hover:border-white/20"
               }`}
@@ -252,6 +261,35 @@ export function AddProduct({
             </button>
           ))}
         </div>
+      </fieldset>
+
+      {/* how big the figure is — a separate fact from which box sells it */}
+      <fieldset className="mt-6">
+        <legend className="text-[11px] font-medium uppercase tracking-wider text-faint">
+          Figure size
+        </legend>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {SCALE_CHOICES.map((choice) => (
+            <button
+              key={choice.scale}
+              type="button"
+              onClick={() => setScale(choice.scale)}
+              aria-pressed={scale === choice.scale}
+              className={`rounded-xl border p-3.5 text-left transition-colors ${
+                scale === choice.scale
+                  ? "border-white/35 bg-white/[0.07]"
+                  : "border-hairline hover:border-white/20"
+              }`}
+            >
+              <span className="text-[13px] font-medium">{choice.label}</span>
+              <span className="mt-1 block text-[11px] text-faint">{choice.note}</span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-[11px] leading-relaxed text-faint">
+          A 400% is the chase of whichever box you put it in — it is not sold on
+          a shelf of its own any more.
+        </p>
       </fieldset>
 
       <div className="mt-6 grid gap-6 sm:grid-cols-[minmax(0,180px)_1fr]">
@@ -441,8 +479,8 @@ export function AddProduct({
             : categoryRequired && category === ""
               ? "A series piece needs a category."
             : editing
-              ? `Stays a ${scale} piece.`
-              : `Goes in as a ${scale} piece.`}
+              ? `Stays a ${scale} piece in the ${tier} box.`
+              : `Goes in as a ${scale} piece in the ${tier} box.`}
         </span>
       </div>
     </form>
