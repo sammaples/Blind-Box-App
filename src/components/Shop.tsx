@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
@@ -11,7 +11,7 @@ import {
   RARITY_ORDER,
 } from "@/lib/catalog";
 import type { Product, Rarity, StockEntry } from "@/lib/types";
-import { boxGeometry } from "@/lib/boxShape";
+import { boxGeometry, type BoxFace } from "@/lib/boxShape";
 import { BoxPrint, isPrinted } from "./BoxPrint";
 import { useAccount } from "./AccountBar";
 import { Price } from "./ui";
@@ -247,8 +247,20 @@ function OddsByRarity({ shelf }: { shelf: StockEntry[] }) {
   );
 }
 
+/**
+ * Seconds for one turn.
+ *
+ * The box used to rock: ten degrees each way, twenty degrees of travel every
+ * seven seconds, which is where the turn started. It reads as a box that is
+ * barely moving at that rate, so this is a little over twice as quick — fast
+ * enough to register as turning while a shopper is looking at it, slow enough
+ * not to pull the eye off the price.
+ */
+const SPIN_SECONDS = 44.4;
+
 function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
   const box = boxGeometry(63);
+  const reducedMotion = useReducedMotion();
 
   const faceBackground = (shade: number) =>
     `linear-gradient(150deg, color-mix(in srgb, ${accent} ${shade}%, #17171d), #0d0d12 70%)`;
@@ -266,7 +278,7 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
     lit,
     shade,
   }: {
-    name: "front" | "right" | "top";
+    name: BoxFace;
     lit: number;
     shade: number;
   }) => (
@@ -290,6 +302,60 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
     </div>
   );
 
+  /**
+   * The question mark, on all four walls — a turn shows each of them for a
+   * quarter of the time, and a blank wall coming round reads as a mistake.
+   *
+   * It stands off the carton rather than sitting on it, and carries its own
+   * shadow: a short stack of hard offsets for the thickness of the glyph, then
+   * one soft dark blur for what it throws onto the wall behind. At six pixels
+   * out on a sixty-three pixel box the gap is small, but it is the parallax as
+   * the box turns that sells it — a printed mark would track its wall exactly,
+   * and this one does not.
+   */
+  const MARK_LIFT = 6;
+
+  const MARK_SHADOW = [
+    // The glyph's own thickness, falling away from the light the faces use.
+    "0 1px 0 rgb(0 0 0 / 0.30)",
+    "0 2px 0 rgb(0 0 0 / 0.24)",
+    "0 3px 0 rgb(0 0 0 / 0.16)",
+    // And what it casts on the wall it is floating above.
+    "0 7px 9px rgb(0 0 0 / 0.50)",
+  ].join(", ");
+
+  const Mark = ({ face }: { face: "front" | "right" | "back" | "left" }) => {
+    // Each mark is turned to face out of its own wall, or it would read in
+    // mirror writing from every side but the front.
+    const turn = {
+      front: "",
+      right: "rotateY(90deg) ",
+      back: "rotateY(180deg) ",
+      left: "rotateY(-90deg) ",
+    }[face];
+
+    return (
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-1/2 flex justify-center"
+        style={{
+          backfaceVisibility: "hidden",
+          transform: `${turn}translateZ(${box.width / 2 + MARK_LIFT}px) translateY(-50%)`,
+        }}
+      >
+        {/* Over artwork the accent-coloured mark disappears, so a printed box
+            gets a white one instead. Both get the same shadow: it is what puts
+            the glyph in front of the wall rather than on it. */}
+        <span
+          className="text-2xl font-bold"
+          style={{ color: printed ? "#fff" : accent, textShadow: MARK_SHADOW }}
+        >
+          ?
+        </span>
+      </div>
+    );
+  };
+
   return (
     <motion.div
       className="relative"
@@ -305,32 +371,27 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
           transformStyle: "preserve-3d",
         }}
         initial={{ rotateX: -16, rotateY: -24 }}
-        animate={{ rotateY: [-24, -14, -24] }}
-        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+        animate={reducedMotion ? undefined : { rotateY: [-24, 336] }}
+        transition={
+          reducedMotion
+            ? undefined
+            : { duration: SPIN_SECONDS, repeat: Infinity, ease: "linear" }
+        }
       >
-        {/* Only the three faces a 3/4 view can see. The front catches the
-            most light, the lid the least, which is what separates the planes. */}
+        {/* Every side, because the turn brings every side round: a face left
+            out is a hole in the box. The light stays fixed to the carton, so
+            the front catches the most of it and the lid the least, which is
+            what separates the planes. */}
         <Face name="front" lit={34} shade={0.0} />
+        <Face name="left" lit={28} shade={0.1} />
         <Face name="right" lit={24} shade={0.16} />
+        <Face name="back" lit={18} shade={0.22} />
         <Face name="top" lit={14} shade={0.26} />
 
-        <div
-          className="absolute inset-x-0 top-1/2 flex justify-center"
-          style={{ transform: `translateZ(${box.width / 2 + 1}px) translateY(-50%)` }}
-        >
-          {/* Over artwork the accent-coloured mark disappears, so a printed box
-              gets a white one with a shadow under it instead. */}
-          <span
-            className="text-2xl font-bold"
-            style={
-              printed
-                ? { color: "#fff", textShadow: "0 1px 3px rgb(0 0 0 / 0.55)" }
-                : { color: accent }
-            }
-          >
-            ?
-          </span>
-        </div>
+        <Mark face="front" />
+        <Mark face="right" />
+        <Mark face="back" />
+        <Mark face="left" />
       </motion.div>
     </motion.div>
   );

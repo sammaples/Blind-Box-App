@@ -12,5 +12,7 @@ data/*.json
 data/images/
 !data/.gitkeep
 .vercel
+# Built previews: generated from the running app by npm run preview:box.
+.preview/
 next-env.d.ts
 tsconfig.tsbuildinfo

@@ -107,6 +107,45 @@ When it is replaced, the reservation should move to the payment webhook. Right
 now the piece is drawn *before* the charge is confirmed, so a declined card
 still takes a unit off the shelf — and on a one-of-one chase, that is the unit.
 
+## Preview deployments
+
+Every branch you push gets its own URL, and every pull request gets a comment
+linking to it. That is on by default once the project exists — there is no
+switch to find. What needs deciding is which database those previews talk to.
+
+**A preview build is a production build.** Vercel builds previews with
+`NODE_ENV=production`, and this app changes behaviour on exactly that: the JSON
+file backend refuses to start, sign-in refuses without a live mail provider,
+and the admin console refuses without `ADMIN_EMAILS`. A preview with no
+variables of its own does not degrade gracefully, it fails to boot.
+
+**Give Preview its own database.** In the Vercel dashboard each variable is
+scoped to Production, Preview and Development separately. If `DATABASE_URL` is
+scoped to all three, every branch you push is pointed at the real shop: a
+preview can sell a unit off the real shelf, and on a one-of-one chase that is
+the unit. Neon branches a database in a few seconds and it costs nothing, so:
+
+1. In Neon, **Branches → New branch** off `main`. Copy its connection string.
+2. In Vercel, **Settings → Environment Variables**, and add a *second*
+   `DATABASE_URL` scoped to **Preview** only, with the branch's string. Edit
+   the existing one so it is scoped to **Production** only.
+3. Do the same for `AUTH_SECRET` if you want preview sessions to be separate
+   from real ones — a different secret simply means a session from one does not
+   work on the other.
+4. `ADMIN_EMAILS`, `RESEND_API_KEY` and `EMAIL_FROM` can be the same in both.
+   Mail sent from a preview is real mail, so it is worth knowing that a sign-in
+   link from a branch build looks identical to one from the real shop.
+
+The branch database starts as a copy of whatever `main` held when you branched
+it, migrations and all, and the preview build runs any new migrations against
+it. A schema change gets exercised on a preview before it touches the shop.
+
+**Looking at a branch without any of this.** A preview is the only way to see
+the real app with real data, but it is not the only way to see a change. For
+something purely visual — an animation, a layout — `npm run preview:box` builds
+a standalone page from the running app with no deploy at all, and the README
+covers it.
+
 ## Changing things later
 
 Push to the branch Vercel is watching and it redeploys. Add a migration and the
