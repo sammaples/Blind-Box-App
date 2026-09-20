@@ -85,10 +85,38 @@ function ProductCard({
       transition={{ duration: 0.45, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
       className="group relative flex flex-col overflow-hidden rounded-3xl border border-hairline bg-ink-card p-6 transition-colors hover:border-white/22"
     >
+      {/*
+        The light the box is sitting in.
+
+        It used to be a flat disc hung above the card, so most of it fell off
+        the top edge and what reached the box was a faint wash — measured, it
+        lifted the card's own ground by about six levels out of 255. It is now
+        centred on the box itself and painted as a gradient rather than a solid
+        circle: a hot core, a broad shoulder, and nothing at the rim, which is
+        what makes it read as light coming off the carton instead of a coloured
+        blob behind it. Each tier glows in its own accent, so the bronze card is
+        warm and the diamond one cold without either being told to be.
+      */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-24 left-1/2 size-56 -translate-x-1/2 rounded-full opacity-25 blur-3xl transition-opacity duration-500 group-hover:opacity-45"
-        style={{ background: product.accent }}
+        className="pointer-events-none absolute -top-14 left-1/2 size-80 -translate-x-1/2 rounded-full opacity-70 blur-2xl transition-opacity duration-500 group-hover:opacity-100"
+        style={{
+          background: `radial-gradient(circle at 50% 50%, ${product.accent} 0%, ${product.accent} 26%, color-mix(in srgb, ${product.accent} 55%, transparent) 48%, transparent 74%)`,
+        }}
+      />
+      {/*
+        And a tighter core inside it. One broad gradient blurred once comes out
+        evenly dim: spread over that much area there is nothing bright enough
+        anywhere to read as a source. This second, smaller light sits right
+        behind the carton and gives the halo something to fall away from — the
+        difference between a lit box and a coloured patch.
+      */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute top-2 left-1/2 size-44 -translate-x-1/2 rounded-full opacity-75 blur-xl transition-opacity duration-500 group-hover:opacity-100"
+        style={{
+          background: `radial-gradient(circle at 50% 50%, ${product.accent} 0%, color-mix(in srgb, ${product.accent} 50%, transparent) 45%, transparent 72%)`,
+        }}
       />
 
       <div className="relative flex h-40 items-center justify-center">
