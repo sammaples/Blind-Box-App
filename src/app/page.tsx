@@ -20,15 +20,15 @@ import type { StockEntry } from "@/lib/types";
  * policy, because "flat rate" is a phrase people skip and "$5" is not.
  */
 const STEPS = [
-  { n: "01", title: "Open a box", body: "Choose a box and open it." },
+  { n: "01", title: "Open", body: "Choose a box and open it." },
   {
     n: "02",
-    title: "Vault your pulls",
+    title: "Collect",
     body: "Everything you open goes straight to your vault until you're ready to ship them.",
   },
   {
     n: "03",
-    title: "Ship Them",
+    title: "Ship",
     body: "Choose which pieces you want to send. Shipping is always $5, no matter how many pieces.",
   },
 ];
