@@ -17,7 +17,7 @@ import {
   TIER_LABEL,
   TIER_ORDER,
 } from "@/lib/catalog";
-import { UNITS_BY_RARITY } from "@/lib/inventory";
+import { chaseUnitsFor, oddsLabel, UNITS_BY_RARITY } from "@/lib/inventory";
 import type { AuditBatch, Category, Palette, PatternKind, Rarity, Scale, Tier } from "@/lib/types";
 
 /** The slice of a piece the console needs. */
@@ -149,6 +149,14 @@ export function AdminConsole({
           a.piece.name.localeCompare(b.piece.name),
       );
   }, [pieces, levels, tier]);
+
+  // A chase target is a share of the shelf, so it can only be worked out from
+  // the shelf: how many units are not chases, and how many chases split them.
+  const nonChaseUnits = shelf
+    .filter((r) => r.piece.rarity !== "chase")
+    .reduce((sum, r) => sum + r.stocked, 0);
+  const chaseRows = shelf.filter((r) => r.piece.rarity === "chase");
+  const chaseUnits = chaseUnitsFor(tier, nonChaseUnits, chaseRows.length);
 
   const unitsLeft = shelf.reduce((sum, r) => sum + r.available, 0);
   const unitsSold = shelf.reduce((sum, r) => sum + r.sold, 0);
@@ -353,13 +361,34 @@ export function AdminConsole({
         ))}
       </div>
 
-      {tab === "shelf" && <ShelfTable rows={shelf} busy={busy} onChange={send} />}
+      {tab === "shelf" && (
+        <ShelfTable
+          rows={shelf}
+          busy={busy}
+          onChange={send}
+          tier={tier}
+          onBalanceChases={
+            chaseRows.length > 0 && chaseUnits > 0
+              ? () =>
+                  send(
+                    chaseRows.map((r) => ({
+                      pieceId: r.piece.id,
+                      op: "set" as const,
+                      units: chaseUnits,
+                    })),
+                    `Chases set to ${chaseUnits} each — about ${oddsLabel(tier)}`,
+                  )
+              : null
+          }
+        />
+      )}
       {tab === "add" && (
         <AddPieces
           pieces={pieces.filter((p) => p.tier === tier && !p.archived && !levels[p.id])}
           busy={busy}
           onChange={send}
           byId={byId}
+          chaseUnits={chaseUnits}
         />
       )}
       {tab === "catalogue" && (
@@ -406,10 +435,14 @@ function ShelfTable({
   rows,
   busy,
   onChange,
+  tier,
+  onBalanceChases,
 }: {
   rows: ShelfRow[];
   busy: boolean;
   onChange: (changes: Change[], message: string) => void;
+  tier: Tier;
+  onBalanceChases: (() => void) | null;
 }) {
   if (rows.length === 0) {
     return (
@@ -419,8 +452,36 @@ function ShelfTable({
     );
   }
 
+  // What the shelf is actually paying out at right now, against what this tier
+  // promises. Shown together because the gap is the whole point: stock moves,
+  // and the published rate moves with it unless someone puts it back.
+  const chaseAvailable = rows
+    .filter((r) => r.piece.rarity === "chase")
+    .reduce((sum, r) => sum + r.available, 0);
+  const totalAvailable = rows.reduce((sum, r) => sum + r.available, 0);
+  const actual = totalAvailable > 0 ? chaseAvailable / totalAvailable : 0;
+
   return (
     <div className="mt-5 overflow-x-auto">
+      {onBalanceChases && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-ink-card px-4 py-3">
+          <p className="text-[12px] text-muted">
+            Chase odds{" "}
+            <span className="font-mono text-chalk">
+              {actual > 0 ? `1 in ${(1 / actual).toFixed(1)}` : "—"}
+            </span>{" "}
+            <span className="text-faint">· target {oddsLabel(tier)}</span>
+          </p>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onBalanceChases}
+            className="rounded-lg bg-white/10 px-3 py-1.5 text-[12px] transition-colors hover:bg-white/16 disabled:opacity-40"
+          >
+            Set chases to target
+          </button>
+        </div>
+      )}
       <table className="w-full min-w-[46rem] border-separate border-spacing-y-1.5 text-sm">
         <thead>
           <tr className="text-left text-[10px] uppercase tracking-[0.16em] text-faint">
@@ -521,11 +582,14 @@ function AddPieces({
   busy,
   onChange,
   byId,
+  chaseUnits,
 }: {
   pieces: AdminPiece[];
   busy: boolean;
   onChange: (changes: Change[], message: string) => void;
   byId: Map<string, AdminPiece>;
+  /** What a chase needs to carry to hit this shelf's published odds. */
+  chaseUnits: number;
 }) {
   const [query, setQuery] = useState("");
   const [rarity, setRarity] = useState<Rarity | "all">("all");
@@ -578,7 +642,13 @@ function AddPieces({
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {matches.map((piece) => {
-          const suggested = UNITS_BY_RARITY[piece.scale][piece.rarity];
+          // A chase is stocked to the tier's target rather than to a flat
+          // default: its unit count is the odds, so a fixed number would make
+          // the published rate drift every time the rest of the shelf moved.
+          const suggested =
+            piece.rarity === "chase" && chaseUnits > 0
+              ? chaseUnits
+              : UNITS_BY_RARITY[piece.scale][piece.rarity];
           return (
             <div
               key={piece.id}
