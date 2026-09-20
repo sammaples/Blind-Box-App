@@ -20,15 +20,14 @@ import type { StockEntry } from "@/lib/types";
  * policy, because "flat rate" is a phrase people skip and "$5" is not.
  */
 const STEPS = [
-  { n: "01", title: "Pick a box", body: "Buy any box in the shop." },
-  { n: "02", title: "Open it", body: "Tap it and see what you got." },
+  { n: "01", title: "Open a box", body: "Choose a box and open it." },
   {
-    n: "03",
+    n: "02",
     title: "Collect",
     body: "Everything you open goes straight to My Pulls until you want to ship them.",
   },
   {
-    n: "04",
+    n: "03",
     title: "Ship Them",
     body: "Choose which pieces you want to send. Shipping is always $5, no matter how many pieces.",
   },
@@ -76,7 +75,7 @@ export default async function HomePage() {
         </div>
         {/* Two up on a small screen and four across on a wide one. Three
             columns for four steps leaves one stranded on its own row. */}
-        <ol className="mt-5 grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-4">
+        <ol className="mt-5 grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline md:grid-cols-3">
           {STEPS.map((step) => (
             <li key={step.n} className="bg-ink-card p-6">
               <p className="font-mono text-xs text-faint">{step.n}</p>
