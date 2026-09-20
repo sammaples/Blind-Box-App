@@ -12,7 +12,7 @@ import {
 } from "@/lib/catalog";
 import type { Product, Rarity, StockEntry } from "@/lib/types";
 import { boxGeometry, type BoxFace } from "@/lib/boxShape";
-import { BoxPrint, isPrinted } from "./BoxPrint";
+import { BoxPrint, isPrinted, PRINT_GROUND } from "./BoxPrint";
 import { useAccount } from "./AccountBar";
 import { Price } from "./ui";
 import { useScrollLock } from "@/lib/useScrollLock";
@@ -293,9 +293,31 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
   const EDGE_ROLL = [
     "linear-gradient(to bottom, rgb(255 255 255 / 0.07), transparent 5%)",
     "linear-gradient(to right, rgb(255 255 255 / 0.05), transparent 4%)",
-    "linear-gradient(to top, rgb(0 0 0 / 0.10), transparent 5%)",
-    "linear-gradient(to left, rgb(0 0 0 / 0.08), transparent 4%)",
+    // The shaded sides are a deep blue rather than black: the carton is blue,
+    // and a fold that darkens towards grey reads as a gap between two panels
+    // instead of as one sheet bending.
+    "linear-gradient(to top, rgb(18 42 68 / 0.13), transparent 5%)",
+    "linear-gradient(to left, rgb(18 42 68 / 0.10), transparent 4%)",
   ].join(", ");
+
+  /**
+   * What shows through the joins.
+   *
+   * Six planes meeting at right angles do not quite meet: the browser rounds
+   * each one to device pixels, and the hairline left over at a fold — and the
+   * wedge the corner radius opens at each of the eight corners — shows whatever
+   * is behind the box, which is the near-black of the card. Black at the corners
+   * of a pale blue carton reads as damage.
+   *
+   * A ring of the carton's own colour under each face fills both. It takes that
+   * face's own shading with it — a ring of the unshaded ground would be lighter
+   * than every side but the front, and draw a pale outline down each fold in
+   * place of the dark one it was there to remove.
+   */
+  const seamColour = (shade: number) =>
+    printed
+      ? `color-mix(in srgb, ${PRINT_GROUND} ${Math.round((1 - shade) * 100)}%, #000)`
+      : "#2a2a33";
 
   const Face = ({
     name,
@@ -312,8 +334,9 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
         background: printed ? undefined : faceBackground(lit),
         /* The hairline this replaces was a hard white rule one pixel inside
            every border, which drew each edge rather than softening it. A blur
-           in its place reads as the same light, caught on a fold. */
-        boxShadow: "inset 0 0 3px 0 rgb(255 255 255 / 0.05)",
+           in its place reads as the same light, caught on a fold — and outside
+           it, the carton's colour, filling the joins. */
+        boxShadow: `inset 0 0 3px 0 rgb(255 255 255 / 0.05), 0 0 0 0.75px ${seamColour(shade)}`,
         /* Just enough to take the point off the eight corners. Past about four
            the faces stop meeting and the carton shows daylight at its folds. */
         borderRadius: 3,
