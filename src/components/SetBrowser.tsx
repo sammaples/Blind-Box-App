@@ -15,12 +15,18 @@ import {
 import type { Piece, Rarity, StockEntry } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
 import { PieceCard } from "./PieceCard";
-import { RarityChip, SectionLabel } from "./ui";
+import { RarityChip } from "./ui";
 import { useScrollLock } from "@/lib/useScrollLock";
 
-type Sort = "rarity" | "odds" | "series" | "name";
-
-/** Rarest first, then the longest odds — the default, and the tiebreak. */
+/**
+ * Rarest first, then the longest odds.
+ *
+ * The only order now. A sort control offered four ways to arrange a grid whose
+ * whole point is what is scarce and what it pays — sorting it by name buries
+ * the chase among the commons, and nobody came to this section to read an
+ * alphabet. One order that answers the question everyone has beats four that
+ * mostly do not.
+ */
 function byRarity(a: StockEntry, b: StockEntry): number {
   return (
     RARITY_ORDER.indexOf(a.piece.rarity) - RARITY_ORDER.indexOf(b.piece.rarity) ||
@@ -35,21 +41,10 @@ function byRarity(a: StockEntry, b: StockEntry): number {
  */
 export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> }) {
   const [productId, setProductId] = useState(PRODUCTS[0].id);
-  const [series, setSeries] = useState<number | "all">("all");
   const [rarity, setRarity] = useState<Rarity | "all">("all");
-  const [sort, setSort] = useState<Sort>("rarity");
   const [selected, setSelected] = useState<StockEntry | null>(null);
 
   const shelf = useMemo(() => shelves[productId] ?? [], [shelves, productId]);
-
-  /** Series that actually have stock, so the filter never offers a dead end. */
-  const stockedSeries = useMemo(() => {
-    const found = new Set<number>();
-    for (const entry of shelf) {
-      if (entry.piece.series !== null && entry.available > 0) found.add(entry.piece.series);
-    }
-    return [...found].sort((a, b) => a - b);
-  }, [shelf]);
 
   /**
    * What is actually buyable. A piece with no units left cannot be pulled and
@@ -59,29 +54,9 @@ export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> 
   const available = useMemo(() => shelf.filter((e) => e.available > 0), [shelf]);
 
   const entries = useMemo(() => {
-    let list = available;
-    if (series !== "all") list = list.filter((e) => e.piece.series === series);
-    if (rarity !== "all") list = list.filter((e) => e.piece.rarity === rarity);
-
-    return [...list].sort((a, b) => {
-      if (sort === "odds") return b.odds - a.odds;
-      if (sort === "name") return a.piece.name.localeCompare(b.piece.name);
-      if (sort === "series") {
-        const one = a.piece.series;
-        const two = b.piece.series;
-        // Non-Series pieces have no number, so they sit after the numbered
-        // ones rather than sorting as if they were series zero.
-        if (one === null || two === null) {
-          if (one !== two) return one === null ? 1 : -1;
-        } else if (one !== two) {
-          return one - two;
-        }
-        // Within a series, the order the series itself reads in.
-        return byRarity(a, b);
-      }
-      return byRarity(a, b);
-    });
-  }, [available, series, rarity, sort]);
+    const list = rarity === "all" ? available : available.filter((e) => e.piece.rarity === rarity);
+    return [...list].sort(byRarity);
+  }, [available, rarity]);
 
   const rarities = useMemo(() => {
     const present = new Set(available.map((e) => e.piece.rarity));
@@ -109,7 +84,6 @@ export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> 
               onClick={() => {
                 setProductId(p.id);
                 setRarity("all");
-                setSeries("all");
               }}
               className={`relative rounded-full px-4 py-2 text-[13px] font-medium transition-colors ${
                 active ? "text-ink" : "text-muted hover:text-chalk"
@@ -129,43 +103,7 @@ export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> 
         })}
       </div>
 
-      {/* series filter — only for shelves that hold numbered series */}
-      {stockedSeries.length > 0 && (
-        <div className="mt-6">
-          <div className="mb-2">
-            <SectionLabel>Series in stock</SectionLabel>
-          </div>
-          <div className="scroll-slim flex gap-1.5 overflow-x-auto pb-2">
-            <button
-              type="button"
-              onClick={() => setSeries("all")}
-              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs transition-colors ${
-                series === "all"
-                  ? "bg-chalk text-ink"
-                  : "border border-hairline text-muted hover:border-white/25 hover:text-chalk"
-              }`}
-            >
-              All
-            </button>
-            {stockedSeries.map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => setSeries(n)}
-                className={`shrink-0 rounded-lg px-3 py-1.5 font-mono text-xs transition-colors ${
-                  n === series
-                    ? "bg-chalk text-ink"
-                    : "border border-hairline text-muted hover:border-white/25 hover:text-chalk"
-                }`}
-              >
-                {String(n).padStart(2, "0")}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* rarity filter + sort */}
+      {/* rarity filter */}
       <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-hairline pt-5">
         <button
           type="button"
@@ -188,23 +126,6 @@ export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> 
             {RARITY_LABEL[r]}
           </button>
         ))}
-
-        <div className="ml-auto flex items-center gap-2">
-          <label htmlFor="sort" className="text-[11px] uppercase tracking-[0.14em] text-faint">
-            Sort
-          </label>
-          <select
-            id="sort"
-            value={sort}
-            onChange={(e) => setSort(e.target.value as Sort)}
-            className="rounded-lg border border-hairline bg-ink-raised px-2.5 py-1.5 text-xs text-chalk outline-none focus:border-white/30"
-          >
-            <option value="rarity">Rarity</option>
-            <option value="odds">Pull rate</option>
-            <option value="series">Series</option>
-            <option value="name">Name</option>
-          </select>
-        </div>
       </div>
 
       <p className="mt-4 text-xs text-faint">
