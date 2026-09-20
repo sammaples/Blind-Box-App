@@ -24,6 +24,34 @@ npm run dev        # http://localhost:3000
 `npm run build && npm start` for a production build. There is nothing to
 configure — no keys, no database, no image assets.
 
+### Seeing an animation without a deploy
+
+```bash
+npm run preview:box       # writes .preview/box-spin.html
+```
+
+The shop box turns slowly enough that a still tells you nothing, and it is the
+kind of thing you want to look at on a phone before it ships. This builds a
+standalone page of the box turning, with a dial for its speed and the shipping
+rate beside it to compare against.
+
+The box on that page is not a drawing of the box. The script starts the app,
+opens the shop, and lifts the rendered carton out of the DOM — its faces, its
+print, its transforms, as a visitor's browser built them — so the preview
+cannot drift from the component the way a hand-copied one does. The rate it
+quotes is read back out of `SPIN_SECONDS` in `src/components/Shop.tsx` for the
+same reason.
+
+It uses Playwright for the browser, which the app itself does not need:
+
+```bash
+npm i -D playwright && npx playwright install chromium
+```
+
+Leave a `npm run dev` running and it uses that; otherwise it starts one and
+stops it again on the way out. The output is gitignored — it is built, not
+kept.
+
 ### Running on Postgres
 
 ```bash

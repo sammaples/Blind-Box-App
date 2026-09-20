@@ -12,7 +12,8 @@
     "migrate:down": "node-pg-migrate down",
     "migrate:create": "node-pg-migrate create --migration-file-language sql",
     "vercel-build": "node-pg-migrate up && next build",
-    "preflight": "node scripts/preflight.mjs"
+    "preflight": "node scripts/preflight.mjs",
+    "preview:box": "node scripts/box-preview.mjs"
   },
   "dependencies": {
     "framer-motion": "^13.1.1",
