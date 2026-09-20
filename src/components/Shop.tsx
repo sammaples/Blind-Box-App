@@ -306,22 +306,36 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
    * The question mark, on all four walls — a turn shows each of them for a
    * quarter of the time, and a blank wall coming round reads as a mistake.
    *
-   * It stands off the carton rather than sitting on it, and carries its own
-   * shadow: a short stack of hard offsets for the thickness of the glyph, then
-   * one soft dark blur for what it throws onto the wall behind. At six pixels
-   * out on a sixty-three pixel box the gap is small, but it is the parallax as
-   * the box turns that sells it — a printed mark would track its wall exactly,
-   * and this one does not.
+   * It is moulded onto the carton rather than hovering over it: a letter with
+   * its own thickness, sitting on the wall the way an embossed one would. Two
+   * pixels of clearance is enough to catch a contact shadow and no more — at
+   * six the glyph swung visibly against its own wall as the box turned, which
+   * read as a sticker floating loose rather than as part of the box.
+   *
+   * The depth is all in the type. A rim of light along the top edge, four
+   * solid steps down the side for the body of the letter, and one tight blur
+   * where it meets the wall. The steps are mixed from the glyph's own colour
+   * so this works over the print and over a plain accent box alike.
    */
-  const MARK_LIFT = 6;
+  const MARK_LIFT = 2;
+
+  const markFace = printed ? "#fff" : accent;
+
+  /** The side of the letter, darkening with each step away from the light. */
+  const markStep = (depth: number) =>
+    `color-mix(in srgb, ${markFace} ${100 - depth}%, #0a0f16)`;
 
   const MARK_SHADOW = [
-    // The glyph's own thickness, falling away from the light the faces use.
-    "0 1px 0 rgb(0 0 0 / 0.30)",
-    "0 2px 0 rgb(0 0 0 / 0.24)",
-    "0 3px 0 rgb(0 0 0 / 0.16)",
-    // And what it casts on the wall it is floating above.
-    "0 7px 9px rgb(0 0 0 / 0.50)",
+    // A lit rim along the top, which is what makes it read as raised rather
+    // than as a hole punched into the wall.
+    "0 -1px 0 rgb(255 255 255 / 0.5)",
+    // The body of the letter, four solid steps of it.
+    `0 1px 0 ${markStep(22)}`,
+    `0 2px 0 ${markStep(34)}`,
+    `0 3px 0 ${markStep(46)}`,
+    `0 4px 0 ${markStep(58)}`,
+    // And where it meets the wall. Tight, because it is sitting on it.
+    "0 5px 4px rgb(0 0 0 / 0.42)",
   ].join(", ");
 
   const Mark = ({ face }: { face: "front" | "right" | "back" | "left" }) => {
@@ -344,11 +358,11 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
         }}
       >
         {/* Over artwork the accent-coloured mark disappears, so a printed box
-            gets a white one instead. Both get the same shadow: it is what puts
-            the glyph in front of the wall rather than on it. */}
+            gets a white one instead. Heaviest weight the face has: a moulded
+            letter needs the width to show its own sides. */}
         <span
-          className="text-2xl font-bold"
-          style={{ color: printed ? "#fff" : accent, textShadow: MARK_SHADOW }}
+          className="text-2xl font-black"
+          style={{ color: markFace, textShadow: MARK_SHADOW }}
         >
           ?
         </span>
