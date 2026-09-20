@@ -42,8 +42,8 @@
  * hierarchy we want, and leaves the common audible on a phone speaker rather
  * than merely technically present.
  */
-const CALM_PEAK = 0.17;
-const LOUD_PEAK = 0.18;
+const CALM_PEAK = 0.12;
+const LOUD_PEAK = 0.13;
 
 export interface OpenSound {
   /** Touchdown: the moment the box gives and the weight lands. */
@@ -84,14 +84,23 @@ export function playOpenSound(windMs: number, { loud }: { loud: boolean }): Open
     const wind = Math.max(0.2, windMs / 1000);
 
     // A descent is six overlapping layers and they will not politely take
-    // turns. Without this the sum clips on the loud one and the clipping is
-    // what you hear instead of the ship.
+    // turns, so there has to be something catching the sum. But a compressor
+    // is a terrible neighbour for a hover: releasing over a quarter of a
+    // second, it tracks a pulse at five hertz and irons it flat — which is
+    // precisely what happened, and why deepening the wah upstream kept coming
+    // back measuring no deeper.
+    //
+    // So it is a safety net now rather than a leveller. It sits high enough to
+    // ignore the body of the sound, leans gently when it does engage, and
+    // releases slowly enough to act as one steady gain across the whole thing
+    // instead of breathing in time with the thrusters. The layers below were
+    // brought down to meet it.
     const limiter = ctx.createDynamicsCompressor();
-    limiter.threshold.value = -10;
-    limiter.knee.value = 12;
-    limiter.ratio.value = 12;
-    limiter.attack.value = 0.003;
-    limiter.release.value = 0.25;
+    limiter.threshold.value = -3;
+    limiter.knee.value = 6;
+    limiter.ratio.value = 4;
+    limiter.attack.value = 0.01;
+    limiter.release.value = 0.9;
     limiter.connect(ctx.destination);
 
     const master = ctx.createGain();
@@ -123,8 +132,8 @@ export function playOpenSound(windMs: number, { loud }: { loud: boolean }): Open
     // shake rather than a beat before the flaps.
     const engineGain = ctx.createGain();
     engineGain.gain.setValueAtTime(0.0001, now);
-    engineGain.gain.exponentialRampToValueAtTime(loud ? 0.22 : 0.18, now + wind * 0.1);
-    engineGain.gain.exponentialRampToValueAtTime(loud ? 0.7 : 0.5, now + wind * 0.94);
+    engineGain.gain.exponentialRampToValueAtTime(loud ? 0.14 : 0.11, now + wind * 0.1);
+    engineGain.gain.exponentialRampToValueAtTime(loud ? 0.34 : 0.26, now + wind * 0.94);
     engineGain.gain.exponentialRampToValueAtTime(0.0001, now + wind + 0.14);
     engineFilter.connect(engineGain).connect(master);
 
@@ -151,8 +160,8 @@ export function playOpenSound(windMs: number, { loud }: { loud: boolean }): Open
     roarFilter.frequency.exponentialRampToValueAtTime(loud ? 3400 : 1900, now + wind);
     const roarGain = ctx.createGain();
     roarGain.gain.setValueAtTime(0.0001, now);
-    roarGain.gain.exponentialRampToValueAtTime(loud ? 0.26 : 0.16, now + wind * 0.08);
-    roarGain.gain.exponentialRampToValueAtTime(loud ? 0.75 : 0.4, now + wind * 0.9);
+    roarGain.gain.exponentialRampToValueAtTime(loud ? 0.16 : 0.1, now + wind * 0.08);
+    roarGain.gain.exponentialRampToValueAtTime(loud ? 0.4 : 0.22, now + wind * 0.9);
     roarGain.gain.exponentialRampToValueAtTime(0.0001, now + wind + 0.2);
     roar.connect(roarFilter).connect(roarGain).connect(master);
     roar.start(now);
@@ -168,10 +177,17 @@ export function playOpenSound(windMs: number, { loud }: { loud: boolean }): Open
     //
     // Every tier gets it. Hovering is what the craft is doing while the box
     // shakes, whatever is inside.
+    // A resonant lowpass, not a bandpass. A bandpass with enough Q to make a
+    // vowel throws away everything outside a narrow slice, and measured
+    // against the rest of the mix the first version of this landed 18 dB down
+    // — one per cent of what you were hearing. It swept beautifully and was
+    // completely inaudible. A lowpass passes everything under the cutoff plus
+    // a resonant peak at it, which is both how a wah pedal actually works and
+    // loud enough to survive company.
     const hoverFilter = ctx.createBiquadFilter();
-    hoverFilter.type = "bandpass";
-    hoverFilter.frequency.value = loud ? 1100 : 900;
-    hoverFilter.Q.value = loud ? 9 : 7;
+    hoverFilter.type = "lowpass";
+    hoverFilter.frequency.value = loud ? 1550 : 1400;
+    hoverFilter.Q.value = loud ? 17 : 16;
 
     // About six sweeps a second on a common box, easing off as the craft
     // settles — enough wahs to read as a rhythm inside a wind this short
@@ -186,15 +202,31 @@ export function playOpenSound(windMs: number, { loud }: { loud: boolean }): Open
     lfo.type = "sine";
     lfo.frequency.setValueAtTime(loud ? 4.4 : 5.8, now);
     lfo.frequency.exponentialRampToValueAtTime(loud ? 2.6 : 4.2, now + wind);
+    // Wide enough that the bottom of each sweep takes the cutoff below the
+    // voices themselves. A shallower sweep only changes which upper harmonics
+    // survive, and measured that came out as a 21% wobble — audible if you are
+    // told it is there, which is not the same as hearing it.
     const lfoDepth = ctx.createGain();
-    lfoDepth.gain.value = loud ? 900 : 680;
+    lfoDepth.gain.value = loud ? 1350 : 1250;
     lfo.connect(lfoDepth).connect(hoverFilter.frequency);
+
+    // The same LFO on the level, too. A wah is a timbre change and a pure
+    // tremolo is a cheap substitute for one — but a little amplitude moving in
+    // step with the filter is what a real thruster does as it loads and
+    // unloads, and it is what takes this from something you can measure to
+    // something you can hear. An AudioParam sums its automation with whatever
+    // is connected to it, so this rides on the ramps below rather than
+    // replacing them.
+    const lfoLevel = ctx.createGain();
+    lfoLevel.gain.value = loud ? 0.62 : 0.58;
+    lfo.connect(lfoLevel);
 
     const hoverGain = ctx.createGain();
     hoverGain.gain.setValueAtTime(0.0001, now);
-    hoverGain.gain.exponentialRampToValueAtTime(loud ? 0.3 : 0.24, now + wind * 0.09);
-    hoverGain.gain.exponentialRampToValueAtTime(loud ? 0.5 : 0.38, now + wind * 0.9);
+    hoverGain.gain.exponentialRampToValueAtTime(loud ? 0.55 : 0.5, now + wind * 0.09);
+    hoverGain.gain.exponentialRampToValueAtTime(loud ? 0.85 : 0.75, now + wind * 0.9);
     hoverGain.gain.exponentialRampToValueAtTime(0.0001, now + wind + 0.12);
+    lfoLevel.connect(hoverGain.gain);
     hoverFilter.connect(hoverGain).connect(master);
 
     // Two voices a fifth apart so the sweep has something to bite on: a single
