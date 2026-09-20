@@ -306,37 +306,20 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
    * The question mark, on all four walls — a turn shows each of them for a
    * quarter of the time, and a blank wall coming round reads as a mistake.
    *
-   * It is moulded onto the carton rather than hovering over it: a letter with
-   * its own thickness, sitting on the wall the way an embossed one would. Two
-   * pixels of clearance is enough to catch a contact shadow and no more — at
-   * six the glyph swung visibly against its own wall as the box turned, which
-   * read as a sticker floating loose rather than as part of the box.
+   * It is a puffed sticker sitting on the carton: a fattened, round-cornered
+   * glyph lit from the upper left, with a soft shadow under it. Two pixels of
+   * clearance, which is enough for the shadow to read and little enough that
+   * the mark does not swing against its own wall as the box turns.
    *
-   * The depth is all in the type. A rim of light along the top edge, four
-   * solid steps down the side for the body of the letter, and one tight blur
-   * where it meets the wall. The steps are mixed from the glyph's own colour
-   * so this works over the print and over a plain accent box alike.
+   * The volume is real rather than drawn. The letter's own alpha is blurred
+   * into a height map and lit, so the surface rounds off smoothly at the edges
+   * the way an inflated sticker does — stacking offset copies of the glyph
+   * gives thickness, but it gives it in visible steps, which is what makes it
+   * look like stacked copies instead of like one solid object.
    */
   const MARK_LIFT = 2;
 
   const markFace = printed ? "#fff" : accent;
-
-  /** The side of the letter, darkening with each step away from the light. */
-  const markStep = (depth: number) =>
-    `color-mix(in srgb, ${markFace} ${100 - depth}%, #0a0f16)`;
-
-  const MARK_SHADOW = [
-    // A lit rim along the top, which is what makes it read as raised rather
-    // than as a hole punched into the wall.
-    "0 -1px 0 rgb(255 255 255 / 0.5)",
-    // The body of the letter, four solid steps of it.
-    `0 1px 0 ${markStep(22)}`,
-    `0 2px 0 ${markStep(34)}`,
-    `0 3px 0 ${markStep(46)}`,
-    `0 4px 0 ${markStep(58)}`,
-    // And where it meets the wall. Tight, because it is sitting on it.
-    "0 5px 4px rgb(0 0 0 / 0.42)",
-  ].join(", ");
 
   const Mark = ({ face }: { face: "front" | "right" | "back" | "left" }) => {
     // Each mark is turned to face out of its own wall, or it would read in
@@ -348,6 +331,10 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
       left: "rotateY(-90deg) ",
     }[face];
 
+    // The filter and gradient live in the document, so every mark on every
+    // card needs its own ids or they collide and share one another's lighting.
+    const uid = `mk-${accent.replace(/[^a-z0-9]/gi, "")}-${face}`;
+
     return (
       <div
         aria-hidden
@@ -357,15 +344,99 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
           transform: `${turn}translateZ(${box.width / 2 + MARK_LIFT}px) translateY(-50%)`,
         }}
       >
-        {/* Over artwork the accent-coloured mark disappears, so a printed box
-            gets a white one instead. Heaviest weight the face has: a moulded
-            letter needs the width to show its own sides. */}
-        <span
-          className="text-2xl font-black"
-          style={{ color: markFace, textShadow: MARK_SHADOW }}
-        >
-          ?
-        </span>
+        <svg width="30" height="30" viewBox="0 0 40 40" style={{ overflow: "visible" }}>
+          <defs>
+            {/* Across the face: lit at the top, falling into its own shade at
+                the bottom. Painted over the letter's colour rather than mixed
+                into it, so one pair of stops covers white and any accent. */}
+            <linearGradient id={`${uid}-face`} x1="0" y1="0" x2="0.25" y2="1">
+              <stop offset="0" stopColor="#fff" stopOpacity="0.55" />
+              <stop offset="0.45" stopColor="#fff" stopOpacity="0.05" />
+              <stop offset="1" stopColor="#000" stopOpacity="0.3" />
+            </linearGradient>
+
+            <filter
+              id={`${uid}-puff`}
+              x="-40%"
+              y="-40%"
+              width="180%"
+              height="190%"
+              colorInterpolationFilters="sRGB"
+            >
+              {/* The letter's alpha, blurred, is the height map — the blur is
+                  what rounds the edges off instead of cutting them square. */}
+              <feGaussianBlur in="SourceAlpha" stdDeviation="1.7" result="height" />
+              <feSpecularLighting
+                in="height"
+                surfaceScale="3.2"
+                specularConstant="0.8"
+                specularExponent="18"
+                lightingColor="#fff"
+                result="gloss"
+              >
+                <fePointLight x="8" y="2" z="26" />
+              </feSpecularLighting>
+              {/* Light that fell outside the glyph is light on nothing. */}
+              <feComposite in="gloss" in2="SourceAlpha" operator="in" result="gloss" />
+              <feComposite
+                in="SourceGraphic"
+                in2="gloss"
+                operator="arithmetic"
+                k1="0"
+                k2="1"
+                k3="1"
+                k4="0"
+                result="lit"
+              />
+              <feDropShadow
+                dx="0"
+                dy="1.6"
+                stdDeviation="1.1"
+                floodColor="#000"
+                floodOpacity="0.45"
+              />
+            </filter>
+          </defs>
+
+          <g filter={`url(#${uid}-puff)`}>
+            {/* The letter twice over on the same geometry: its colour, then
+                the light across it. `paint-order` puts the stroke behind the
+                fill, so the round joins fatten the glyph and take the corners
+                off it without closing up the hole in the bowl — past about two
+                units of stroke the counter fills in and a question mark stops
+                being legible as one. */}
+            <text
+              x="20"
+              y="20"
+              textAnchor="middle"
+              dominantBaseline="central"
+              fontSize="27"
+              fontWeight="900"
+              fill={markFace}
+              stroke={markFace}
+              strokeWidth="2"
+              strokeLinejoin="round"
+              paintOrder="stroke"
+            >
+              ?
+            </text>
+            <text
+              x="20"
+              y="20"
+              textAnchor="middle"
+              dominantBaseline="central"
+              fontSize="27"
+              fontWeight="900"
+              fill={`url(#${uid}-face)`}
+              stroke={`url(#${uid}-face)`}
+              strokeWidth="2"
+              strokeLinejoin="round"
+              paintOrder="stroke"
+            >
+              ?
+            </text>
+          </g>
+        </svg>
       </div>
     );
   };
