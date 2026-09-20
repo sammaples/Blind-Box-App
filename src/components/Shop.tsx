@@ -303,35 +303,58 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
   );
 
   /**
-   * The question mark, pinned a hair proud of a face. A full turn shows the
-   * back as often as the front, so it goes on both — the back one turned with
-   * the face it sits on, or it would read in mirror writing.
+   * The question mark, on all four walls — a turn shows each of them for a
+   * quarter of the time, and a blank wall coming round reads as a mistake.
+   *
+   * It stands off the carton rather than sitting on it, and carries its own
+   * shadow: a short stack of hard offsets for the thickness of the glyph, then
+   * one soft dark blur for what it throws onto the wall behind. At six pixels
+   * out on a sixty-three pixel box the gap is small, but it is the parallax as
+   * the box turns that sells it — a printed mark would track its wall exactly,
+   * and this one does not.
    */
-  const Mark = ({ back }: { back?: boolean }) => (
-    <div
-      aria-hidden
-      className="absolute inset-x-0 top-1/2 flex justify-center"
-      style={{
-        backfaceVisibility: "hidden",
-        transform: `${back ? "rotateY(180deg) " : ""}translateZ(${
-          box.width / 2 + 1
-        }px) translateY(-50%)`,
-      }}
-    >
-      {/* Over artwork the accent-coloured mark disappears, so a printed box
-          gets a white one with a shadow under it instead. */}
-      <span
-        className="text-2xl font-bold"
-        style={
-          printed
-            ? { color: "#fff", textShadow: "0 1px 3px rgb(0 0 0 / 0.55)" }
-            : { color: accent }
-        }
+  const MARK_LIFT = 6;
+
+  const MARK_SHADOW = [
+    // The glyph's own thickness, falling away from the light the faces use.
+    "0 1px 0 rgb(0 0 0 / 0.30)",
+    "0 2px 0 rgb(0 0 0 / 0.24)",
+    "0 3px 0 rgb(0 0 0 / 0.16)",
+    // And what it casts on the wall it is floating above.
+    "0 7px 9px rgb(0 0 0 / 0.50)",
+  ].join(", ");
+
+  const Mark = ({ face }: { face: "front" | "right" | "back" | "left" }) => {
+    // Each mark is turned to face out of its own wall, or it would read in
+    // mirror writing from every side but the front.
+    const turn = {
+      front: "",
+      right: "rotateY(90deg) ",
+      back: "rotateY(180deg) ",
+      left: "rotateY(-90deg) ",
+    }[face];
+
+    return (
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-1/2 flex justify-center"
+        style={{
+          backfaceVisibility: "hidden",
+          transform: `${turn}translateZ(${box.width / 2 + MARK_LIFT}px) translateY(-50%)`,
+        }}
       >
-        ?
-      </span>
-    </div>
-  );
+        {/* Over artwork the accent-coloured mark disappears, so a printed box
+            gets a white one instead. Both get the same shadow: it is what puts
+            the glyph in front of the wall rather than on it. */}
+        <span
+          className="text-2xl font-bold"
+          style={{ color: printed ? "#fff" : accent, textShadow: MARK_SHADOW }}
+        >
+          ?
+        </span>
+      </div>
+    );
+  };
 
   return (
     <motion.div
@@ -365,8 +388,10 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
         <Face name="back" lit={18} shade={0.22} />
         <Face name="top" lit={14} shade={0.26} />
 
-        <Mark />
-        <Mark back />
+        <Mark face="front" />
+        <Mark face="right" />
+        <Mark face="back" />
+        <Mark face="left" />
       </motion.div>
     </motion.div>
   );
