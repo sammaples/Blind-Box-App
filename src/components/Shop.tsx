@@ -273,6 +273,30 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
   const faceShade = (shade: number) =>
     `linear-gradient(150deg, rgb(0 0 0 / ${shade}), rgb(0 0 0 / ${shade + 0.1}) 78%)`;
 
+  /**
+   * How the light rolls over an edge.
+   *
+   * Six flat planes meeting at right angles give an edge with no width at all:
+   * two shades of blue butting against each other on a hard line, which reads
+   * as a cut rather than as a folded carton. A real box has a radius on every
+   * fold, and what gives that radius away is not the silhouette — at this size
+   * the curve is a pixel — but the light, which brightens as the surface turns
+   * towards it and falls away as it turns off.
+   *
+   * So the edge is painted rather than modelled: a narrow band at each border
+   * of every face, lit on the two sides facing the light the faces are already
+   * lit from and shaded on the other two. Two or three pixels of it, which is
+   * a twentieth of the face and is meant to be felt rather than seen — at
+   * twice this it stops reading as a fold and starts reading as a pale frame
+   * drawn around each side, which is a harder edge than the one it replaced.
+   */
+  const EDGE_ROLL = [
+    "linear-gradient(to bottom, rgb(255 255 255 / 0.07), transparent 5%)",
+    "linear-gradient(to right, rgb(255 255 255 / 0.05), transparent 4%)",
+    "linear-gradient(to top, rgb(0 0 0 / 0.10), transparent 5%)",
+    "linear-gradient(to left, rgb(0 0 0 / 0.08), transparent 4%)",
+  ].join(", ");
+
   const Face = ({
     name,
     lit,
@@ -286,7 +310,13 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
       style={{
         ...box.face(name),
         background: printed ? undefined : faceBackground(lit),
-        boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.08)",
+        /* The hairline this replaces was a hard white rule one pixel inside
+           every border, which drew each edge rather than softening it. A blur
+           in its place reads as the same light, caught on a fold. */
+        boxShadow: "inset 0 0 3px 0 rgb(255 255 255 / 0.05)",
+        /* Just enough to take the point off the eight corners. Past about four
+           the faces stop meeting and the carton shows daylight at its folds. */
+        borderRadius: 3,
         overflow: "hidden",
       }}
     >
@@ -299,6 +329,10 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
           />
         </>
       )}
+      <span
+        aria-hidden
+        style={{ position: "absolute", inset: 0, background: EDGE_ROLL }}
+      />
     </div>
   );
 
