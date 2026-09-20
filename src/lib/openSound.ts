@@ -42,8 +42,8 @@
  * hierarchy we want, and leaves the common audible on a phone speaker rather
  * than merely technically present.
  */
-const CALM_PEAK = 0.12;
-const LOUD_PEAK = 0.13;
+const CALM_PEAK = 0.34;
+const LOUD_PEAK = 0.27;
 
 export interface OpenSound {
   /** Touchdown: the moment the box gives and the weight lands. */
@@ -53,6 +53,44 @@ export interface OpenSound {
 }
 
 const NO_SOUND: OpenSound = { pop: () => {}, stop: () => {} };
+
+/** The hover, trimmed to a seamless loop. 38 KB, and worth it. */
+const HOVER_URL = "/sounds/hover-loop.wav";
+
+let hoverBuffer: AudioBuffer | null = null;
+let hoverPending: Promise<void> | null = null;
+
+/**
+ * Fetches and decodes the hover ahead of the tap.
+ *
+ * A browser will not start an AudioContext without a gesture, but it will
+ * happily decode audio without one — an OfflineAudioContext needs no
+ * permission, and an AudioBuffer is not bound to the context that made it. So
+ * the download and the decode both happen while the box is still sitting
+ * there, and the tap only has to start a source node.
+ *
+ * Every failure here is silent and survivable: no network, no decoder, no
+ * support for the format, and the hover simply does not play. The engines,
+ * the air and the whole touchdown are synthesised and still do.
+ */
+export function preloadOpenSound(): void {
+  if (typeof window === "undefined" || hoverBuffer || hoverPending) return;
+  hoverPending = (async () => {
+    try {
+      const res = await fetch(HOVER_URL);
+      if (!res.ok) return;
+      const bytes = await res.arrayBuffer();
+      const Offline =
+        window.OfflineAudioContext ??
+        (window as unknown as { webkitOfflineAudioContext?: typeof OfflineAudioContext })
+          .webkitOfflineAudioContext;
+      if (!Offline) return;
+      hoverBuffer = await new Offline(1, 1, 44100).decodeAudioData(bytes);
+    } catch {
+      /* the box still opens, just without the hover */
+    }
+  })();
+}
 
 /**
  * Noise, tapered or not.
@@ -132,8 +170,8 @@ export function playOpenSound(windMs: number, { loud }: { loud: boolean }): Open
     // shake rather than a beat before the flaps.
     const engineGain = ctx.createGain();
     engineGain.gain.setValueAtTime(0.0001, now);
-    engineGain.gain.exponentialRampToValueAtTime(loud ? 0.14 : 0.11, now + wind * 0.1);
-    engineGain.gain.exponentialRampToValueAtTime(loud ? 0.34 : 0.26, now + wind * 0.94);
+    engineGain.gain.exponentialRampToValueAtTime(loud ? 0.06 : 0.05, now + wind * 0.1);
+    engineGain.gain.exponentialRampToValueAtTime(loud ? 0.15 : 0.11, now + wind * 0.94);
     engineGain.gain.exponentialRampToValueAtTime(0.0001, now + wind + 0.14);
     engineFilter.connect(engineGain).connect(master);
 
@@ -160,75 +198,41 @@ export function playOpenSound(windMs: number, { loud }: { loud: boolean }): Open
     roarFilter.frequency.exponentialRampToValueAtTime(loud ? 620 : 520, now + wind);
     const roarGain = ctx.createGain();
     roarGain.gain.setValueAtTime(0.0001, now);
-    roarGain.gain.exponentialRampToValueAtTime(loud ? 0.16 : 0.1, now + wind * 0.08);
-    roarGain.gain.exponentialRampToValueAtTime(loud ? 0.4 : 0.22, now + wind * 0.9);
+    roarGain.gain.exponentialRampToValueAtTime(loud ? 0.07 : 0.05, now + wind * 0.08);
+    roarGain.gain.exponentialRampToValueAtTime(loud ? 0.17 : 0.1, now + wind * 0.9);
     roarGain.gain.exponentialRampToValueAtTime(0.0001, now + wind + 0.2);
     roar.connect(roarFilter).connect(roarGain).connect(master);
     roar.start(now);
 
-    // The hover.
+    // The hover is the recording, not an imitation of it.
     //
-    // Measured off a reference clip rather than guessed at, because two
-    // attempts at guessing both missed by a mile. What a hovering craft
-    // actually sounds like, at least the one we are copying, is a deep fast
-    // throb: a carrier near 75Hz pulsing a little under twelve times a second,
-    // with almost nothing above 400Hz. The whole clip's centre of gravity sits
-    // at 283Hz.
+    // Two attempts at synthesising this missed badly, and a third got the
+    // numbers right — 75Hz carrier, 11.7Hz pulse, matching spectrum — while
+    // still being a synthesiser pretending. There is no prize for that. The
+    // clip exists, so the clip plays.
     //
-    // Both earlier versions were a bright slow vowel instead — five pulses a
-    // second with a resonance sweeping to two and a half kilohertz. Wrong rate
-    // by two and a half times and wrong register by an octave and a half,
-    // which is why it never sounded like the thing being asked for.
-    //
-    // It is amplitude doing the work, not a filter. The giveaway is in the
-    // spectrum: the reference has peaks at 65 and 87Hz flanking the 75Hz
-    // carrier, and sidebands either side at the modulation rate are what
-    // amplitude modulation leaves behind. A swept filter does not do that.
-    const HOVER_HZ = 75;
-    const PULSE_HZ = 11.7;
+    // It is trimmed to a loop of just over 1.2 seconds with a crossfade baked
+    // into its first 140ms, so the end rejoins the beginning without a tick,
+    // and it loops for as long as a wind lasts — which matters, because a
+    // chase hovers for more than twice as long as the clip runs.
+    if (hoverBuffer) {
+      const hover = ctx.createBufferSource();
+      hover.buffer = hoverBuffer;
+      hover.loop = true;
 
-    // Dark, because the reference is. A sawtooth at 75Hz through a lowpass
-    // here keeps the fundamental and its second harmonic — the 150Hz partial
-    // the clip also shows — and drops everything above, which is where the
-    // 283Hz centre of gravity comes from.
-    const hoverFilter = ctx.createBiquadFilter();
-    hoverFilter.type = "lowpass";
-    hoverFilter.frequency.value = loud ? 320 : 290;
-    hoverFilter.Q.value = 2.2;
+      // Slightly slower and deeper on a chase. Weight sounds unhurried, and
+      // this is the one knob that still says which tier you are on now that
+      // the sound itself is fixed.
+      hover.playbackRate.value = loud ? 0.9 : 1;
 
-    const hoverGain = ctx.createGain();
-    hoverGain.gain.setValueAtTime(0.0001, now);
-    hoverGain.gain.exponentialRampToValueAtTime(loud ? 0.8 : 0.72, now + wind * 0.08);
-    hoverGain.gain.exponentialRampToValueAtTime(loud ? 1.05 : 0.95, now + wind * 0.9);
-    hoverGain.gain.exponentialRampToValueAtTime(0.0001, now + wind + 0.12);
-    hoverFilter.connect(hoverGain).connect(master);
-
-    // The throb. Depth climbs across the wind the way the reference does —
-    // 21% at the start, past 40% by the end — so the craft reads as settling
-    // into its hover rather than arriving already steady.
-    const pulse = ctx.createOscillator();
-    pulse.type = "sine";
-    pulse.frequency.setValueAtTime(PULSE_HZ, now);
-    pulse.frequency.linearRampToValueAtTime(PULSE_HZ - 0.4, now + wind);
-    const pulseDepth = ctx.createGain();
-    pulseDepth.gain.setValueAtTime(0.2, now);
-    pulseDepth.gain.linearRampToValueAtTime(0.44, now + wind);
-    pulse.connect(pulseDepth).connect(hoverGain.gain);
-    pulse.start(now);
-    pulse.stop(now + wind + 0.25);
-
-    // Two voices a hair apart. Exactly one would be a synthesiser holding a
-    // low note; a couple of cents of drift between them keeps the tone moving
-    // under the throb without adding anything you could name.
-    for (const detune of loud ? [0, 7, -9] : [0, 8]) {
-      const voice = ctx.createOscillator();
-      voice.type = "sawtooth";
-      voice.detune.value = detune;
-      voice.frequency.setValueAtTime(HOVER_HZ, now);
-      voice.frequency.linearRampToValueAtTime(HOVER_HZ * 0.94, now + wind);
-      voice.connect(hoverFilter);
-      voice.start(now);
-      voice.stop(now + wind + 0.25);
+      const hoverGain = ctx.createGain();
+      hoverGain.gain.setValueAtTime(0.0001, now);
+      hoverGain.gain.exponentialRampToValueAtTime(loud ? 0.85 : 0.8, now + wind * 0.07);
+      hoverGain.gain.exponentialRampToValueAtTime(loud ? 1.15 : 1.05, now + wind * 0.9);
+      hoverGain.gain.exponentialRampToValueAtTime(0.0001, now + wind + 0.12);
+      hover.connect(hoverGain).connect(master);
+      hover.start(now);
+      hover.stop(now + wind + 0.25);
     }
 
     let stopped = false;

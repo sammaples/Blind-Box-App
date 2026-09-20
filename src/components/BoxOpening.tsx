@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   formatOdds,
   oddsAsOneIn,
@@ -10,7 +10,7 @@ import {
   RARITY_LABEL,
 } from "@/lib/catalog";
 import { boxGeometry } from "@/lib/boxShape";
-import { playOpenSound, type OpenSound } from "@/lib/openSound";
+import { playOpenSound, preloadOpenSound, type OpenSound } from "@/lib/openSound";
 import { BoxPrint, isPrinted, PRINT_GROUND } from "./BoxPrint";
 import type { Piece, Product } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
@@ -213,6 +213,13 @@ export function BoxOpening({
   const [piece, setPiece] = useState<Piece | null>(initialPiece);
   const [pulledOdds, setPulledOdds] = useState(initialOdds);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch and decode the hover while the box is still sitting there sealed.
+  // Doing it at the tap would put a download between the press and the sound,
+  // which is the one place in the whole animation that cannot afford a gap.
+  useEffect(() => {
+    if (!reducedMotion) preloadOpenSound();
+  }, [reducedMotion]);
 
   const open = useCallback(async () => {
     if (stage !== "sealed") return;
