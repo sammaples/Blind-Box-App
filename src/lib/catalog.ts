@@ -505,7 +505,7 @@ export const PRODUCTS: readonly Product[] = [
     tagline: "The everyday box. One 100% figure, with a 400% hiding in the run.",
     description:
       "Where the collecting happens. A single 100% figure drawn from the bronze shelf as it stands today — mostly the standard colourways, with a rare in the mix and a 400% chase at the bottom of the run. What is listed below is what is in the warehouse right now, and every rate is that piece's share of it.",
-    priceCents: 1800,
+    priceCents: 2500,
     highlights: [
       "One guaranteed 100% figure",
       "A rare in every series lineup",
@@ -520,7 +520,7 @@ export const PRODUCTS: readonly Product[] = [
     tagline: "A better shelf. Rares and an ultra join the pool.",
     description:
       "The step up. The same live-stock draw, over a shelf that trades the plainest colourways for an ultra rare and a scarcer 400% chase. Fewer pieces in the pool than bronze, and better ones.",
-    priceCents: 3200,
+    priceCents: 5000,
     highlights: [
       "One guaranteed 100% figure",
       "Ultra rares in the pool",
@@ -535,7 +535,7 @@ export const PRODUCTS: readonly Product[] = [
     tagline: "No commons. Artist rares and ultras only.",
     description:
       "The artist shelf. Every piece in this pool is a rare or an ultra — the hand-sprayed editions and the hero pieces — and the 400% chases behind them are the short-run ones. A small pool by design: there is nothing in it you would be disappointed to draw.",
-    priceCents: 6500,
+    priceCents: 10000,
     highlights: [
       "No common pieces in the pool at all",
       "Artist editions and hero ultras",
@@ -550,7 +550,7 @@ export const PRODUCTS: readonly Product[] = [
     tagline: "The secrets, and the grails behind them.",
     description:
       "The hidden pieces, sold on purpose. Every 100% in this pool is a series secret, and the 400% chases are the ones that barely exist — the factory test shot, the solid gold, the signed one-of-one. The smallest pool in the shop.",
-    priceCents: 14000,
+    priceCents: 25000,
     highlights: [
       "Series secret pieces only",
       "The scarcest 400% chases in the shop",
