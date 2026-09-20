@@ -52,6 +52,12 @@ Leave a `npm run dev` running and it uses that; otherwise it starts one and
 stops it again on the way out. The output is gitignored — it is built, not
 kept.
 
+**If that page is also published somewhere** — a hosted copy someone reviews
+the box on — it is a snapshot and does not follow the code. Nothing reaches
+back into it: it cannot fetch the current box, and no deploy can push to it.
+Rebuild and republish it in the same change that touches the box, or it will
+quietly go on showing a box that no longer exists.
+
 ### Running on Postgres
 
 ```bash
