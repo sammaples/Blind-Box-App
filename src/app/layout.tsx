@@ -82,7 +82,7 @@ function Header() {
             href="/collection"
             className="rounded-full px-2.5 py-1.5 text-muted transition-colors hover:text-chalk sm:px-3"
           >
-            My pulls
+            My vault
           </Link>
           <AdminLink />
           <span className="ml-0.5 sm:ml-1.5">

@@ -49,7 +49,7 @@ export default async function CollectionPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-14 sm:px-8">
-      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">My pulls</h1>
+      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">My vault</h1>
       <p className="mt-2 text-sm text-muted">
         Everything you have opened, and where each physical piece is up to.
       </p>
