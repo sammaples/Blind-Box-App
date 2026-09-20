@@ -23,8 +23,8 @@ const STEPS = [
   { n: "01", title: "Open a box", body: "Choose a box and open it." },
   {
     n: "02",
-    title: "Collect",
-    body: "Everything you open goes straight to My Pulls until you want to ship them.",
+    title: "Vault your pulls",
+    body: "Everything you open goes straight to your vault until you're ready to ship them.",
   },
   {
     n: "03",
