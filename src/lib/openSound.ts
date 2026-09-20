@@ -121,7 +121,7 @@ export function playOpenSound(windMs: number, { loud }: { loud: boolean }): Open
     const engineFilter = ctx.createBiquadFilter();
     engineFilter.type = "lowpass";
     engineFilter.frequency.setValueAtTime(loud ? 320 : 420, now);
-    engineFilter.frequency.exponentialRampToValueAtTime(loud ? 7200 : 3200, now + wind);
+    engineFilter.frequency.exponentialRampToValueAtTime(loud ? 1100 : 850, now + wind);
     engineFilter.Q.value = loud ? 11 : 7;
 
     // Two stages, and the first one is short on purpose. A single exponential
@@ -157,7 +157,7 @@ export function playOpenSound(windMs: number, { loud }: { loud: boolean }): Open
     const roarFilter = ctx.createBiquadFilter();
     roarFilter.type = "lowpass";
     roarFilter.frequency.setValueAtTime(loud ? 180 : 220, now);
-    roarFilter.frequency.exponentialRampToValueAtTime(loud ? 3400 : 1900, now + wind);
+    roarFilter.frequency.exponentialRampToValueAtTime(loud ? 620 : 520, now + wind);
     const roarGain = ctx.createGain();
     roarGain.gain.setValueAtTime(0.0001, now);
     roarGain.gain.exponentialRampToValueAtTime(loud ? 0.16 : 0.1, now + wind * 0.08);
@@ -168,81 +168,68 @@ export function playOpenSound(windMs: number, { loud }: { loud: boolean }): Open
 
     // The hover.
     //
-    // Wah, wah, wah — and it is a filter doing it, not the volume. A tremolo
-    // just turns a steady tone on and off, which reads as a warning light; a
-    // resonant filter swept up and down changes which harmonics survive, and
-    // that vowel-like movement is the sound of something holding itself in the
-    // air on thrust it keeps adjusting. It is the same trick as a wah pedal,
-    // for the same reason: the interest is in the sweep, not the level.
+    // Measured off a reference clip rather than guessed at, because two
+    // attempts at guessing both missed by a mile. What a hovering craft
+    // actually sounds like, at least the one we are copying, is a deep fast
+    // throb: a carrier near 75Hz pulsing a little under twelve times a second,
+    // with almost nothing above 400Hz. The whole clip's centre of gravity sits
+    // at 283Hz.
     //
-    // Every tier gets it. Hovering is what the craft is doing while the box
-    // shakes, whatever is inside.
-    // A resonant lowpass, not a bandpass. A bandpass with enough Q to make a
-    // vowel throws away everything outside a narrow slice, and measured
-    // against the rest of the mix the first version of this landed 18 dB down
-    // — one per cent of what you were hearing. It swept beautifully and was
-    // completely inaudible. A lowpass passes everything under the cutoff plus
-    // a resonant peak at it, which is both how a wah pedal actually works and
-    // loud enough to survive company.
+    // Both earlier versions were a bright slow vowel instead — five pulses a
+    // second with a resonance sweeping to two and a half kilohertz. Wrong rate
+    // by two and a half times and wrong register by an octave and a half,
+    // which is why it never sounded like the thing being asked for.
+    //
+    // It is amplitude doing the work, not a filter. The giveaway is in the
+    // spectrum: the reference has peaks at 65 and 87Hz flanking the 75Hz
+    // carrier, and sidebands either side at the modulation rate are what
+    // amplitude modulation leaves behind. A swept filter does not do that.
+    const HOVER_HZ = 75;
+    const PULSE_HZ = 11.7;
+
+    // Dark, because the reference is. A sawtooth at 75Hz through a lowpass
+    // here keeps the fundamental and its second harmonic — the 150Hz partial
+    // the clip also shows — and drops everything above, which is where the
+    // 283Hz centre of gravity comes from.
     const hoverFilter = ctx.createBiquadFilter();
     hoverFilter.type = "lowpass";
-    hoverFilter.frequency.value = loud ? 1550 : 1400;
-    hoverFilter.Q.value = loud ? 17 : 16;
-
-    // About six sweeps a second on a common box, easing off as the craft
-    // settles — enough wahs to read as a rhythm inside a wind this short
-    // rather than as one slow wobble, and slow enough that each one is a
-    // separate word.
-    //
-    // The chase hovers *slower*, not faster. Its wind is more than twice as
-    // long, so a quicker pulse across it came out as a flutter, and a flutter
-    // is a small thing. Weight sounds unhurried: the bigger craft takes its
-    // time adjusting, and gets more wahs anyway simply by hanging there longer.
-    const lfo = ctx.createOscillator();
-    lfo.type = "sine";
-    lfo.frequency.setValueAtTime(loud ? 4.4 : 5.8, now);
-    lfo.frequency.exponentialRampToValueAtTime(loud ? 2.6 : 4.2, now + wind);
-    // Wide enough that the bottom of each sweep takes the cutoff below the
-    // voices themselves. A shallower sweep only changes which upper harmonics
-    // survive, and measured that came out as a 21% wobble — audible if you are
-    // told it is there, which is not the same as hearing it.
-    const lfoDepth = ctx.createGain();
-    lfoDepth.gain.value = loud ? 1350 : 1250;
-    lfo.connect(lfoDepth).connect(hoverFilter.frequency);
-
-    // The same LFO on the level, too. A wah is a timbre change and a pure
-    // tremolo is a cheap substitute for one — but a little amplitude moving in
-    // step with the filter is what a real thruster does as it loads and
-    // unloads, and it is what takes this from something you can measure to
-    // something you can hear. An AudioParam sums its automation with whatever
-    // is connected to it, so this rides on the ramps below rather than
-    // replacing them.
-    const lfoLevel = ctx.createGain();
-    lfoLevel.gain.value = loud ? 0.62 : 0.58;
-    lfo.connect(lfoLevel);
+    hoverFilter.frequency.value = loud ? 320 : 290;
+    hoverFilter.Q.value = 2.2;
 
     const hoverGain = ctx.createGain();
     hoverGain.gain.setValueAtTime(0.0001, now);
-    hoverGain.gain.exponentialRampToValueAtTime(loud ? 0.55 : 0.5, now + wind * 0.09);
-    hoverGain.gain.exponentialRampToValueAtTime(loud ? 0.85 : 0.75, now + wind * 0.9);
+    hoverGain.gain.exponentialRampToValueAtTime(loud ? 0.8 : 0.72, now + wind * 0.08);
+    hoverGain.gain.exponentialRampToValueAtTime(loud ? 1.05 : 0.95, now + wind * 0.9);
     hoverGain.gain.exponentialRampToValueAtTime(0.0001, now + wind + 0.12);
-    lfoLevel.connect(hoverGain.gain);
     hoverFilter.connect(hoverGain).connect(master);
 
-    // Two voices a fifth apart so the sweep has something to bite on: a single
-    // saw through a narrow band gives the filter one harmonic series to chew,
-    // and the wah barely registers.
-    for (const freq of loud ? [110, 165, 82] : [130, 196]) {
+    // The throb. Depth climbs across the wind the way the reference does —
+    // 21% at the start, past 40% by the end — so the craft reads as settling
+    // into its hover rather than arriving already steady.
+    const pulse = ctx.createOscillator();
+    pulse.type = "sine";
+    pulse.frequency.setValueAtTime(PULSE_HZ, now);
+    pulse.frequency.linearRampToValueAtTime(PULSE_HZ - 0.4, now + wind);
+    const pulseDepth = ctx.createGain();
+    pulseDepth.gain.setValueAtTime(0.2, now);
+    pulseDepth.gain.linearRampToValueAtTime(0.44, now + wind);
+    pulse.connect(pulseDepth).connect(hoverGain.gain);
+    pulse.start(now);
+    pulse.stop(now + wind + 0.25);
+
+    // Two voices a hair apart. Exactly one would be a synthesiser holding a
+    // low note; a couple of cents of drift between them keeps the tone moving
+    // under the throb without adding anything you could name.
+    for (const detune of loud ? [0, 7, -9] : [0, 8]) {
       const voice = ctx.createOscillator();
       voice.type = "sawtooth";
-      voice.frequency.setValueAtTime(freq, now);
-      voice.frequency.exponentialRampToValueAtTime(freq * 0.72, now + wind);
+      voice.detune.value = detune;
+      voice.frequency.setValueAtTime(HOVER_HZ, now);
+      voice.frequency.linearRampToValueAtTime(HOVER_HZ * 0.94, now + wind);
       voice.connect(hoverFilter);
       voice.start(now);
       voice.stop(now + wind + 0.25);
     }
-    lfo.start(now);
-    lfo.stop(now + wind + 0.25);
 
     let stopped = false;
 
