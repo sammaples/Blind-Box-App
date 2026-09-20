@@ -306,16 +306,22 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
    * The question mark, on all four walls — a turn shows each of them for a
    * quarter of the time, and a blank wall coming round reads as a mistake.
    *
-   * It is a puffed sticker sitting on the carton: a fattened, round-cornered
-   * glyph lit from the upper left, with a soft shadow under it. Two pixels of
-   * clearance, which is enough for the shadow to read and little enough that
-   * the mark does not swing against its own wall as the box turns.
+   * It is a puffed sticker sitting on the carton, two pixels proud of it —
+   * enough for the shadow to read, little enough that it does not swing
+   * against its own wall as the box turns.
    *
-   * The volume is real rather than drawn. The letter's own alpha is blurred
-   * into a height map and lit, so the surface rounds off smoothly at the edges
-   * the way an inflated sticker does — stacking offset copies of the glyph
-   * gives thickness, but it gives it in visible steps, which is what makes it
-   * look like stacked copies instead of like one solid object.
+   * The mark is drawn rather than typed. Fattening a typeface's question mark
+   * with a stroke thickens the tail and the dot along with everything else,
+   * and the gap between them closes until the two read as one smudge; the
+   * stroke also muddies every edge it rounds. Two round-capped strokes of its
+   * own have no such trouble: the hook and the dot are separate objects, and
+   * the space between them is a number rather than a leftover.
+   *
+   * The volume is real rather than drawn on. The shape's own alpha is blurred
+   * into a height map and lit from the upper left, so the surface rounds off
+   * smoothly at the edges the way an inflated sticker does — stacking offset
+   * copies gives thickness too, but it gives it in visible steps, which is
+   * what makes those look like stacked copies rather than one solid object.
    */
   const MARK_LIFT = 2;
 
@@ -344,15 +350,21 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
           transform: `${turn}translateZ(${box.width / 2 + MARK_LIFT}px) translateY(-50%)`,
         }}
       >
-        <svg width="30" height="30" viewBox="0 0 40 40" style={{ overflow: "visible" }}>
+        <svg
+          width="32"
+          height="32"
+          viewBox="0 0 40 40"
+          shapeRendering="geometricPrecision"
+          style={{ overflow: "visible" }}
+        >
           <defs>
             {/* Across the face: lit at the top, falling into its own shade at
-                the bottom. Painted over the letter's colour rather than mixed
+                the bottom. Painted over the mark's colour rather than mixed
                 into it, so one pair of stops covers white and any accent. */}
             <linearGradient id={`${uid}-face`} x1="0" y1="0" x2="0.25" y2="1">
-              <stop offset="0" stopColor="#fff" stopOpacity="0.55" />
-              <stop offset="0.45" stopColor="#fff" stopOpacity="0.05" />
-              <stop offset="1" stopColor="#000" stopOpacity="0.3" />
+              <stop offset="0" stopColor="#fff" stopOpacity="0.5" />
+              <stop offset="0.45" stopColor="#fff" stopOpacity="0.04" />
+              <stop offset="1" stopColor="#000" stopOpacity="0.22" />
             </linearGradient>
 
             <filter
@@ -363,20 +375,22 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
               height="190%"
               colorInterpolationFilters="sRGB"
             >
-              {/* The letter's alpha, blurred, is the height map — the blur is
-                  what rounds the edges off instead of cutting them square. */}
-              <feGaussianBlur in="SourceAlpha" stdDeviation="1.7" result="height" />
+              {/* The shape's alpha, blurred, is the height map — the blur is
+                  what rounds the edges off instead of cutting them square, and
+                  every unit of it also softens the mark. At this size it buys
+                  the roundness at about one unit and nothing after. */}
+              <feGaussianBlur in="SourceAlpha" stdDeviation="1.1" result="height" />
               <feSpecularLighting
                 in="height"
-                surfaceScale="3.2"
-                specularConstant="0.8"
-                specularExponent="18"
+                surfaceScale="2.6"
+                specularConstant="0.75"
+                specularExponent="26"
                 lightingColor="#fff"
                 result="gloss"
               >
-                <fePointLight x="8" y="2" z="26" />
+                <fePointLight x="9" y="3" z="24" />
               </feSpecularLighting>
-              {/* Light that fell outside the glyph is light on nothing. */}
+              {/* Light that fell outside the shape is light on nothing. */}
               <feComposite in="gloss" in2="SourceAlpha" operator="in" result="gloss" />
               <feComposite
                 in="SourceGraphic"
@@ -386,55 +400,41 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
                 k2="1"
                 k3="1"
                 k4="0"
-                result="lit"
               />
               <feDropShadow
                 dx="0"
-                dy="1.6"
-                stdDeviation="1.1"
+                dy="1.1"
+                stdDeviation="0.8"
                 floodColor="#000"
                 floodOpacity="0.45"
               />
             </filter>
+
+            {/* The hook and the dot, as one reusable pair. Three units of air
+                between the end of the stem and the top of the dot: at a stroke
+                this thick, anything less and the two close up into a smudge at
+                card size, which is the whole reason the mark is drawn. */}
+            <g id={`${uid}-glyph`}>
+              <path
+                d="M 13.4 15.2 C 13.4 8.9 26.6 8.9 26.6 15.2 C 26.6 19.8 20 20.2 20 23.4"
+                fill="none"
+                strokeWidth="6.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <circle cx="20" cy="33" r="3.5" />
+            </g>
           </defs>
 
           <g filter={`url(#${uid}-puff)`}>
-            {/* The letter twice over on the same geometry: its colour, then
-                the light across it. `paint-order` puts the stroke behind the
-                fill, so the round joins fatten the glyph and take the corners
-                off it without closing up the hole in the bowl — past about two
-                units of stroke the counter fills in and a question mark stops
-                being legible as one. */}
-            <text
-              x="20"
-              y="20"
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontSize="27"
-              fontWeight="900"
-              fill={markFace}
-              stroke={markFace}
-              strokeWidth="2"
-              strokeLinejoin="round"
-              paintOrder="stroke"
-            >
-              ?
-            </text>
-            <text
-              x="20"
-              y="20"
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontSize="27"
-              fontWeight="900"
+            {/* The mark twice over on the same geometry: its colour, then the
+                light across it. */}
+            <use href={`#${uid}-glyph`} fill={markFace} stroke={markFace} />
+            <use
+              href={`#${uid}-glyph`}
               fill={`url(#${uid}-face)`}
               stroke={`url(#${uid}-face)`}
-              strokeWidth="2"
-              strokeLinejoin="round"
-              paintOrder="stroke"
-            >
-              ?
-            </text>
+            />
           </g>
         </svg>
       </div>
