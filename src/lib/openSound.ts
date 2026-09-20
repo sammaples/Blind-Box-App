@@ -115,8 +115,15 @@ export function playOpenSound(windMs: number, { loud }: { loud: boolean }): Open
     engineFilter.frequency.exponentialRampToValueAtTime(loud ? 7200 : 3200, now + wind);
     engineFilter.Q.value = loud ? 11 : 7;
 
+    // Two stages, and the first one is short on purpose. A single exponential
+    // from silence to full spends almost all of its length inaudible — the old
+    // one measured 0.0001 RMS a fifth of the way through a wind the listener
+    // was already watching the box shake through. Reaching a real level fast
+    // and then climbing from there is what makes the sound arrive with the
+    // shake rather than a beat before the flaps.
     const engineGain = ctx.createGain();
     engineGain.gain.setValueAtTime(0.0001, now);
+    engineGain.gain.exponentialRampToValueAtTime(loud ? 0.22 : 0.18, now + wind * 0.1);
     engineGain.gain.exponentialRampToValueAtTime(loud ? 0.7 : 0.5, now + wind * 0.94);
     engineGain.gain.exponentialRampToValueAtTime(0.0001, now + wind + 0.14);
     engineFilter.connect(engineGain).connect(master);
@@ -144,47 +151,66 @@ export function playOpenSound(windMs: number, { loud }: { loud: boolean }): Open
     roarFilter.frequency.exponentialRampToValueAtTime(loud ? 3400 : 1900, now + wind);
     const roarGain = ctx.createGain();
     roarGain.gain.setValueAtTime(0.0001, now);
+    roarGain.gain.exponentialRampToValueAtTime(loud ? 0.26 : 0.16, now + wind * 0.08);
     roarGain.gain.exponentialRampToValueAtTime(loud ? 0.75 : 0.4, now + wind * 0.9);
     roarGain.gain.exponentialRampToValueAtTime(0.0001, now + wind + 0.2);
     roar.connect(roarFilter).connect(roarGain).connect(master);
     roar.start(now);
 
-    // Retro-thrusters, chase only: a tone chopped by an oscillator that slows
-    // as the ship stops fighting its own descent. The launch version of this
-    // quickened, which reads as something filling up; slowing reads as
-    // something settling, and settling is what is about to happen.
-    if (loud) {
-      const carrier = ctx.createOscillator();
-      carrier.type = "sine";
-      carrier.frequency.setValueAtTime(2600, now);
-      carrier.frequency.exponentialRampToValueAtTime(640, now + wind);
+    // The hover.
+    //
+    // Wah, wah, wah — and it is a filter doing it, not the volume. A tremolo
+    // just turns a steady tone on and off, which reads as a warning light; a
+    // resonant filter swept up and down changes which harmonics survive, and
+    // that vowel-like movement is the sound of something holding itself in the
+    // air on thrust it keeps adjusting. It is the same trick as a wah pedal,
+    // for the same reason: the interest is in the sweep, not the level.
+    //
+    // Every tier gets it. Hovering is what the craft is doing while the box
+    // shakes, whatever is inside.
+    const hoverFilter = ctx.createBiquadFilter();
+    hoverFilter.type = "bandpass";
+    hoverFilter.frequency.value = loud ? 1100 : 900;
+    hoverFilter.Q.value = loud ? 9 : 7;
 
-      // Chopper: its output is added to the gain below, so the gain swings
-      // between roughly nothing and twice the base — an amplitude gate.
-      const chopper = ctx.createOscillator();
-      chopper.type = "sine";
-      chopper.frequency.setValueAtTime(64, now);
-      chopper.frequency.exponentialRampToValueAtTime(9, now + wind);
-      const depth = ctx.createGain();
-      depth.gain.value = 0.5;
-      chopper.connect(depth);
+    // About six sweeps a second on a common box, easing off as the craft
+    // settles — enough wahs to read as a rhythm inside a wind this short
+    // rather than as one slow wobble, and slow enough that each one is a
+    // separate word.
+    //
+    // The chase hovers *slower*, not faster. Its wind is more than twice as
+    // long, so a quicker pulse across it came out as a flutter, and a flutter
+    // is a small thing. Weight sounds unhurried: the bigger craft takes its
+    // time adjusting, and gets more wahs anyway simply by hanging there longer.
+    const lfo = ctx.createOscillator();
+    lfo.type = "sine";
+    lfo.frequency.setValueAtTime(loud ? 4.4 : 5.8, now);
+    lfo.frequency.exponentialRampToValueAtTime(loud ? 2.6 : 4.2, now + wind);
+    const lfoDepth = ctx.createGain();
+    lfoDepth.gain.value = loud ? 900 : 680;
+    lfo.connect(lfoDepth).connect(hoverFilter.frequency);
 
-      const chopped = ctx.createGain();
-      chopped.gain.value = 0.5;
-      depth.connect(chopped.gain);
-      carrier.connect(chopped);
+    const hoverGain = ctx.createGain();
+    hoverGain.gain.setValueAtTime(0.0001, now);
+    hoverGain.gain.exponentialRampToValueAtTime(loud ? 0.3 : 0.24, now + wind * 0.09);
+    hoverGain.gain.exponentialRampToValueAtTime(loud ? 0.5 : 0.38, now + wind * 0.9);
+    hoverGain.gain.exponentialRampToValueAtTime(0.0001, now + wind + 0.12);
+    hoverFilter.connect(hoverGain).connect(master);
 
-      const thrusterGain = ctx.createGain();
-      thrusterGain.gain.setValueAtTime(0.0001, now);
-      thrusterGain.gain.exponentialRampToValueAtTime(0.24, now + wind * 0.9);
-      thrusterGain.gain.exponentialRampToValueAtTime(0.0001, now + wind + 0.1);
-      chopped.connect(thrusterGain).connect(master);
-
-      carrier.start(now);
-      carrier.stop(now + wind + 0.2);
-      chopper.start(now);
-      chopper.stop(now + wind + 0.2);
+    // Two voices a fifth apart so the sweep has something to bite on: a single
+    // saw through a narrow band gives the filter one harmonic series to chew,
+    // and the wah barely registers.
+    for (const freq of loud ? [110, 165, 82] : [130, 196]) {
+      const voice = ctx.createOscillator();
+      voice.type = "sawtooth";
+      voice.frequency.setValueAtTime(freq, now);
+      voice.frequency.exponentialRampToValueAtTime(freq * 0.72, now + wind);
+      voice.connect(hoverFilter);
+      voice.start(now);
+      voice.stop(now + wind + 0.25);
     }
+    lfo.start(now);
+    lfo.stop(now + wind + 0.25);
 
     let stopped = false;
 
@@ -229,6 +255,48 @@ export function playOpenSound(windMs: number, { loud }: { loud: boolean }): Open
       ventGain.gain.exponentialRampToValueAtTime(0.0001, t + tail);
       vent.connect(ventFilter).connect(ventGain).connect(master);
       vent.start(t);
+
+      // And the thing actually opening.
+      //
+      // Everything else at touchdown falls — the impact into the sub, the vent
+      // down the spectrum, the turbines spinning down — because that is what
+      // arriving sounds like. But the box is opening at this exact moment, and
+      // an opening is the one gesture in the whole sound that should go *up*.
+      //
+      // Two parts, both short. A seal letting go: a sharp band of noise swept
+      // hard upward, which is pressure finding a gap rather than escaping
+      // through one. Then the hatch itself — a bright pair of partials rising
+      // a fifth, quick enough to be a movement rather than a note.
+      const seal = ctx.createBufferSource();
+      seal.buffer = noise(ctx, 0.34, true);
+      const sealFilter = ctx.createBiquadFilter();
+      sealFilter.type = "bandpass";
+      sealFilter.Q.value = 3.2;
+      sealFilter.frequency.setValueAtTime(520, t);
+      sealFilter.frequency.exponentialRampToValueAtTime(loud ? 8200 : 6400, t + 0.3);
+      const sealGain = ctx.createGain();
+      sealGain.gain.setValueAtTime(0.0001, t);
+      sealGain.gain.exponentialRampToValueAtTime(loud ? 0.55 : 0.4, t + 0.03);
+      sealGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.34);
+      seal.connect(sealFilter).connect(sealGain).connect(master);
+      seal.start(t);
+
+      for (const [freq, level] of [
+        [660, 0.3],
+        [990, 0.2],
+      ] as const) {
+        const hatch = ctx.createOscillator();
+        hatch.type = "triangle";
+        hatch.frequency.setValueAtTime(freq, t + 0.02);
+        hatch.frequency.exponentialRampToValueAtTime(freq * 1.5, t + 0.26);
+        const hatchGain = ctx.createGain();
+        hatchGain.gain.setValueAtTime(0.0001, t + 0.02);
+        hatchGain.gain.exponentialRampToValueAtTime(level, t + 0.06);
+        hatchGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.34);
+        hatch.connect(hatchGain).connect(master);
+        hatch.start(t + 0.02);
+        hatch.stop(t + 0.38);
+      }
 
       // Every box gets its turbines winding down; a chase just gets more of
       // everything else on top. A landing without a spin-down is a thud.
