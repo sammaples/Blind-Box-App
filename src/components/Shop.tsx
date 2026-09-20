@@ -251,10 +251,11 @@ function OddsByRarity({ shelf }: { shelf: StockEntry[] }) {
  * Seconds for one turn.
  *
  * The box used to rock: ten degrees each way, twenty degrees of travel every
- * seven seconds. It turns at that same rate now, it just never comes back —
- * three hundred and sixty degrees at 20/7 a second.
+ * seven seconds. It turns rather than rocks now, and a third faster again —
+ * three hundred and sixty degrees at 20/7 a second and then some, which puts
+ * a full turn a little under a minute and forty.
  */
-const SPIN_SECONDS = 360 / (20 / 7);
+const SPIN_SECONDS = 360 / ((20 / 7) * 1.3);
 
 function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
   const box = boxGeometry(63);
