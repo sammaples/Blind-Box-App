@@ -114,9 +114,16 @@
     z-index: 2;
   }
   /* The carton is 63px across in the shop. A plain scale on an ancestor of the
-     perspective keeps the projection identical and just makes it visible. */
+     perspective keeps the projection identical and just makes it visible.
+
+     The perspective belongs on the element the box is a direct child of, and
+     nowhere else: it reaches children, not descendants. One wrapper too high
+     and it silently does nothing — the box still renders, in flat orthographic
+     projection, with near and far edges the same length and a shape that reads
+     as subtly wrong without announcing why. */
   .scaler { transform: scale(3.6); transform-origin: center center; }
   .viewport { perspective: 700px; }
+  .mount { perspective: 700px; }
 
   @keyframes boxspin {
     from { transform: rotateX(-16deg) rotateY(-24deg); }
