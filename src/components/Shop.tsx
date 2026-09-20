@@ -251,11 +251,12 @@ function OddsByRarity({ shelf }: { shelf: StockEntry[] }) {
  * Seconds for one turn.
  *
  * The box used to rock: ten degrees each way, twenty degrees of travel every
- * seven seconds. It turns rather than rocks now, and a third faster again —
- * three hundred and sixty degrees at 20/7 a second and then some, which puts
- * a full turn a little under a minute and forty.
+ * seven seconds, which is where the turn started. It reads as a box that is
+ * barely moving at that rate, so this is a little over twice as quick — fast
+ * enough to register as turning while a shopper is looking at it, slow enough
+ * not to pull the eye off the price.
  */
-const SPIN_SECONDS = 360 / ((20 / 7) * 1.3);
+const SPIN_SECONDS = 44.4;
 
 function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
   const box = boxGeometry(63);
