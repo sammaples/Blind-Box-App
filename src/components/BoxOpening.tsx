@@ -278,6 +278,9 @@ export function BoxOpening({
   // Known in time because the reveal call stores its result the moment it
   // lands, before the wind-up is over.
   const chase = piece?.rarity === "chase";
+  // An ultra gets its own reveal: stars behind the piece, for as long as
+  // somebody stays on the screen.
+  const starry = piece?.rarity === "ultra" && !reducedMotion;
   const loud = chase && !reducedMotion;
   // Whatever is inside, the box fights for it — the rattle is not the chase's
   // any more. It still has to wait for the reveal call, because the wind it
@@ -451,6 +454,15 @@ export function BoxOpening({
         */}
         <AnimatePresence>
           {loud && stage === "reveal" && <GoldDust key="dust" />}
+        </AnimatePresence>
+
+        {/*
+          And the ultra's sky. Behind the piece rather than over it — the whole
+          point is that it carries on while you read the card, so it cannot be
+          in front of the thing you are reading.
+        */}
+        <AnimatePresence>
+          {starry && stage === "reveal" && <ShootingStars key="stars" color={glow} />}
         </AnimatePresence>
 
         {/* The pull */}
@@ -877,6 +889,115 @@ function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
  * to recognise as *the* chase moment, and the odd unlucky seed gives you a
  * lopsided spray on the one pull that has to look right.
  */
+/**
+ * Shooting stars, on an ultra rare, behind the piece.
+ *
+ * A chase gets an event: dust thrown over the figure that burns off in a few
+ * seconds and leaves. An ultra gets weather instead — nothing happens at the
+ * reveal, and then a star crosses the sky behind the piece, and keeps doing it
+ * for as long as anyone stays on the screen. The difference is deliberate: a
+ * chase should feel like something that happened to you, and an ultra like
+ * somewhere you ended up.
+ *
+ * Ten of them on one rota rather than one on a random timer. Every star is a
+ * different corner, angle and speed, and the cycle is long enough that the one
+ * you just watched is ten stars away from coming round again — which is the
+ * cheapest way to make a loop stop reading as a loop.
+ *
+ * Violet throughout, because that is what an ultra already is everywhere else
+ * in the app: the badge, the rate bar, the glow off the box.
+ */
+const STAR_COUNT = 10;
+
+/** Seconds between one star and the next. */
+const STAR_EVERY = 1.5;
+
+/**
+ * Where each one starts, which way it goes, and how fast.
+ *
+ * Written out rather than generated, because "ten different ones" is a thing
+ * you look at and judge, not a formula — and a tidy formula is exactly what
+ * would make them feel like the same star ten times. Corners are percentages
+ * of the reveal area, angles are degrees clockwise from east.
+ *
+ * Crossing behind the figure is the point, so most of these do. Running the
+ * whole way down behind it is not: the piece is about a third of the frame
+ * wide and stands dead centre, so a star launched from the middle of the top
+ * edge and dropped straight down never appears at all — which costs a beat of
+ * the rota every fifteen seconds. Every entry here leaves the centre column
+ * at some point in its run. Move one and check it still does.
+ */
+const STARS = [
+  { left: -12, top: 14, deg: 28, travel: 180, len: 74, dur: 0.85 },
+  { left: 104, top: 8, deg: 152, travel: 210, len: 92, dur: 1.05 },
+  { left: 18, top: -8, deg: 64, travel: 165, len: 62, dur: 0.72 },
+  { left: 108, top: 52, deg: 196, travel: 195, len: 84, dur: 0.95 },
+  { left: -10, top: 62, deg: -22, travel: 205, len: 88, dur: 1.1 },
+  { left: 76, top: -10, deg: 118, travel: 172, len: 68, dur: 0.8 },
+  { left: -14, top: 36, deg: 8, travel: 225, len: 96, dur: 1.15 },
+  { left: 100, top: 30, deg: 168, travel: 160, len: 58, dur: 0.68 },
+  { left: 28, top: -12, deg: 108, travel: 150, len: 70, dur: 0.78 },
+  { left: 92, top: 74, deg: 214, travel: 188, len: 80, dur: 0.92 },
+];
+
+function ShootingStars({ color }: { color: string }) {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+      {STARS.map((st, i) => (
+        // Placement and rotation on a plain element, the travel on a motion
+        // one inside it. Animating a transform makes motion compose the whole
+        // property from its own values, which would throw away the rotation —
+        // and a shooting star with no angle is a dash sliding sideways.
+        <div
+          key={i}
+          className="absolute"
+          style={{ left: `${st.left}%`, top: `${st.top}%`, transform: `rotate(${st.deg}deg)` }}
+        >
+          <motion.span
+            className="relative block"
+            style={{
+              width: st.len,
+              height: 2,
+              borderRadius: 999,
+              // Tail behind, head in front: the gradient runs to the leading
+              // edge, which is the direction of travel.
+              background: `linear-gradient(90deg, transparent, ${color})`,
+              boxShadow: `0 0 10px ${color}`,
+            }}
+            initial={{ x: 0, opacity: 0, scaleX: 0.35 }}
+            animate={{
+              x: [0, st.travel],
+              opacity: [0, 1, 1, 0],
+              scaleX: [0.35, 1, 1, 0.55],
+            }}
+            transition={{
+              duration: st.dur,
+              delay: i * STAR_EVERY,
+              repeat: Infinity,
+              // Back round only after every other star has had its turn, so
+              // the rota is ten stars long rather than one on a short leash.
+              repeatDelay: STAR_COUNT * STAR_EVERY - st.dur,
+              times: [0, 0.18, 0.72, 1],
+              ease: "easeOut",
+            }}
+          >
+            {/* The head. Brighter and rounder than the tail it is dragging. */}
+            <span
+              className="absolute right-0 top-1/2 block -translate-y-1/2 rounded-full"
+              style={{
+                width: 4,
+                height: 4,
+                background: "#fff",
+                boxShadow: `0 0 8px ${color}, 0 0 16px ${color}`,
+              }}
+            />
+          </motion.span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /**
  * Gold dust, on a chase, over the piece.
  *
