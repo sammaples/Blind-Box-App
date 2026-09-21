@@ -933,35 +933,58 @@ function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
  */
 const FIELD = [
   // left
-  { x: 6, y: 12, r: 1.6, dur: 3.2, at: 0, hi: 0.7 },
-  { x: 14, y: 31, r: 1.1, dur: 2.4, at: 0.9, hi: 0.5 },
-  { x: 4, y: 48, r: 2, dur: 3.8, at: 1.7, hi: 0.75 },
-  { x: 22, y: 8, r: 1.2, dur: 2.9, at: 0.4, hi: 0.55 },
-  { x: 10, y: 68, r: 1.4, dur: 3.4, at: 2.2, hi: 0.6 },
-  { x: 26, y: 57, r: 1, dur: 2.6, at: 1.2, hi: 0.45 },
-  { x: 17, y: 86, r: 1.7, dur: 3.1, at: 0.6, hi: 0.65 },
-  { x: 3, y: 78, r: 1.2, dur: 2.7, at: 1.9, hi: 0.5 },
-  { x: 29, y: 22, r: 1.5, dur: 3.6, at: 2.6, hi: 0.6 },
+  { x: 6, y: 12, r: 1.6, dur: 1.9, at: 0, hi: 0.95 },
+  { x: 14, y: 31, r: 1.1, dur: 1.5, at: 0.9, hi: 0.7 },
+  { x: 4, y: 48, r: 2, dur: 2.3, at: 1.7, hi: 1 },
+  { x: 22, y: 8, r: 1.2, dur: 1.8, at: 0.4, hi: 0.75 },
+  { x: 10, y: 68, r: 1.4, dur: 2, at: 2.2, hi: 0.82 },
+  { x: 26, y: 57, r: 1, dur: 1.6, at: 1.2, hi: 0.62 },
+  { x: 17, y: 86, r: 1.7, dur: 1.9, at: 0.6, hi: 0.88 },
+  { x: 3, y: 78, r: 1.2, dur: 1.7, at: 1.9, hi: 0.7 },
+  { x: 29, y: 22, r: 1.5, dur: 2.2, at: 2.6, hi: 0.82 },
   // right
-  { x: 94, y: 16, r: 1.8, dur: 3.3, at: 0.3, hi: 0.72 },
-  { x: 82, y: 6, r: 1.1, dur: 2.5, at: 1.5, hi: 0.5 },
-  { x: 88, y: 39, r: 1.3, dur: 3, at: 2.1, hi: 0.58 },
-  { x: 73, y: 27, r: 1, dur: 2.8, at: 0.8, hi: 0.45 },
-  { x: 96, y: 61, r: 1.6, dur: 3.7, at: 1.1, hi: 0.68 },
-  { x: 79, y: 72, r: 1.2, dur: 2.3, at: 2.4, hi: 0.52 },
-  { x: 90, y: 88, r: 1.5, dur: 3.5, at: 0.2, hi: 0.62 },
-  { x: 70, y: 52, r: 1.1, dur: 2.9, at: 1.8, hi: 0.48 },
-  { x: 85, y: 96, r: 1.3, dur: 3.2, at: 2.9, hi: 0.55 },
+  { x: 94, y: 16, r: 1.8, dur: 2, at: 0.3, hi: 0.96 },
+  { x: 82, y: 6, r: 1.1, dur: 1.5, at: 1.5, hi: 0.7 },
+  { x: 88, y: 39, r: 1.3, dur: 1.8, at: 2.1, hi: 0.78 },
+  { x: 73, y: 27, r: 1, dur: 1.7, at: 0.8, hi: 0.62 },
+  { x: 96, y: 61, r: 1.6, dur: 2.2, at: 1.1, hi: 0.92 },
+  { x: 79, y: 72, r: 1.2, dur: 1.4, at: 2.4, hi: 0.72 },
+  { x: 90, y: 88, r: 1.5, dur: 2.1, at: 0.2, hi: 0.85 },
+  { x: 70, y: 52, r: 1.1, dur: 1.8, at: 1.8, hi: 0.66 },
+  { x: 85, y: 96, r: 1.3, dur: 1.9, at: 2.9, hi: 0.75 },
   // over its head and under its feet, which is all the middle has room for
-  { x: 44, y: 3, r: 1.4, dur: 3, at: 1.3, hi: 0.6 },
-  { x: 58, y: 9, r: 1, dur: 2.6, at: 2, hi: 0.45 },
-  { x: 39, y: 95, r: 1.2, dur: 3.4, at: 0.7, hi: 0.5 },
-  { x: 63, y: 91, r: 1.5, dur: 2.8, at: 1.6, hi: 0.58 },
+  { x: 44, y: 3, r: 1.4, dur: 1.8, at: 1.3, hi: 0.82 },
+  { x: 58, y: 9, r: 1, dur: 1.6, at: 2, hi: 0.62 },
+  { x: 39, y: 95, r: 1.2, dur: 2, at: 0.7, hi: 0.7 },
+  { x: 63, y: 91, r: 1.5, dur: 1.7, at: 1.6, hi: 0.78 },
 ];
 
-/** How far down a star dims between breaths. Never to nothing: a star that
-    goes out has gone out, and this is a twinkle, not a blink. */
-const FIELD_FLOOR = 0.22;
+/**
+ * How far down a star dims between breaths.
+ *
+ * Twinkling is the swing, not the peak. A field that rode between 0.16 and
+ * 0.73 was bright enough but barely moved, because a fifth of full is already
+ * a visible star — so the dip read as a dimming rather than as a wink. A tenth
+ * is close enough to gone that coming back up reads as a catch of light.
+ *
+ * Not zero, though. A star that goes out has gone out, and what comes back is
+ * a new star appearing where there wasn't one.
+ */
+const FIELD_FLOOR = 0.1;
+
+/**
+ * The glint, on the bigger half.
+ *
+ * Brightness alone does not make a point of light look like it is shining —
+ * past a certain value it just looks like a bigger dot. What says shining is
+ * the cross: two hairlines through the centre, tapered to nothing at both
+ * ends, which is what a lens does with a light small enough to be a point.
+ *
+ * Only on the stars with some size to them. On the smallest it is a cross as
+ * wide as the star is bright, which reads as a sparkle sticker rather than as
+ * a star, and twenty-two of those is a christmas tree.
+ */
+const GLINT_MIN_R = 1.4;
 
 const STAR_COUNT = 10;
 
@@ -1003,19 +1026,15 @@ function UltraSky({ color }: { color: string }) {
       {FIELD.map((f, i) => (
         <motion.span
           key={`f${i}`}
-          className="absolute block rounded-full"
-          style={{
-            left: `${f.x}%`,
-            top: `${f.y}%`,
-            width: f.r * 2,
-            height: f.r * 2,
-            background: "#fff",
-            boxShadow: `0 0 ${f.r * 4}px ${color}, 0 0 ${f.r * 8}px ${color}`,
-          }}
-          initial={{ opacity: 0, scale: 0.8 }}
+          className="absolute block"
+          style={{ left: `${f.x}%`, top: `${f.y}%`, width: f.r * 2, height: f.r * 2 }}
+          initial={{ opacity: 0, scale: 0.55 }}
           animate={{
             opacity: [f.hi * FIELD_FLOOR, f.hi, f.hi * FIELD_FLOOR],
-            scale: [0.8, 1, 0.8],
+            // Swells as it brightens. A light getting brighter gets bigger —
+            // the glow blooms outward — and holding the size flat is what made
+            // the old field read as dots changing opacity.
+            scale: [0.55, 1.15, 0.55],
           }}
           transition={{
             duration: f.dur,
@@ -1026,7 +1045,42 @@ function UltraSky({ color }: { color: string }) {
             repeat: Infinity,
             ease: "easeInOut",
           }}
-        />
+        >
+          {/* The core, and the halo it throws. White at the centre falling
+              into the tier's violet: a star is not the colour of the light
+              around it. */}
+          <span
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: "#fff",
+              boxShadow: `0 0 ${f.r * 3}px #fff, 0 0 ${f.r * 7}px ${color}, 0 0 ${f.r * 15}px ${color}`,
+            }}
+          />
+          {f.r >= GLINT_MIN_R && (
+            <>
+              <span
+                className="absolute top-1/2 left-1/2"
+                style={{
+                  width: f.r * 11,
+                  height: 1,
+                  transform: "translate(-50%, -50%)",
+                  background:
+                    "linear-gradient(90deg, transparent, rgb(255 255 255 / 0.85), transparent)",
+                }}
+              />
+              <span
+                className="absolute top-1/2 left-1/2"
+                style={{
+                  width: 1,
+                  height: f.r * 11,
+                  transform: "translate(-50%, -50%)",
+                  background:
+                    "linear-gradient(180deg, transparent, rgb(255 255 255 / 0.85), transparent)",
+                }}
+              />
+            </>
+          )}
+        </motion.span>
       ))}
 
       {STARS.map((st, i) => (
