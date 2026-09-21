@@ -12,7 +12,7 @@ import {
 } from "@/lib/catalog";
 import type { Product, Rarity, StockEntry } from "@/lib/types";
 import { boxGeometry, type BoxFace } from "@/lib/boxShape";
-import { BoxPrint, isPrinted, PRINT_GROUND } from "./BoxPrint";
+import { BoxPrint, isPrinted } from "./BoxPrint";
 import { useAccount } from "./AccountBar";
 import { Price } from "./ui";
 import { useScrollLock } from "@/lib/useScrollLock";
@@ -273,65 +273,6 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
   const faceShade = (shade: number) =>
     `linear-gradient(150deg, rgb(0 0 0 / ${shade}), rgb(0 0 0 / ${shade + 0.1}) 78%)`;
 
-  /**
-   * What shows through the joins.
-   *
-   * Six planes meeting at right angles do not quite meet: the browser rounds
-   * each one to device pixels, and the hairline left over at a fold — and the
-   * wedge the corner radius opens at each of the eight corners — shows whatever
-   * is behind the box, which is the near-black of the card. Black at the corners
-   * of a pale blue carton reads as damage.
-   *
-   * What fills them is a second box a pixel inside the first, in flat colour,
-   * with no print on it and nothing drawn at its borders. A crack at a fold
-   * lands on the shell instead of on the card, and the shell is never seen
-   * anywhere else.
-   *
-   * A ring around each face fills the same cracks and is the wrong answer: it
-   * paints a band of flat ground colour along every border, and since the face
-   * it borders is printed, the band reads as a seam. Four faces each wearing a
-   * seam is a box that looks like stacked panels.
-   *
-   * Each shell face carries its own side's shading and then some. Two faces
-   * meeting at a fold are each antialiased to transparent at that edge, and two
-   * half-covered edges do not add up to one opaque one, so about a pixel of
-   * shell shows along every fold whatever else is done. In the carton's plain
-   * ground that pixel comes out lighter than both faces, and a pale line
-   * between two sides reads as a gap between two panels. A darker one reads as
-   * the fold it actually is — so the shell is mixed towards a deep blue rather
-   * than towards black, and sits a little under the side it backs.
-   */
-  const seamColour = (shade: number) =>
-    printed
-      ? `color-mix(in srgb, ${PRINT_GROUND} ${Math.round(
-          Math.max(0, 1 - shade - 0.16) * 100,
-        )}%, #0b2236)`
-      : "#20202a";
-
-  /** The five sides a turn brings round, and how each one is lit. */
-  const SIDES = [
-    { name: "front", lit: 34, shade: 0.0 },
-    { name: "left", lit: 28, shade: 0.1 },
-    { name: "right", lit: 24, shade: 0.16 },
-    { name: "back", lit: 18, shade: 0.22 },
-    { name: "top", lit: 14, shade: 0.26 },
-  ] as const;
-
-  const Shell = ({ name, shade }: { name: BoxFace; shade: number }) => {
-    const base = box.face(name);
-    return (
-      <div
-        aria-hidden
-        style={{
-          ...base,
-          // A pixel in from the surface, along whichever way this face faces.
-          transform: `${base.transform} translateZ(-1px)`,
-          background: seamColour(shade),
-        }}
-      />
-    );
-  };
-
   const Face = ({
     name,
     lit,
@@ -345,26 +286,7 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
       style={{
         ...box.face(name),
         background: printed ? undefined : faceBackground(lit),
-        /*
-          Nothing is painted near a border, and that is the whole trick.
-
-          There was a hard white rule one pixel inside every one of them, which
-          drew each edge instead of softening it. Softening it turned out not to
-          mean replacing that rule with something gentler: a blurred version of
-          it, a band of light along the fold, a ring of the carton's colour
-          around each face — each of those still puts something where two sides
-          meet, and anything there reads as a seam between two panels rather
-          than as a fold in one sheet. Two faces each carrying a soft band make
-          the band twice as wide at the fold they share, which is how a box ends
-          up looking stacked.
-
-          So the sides simply end. What is left to see at a fold is one shade of
-          blue against another, which is what a folded carton actually looks
-          like.
-        */
-        /* Just enough to take the point off the eight corners. Past about four
-           the faces stop meeting and the carton shows daylight at its folds. */
-        borderRadius: 2,
+        boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.08)",
         overflow: "hidden",
       }}
     >
@@ -545,12 +467,11 @@ function ProductBox({ accent, printed }: { accent: string; printed: boolean }) {
             out is a hole in the box. The light stays fixed to the carton, so
             the front catches the most of it and the lid the least, which is
             what separates the planes. */}
-        {SIDES.map((side) => (
-          <Shell key={`shell-${side.name}`} name={side.name} shade={side.shade} />
-        ))}
-        {SIDES.map((side) => (
-          <Face key={side.name} name={side.name} lit={side.lit} shade={side.shade} />
-        ))}
+        <Face name="front" lit={34} shade={0.0} />
+        <Face name="left" lit={28} shade={0.1} />
+        <Face name="right" lit={24} shade={0.16} />
+        <Face name="back" lit={18} shade={0.22} />
+        <Face name="top" lit={14} shade={0.26} />
 
         <Mark face="front" />
         <Mark face="right" />
