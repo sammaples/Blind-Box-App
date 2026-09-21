@@ -462,7 +462,7 @@ export function BoxOpening({
           in front of the thing you are reading.
         */}
         <AnimatePresence>
-          {starry && stage === "reveal" && <ShootingStars key="stars" color={glow} />}
+          {starry && stage === "reveal" && <UltraSky key="stars" color={glow} />}
         </AnimatePresence>
 
         {/* The pull */}
@@ -890,7 +890,7 @@ function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
  * lopsided spray on the one pull that has to look right.
  */
 /**
- * Shooting stars, on an ultra rare, behind the piece.
+ * The ultra's sky: a field that twinkles, and stars that cross it.
  *
  * A chase gets an event: dust thrown over the figure that burns off in a few
  * seconds and leaves. An ultra gets weather instead — nothing happens at the
@@ -907,6 +907,62 @@ function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
  * Violet throughout, because that is what an ultra already is everywhere else
  * in the app: the badge, the rate bar, the glow off the box.
  */
+/**
+ * The field the shooting stars cross.
+ *
+ * Without it there is no sky — there is a dark panel that something occasionally
+ * flies through, and between passes the screen is simply empty. A handful of
+ * fixed points fixes that for almost nothing: they are what makes the space
+ * behind the piece read as somewhere rather than as a background.
+ *
+ * Deliberately quiet. These are not the event; the shooting stars are, and
+ * anything here bright enough to compete with them would also be bright enough
+ * to compete with the figure, which is the thing somebody actually opened a box
+ * to look at. So: two pixels at most, a peak under three-quarters, and each one
+ * breathing on its own clock — twenty-two dots pulsing in step would read as the
+ * whole layer flashing, which is the one way a starfield gets loud.
+ *
+ * A white core inside a coloured halo, rather than a violet dot. At this size
+ * the halo is most of what you see, so the field still sits in the ultra's
+ * colour, while the pinpoint keeps it reading as a star and not as a smudge.
+ *
+ * Placed by hand, and placed around the figure: the piece is a third of the
+ * frame wide and stands dead centre, so stars written into that column are
+ * stars nobody sees. What is left down the middle is the strip above its head
+ * and the strip below its feet.
+ */
+const FIELD = [
+  // left
+  { x: 6, y: 12, r: 1.6, dur: 3.2, at: 0, hi: 0.7 },
+  { x: 14, y: 31, r: 1.1, dur: 2.4, at: 0.9, hi: 0.5 },
+  { x: 4, y: 48, r: 2, dur: 3.8, at: 1.7, hi: 0.75 },
+  { x: 22, y: 8, r: 1.2, dur: 2.9, at: 0.4, hi: 0.55 },
+  { x: 10, y: 68, r: 1.4, dur: 3.4, at: 2.2, hi: 0.6 },
+  { x: 26, y: 57, r: 1, dur: 2.6, at: 1.2, hi: 0.45 },
+  { x: 17, y: 86, r: 1.7, dur: 3.1, at: 0.6, hi: 0.65 },
+  { x: 3, y: 78, r: 1.2, dur: 2.7, at: 1.9, hi: 0.5 },
+  { x: 29, y: 22, r: 1.5, dur: 3.6, at: 2.6, hi: 0.6 },
+  // right
+  { x: 94, y: 16, r: 1.8, dur: 3.3, at: 0.3, hi: 0.72 },
+  { x: 82, y: 6, r: 1.1, dur: 2.5, at: 1.5, hi: 0.5 },
+  { x: 88, y: 39, r: 1.3, dur: 3, at: 2.1, hi: 0.58 },
+  { x: 73, y: 27, r: 1, dur: 2.8, at: 0.8, hi: 0.45 },
+  { x: 96, y: 61, r: 1.6, dur: 3.7, at: 1.1, hi: 0.68 },
+  { x: 79, y: 72, r: 1.2, dur: 2.3, at: 2.4, hi: 0.52 },
+  { x: 90, y: 88, r: 1.5, dur: 3.5, at: 0.2, hi: 0.62 },
+  { x: 70, y: 52, r: 1.1, dur: 2.9, at: 1.8, hi: 0.48 },
+  { x: 85, y: 96, r: 1.3, dur: 3.2, at: 2.9, hi: 0.55 },
+  // over its head and under its feet, which is all the middle has room for
+  { x: 44, y: 3, r: 1.4, dur: 3, at: 1.3, hi: 0.6 },
+  { x: 58, y: 9, r: 1, dur: 2.6, at: 2, hi: 0.45 },
+  { x: 39, y: 95, r: 1.2, dur: 3.4, at: 0.7, hi: 0.5 },
+  { x: 63, y: 91, r: 1.5, dur: 2.8, at: 1.6, hi: 0.58 },
+];
+
+/** How far down a star dims between breaths. Never to nothing: a star that
+    goes out has gone out, and this is a twinkle, not a blink. */
+const FIELD_FLOOR = 0.22;
+
 const STAR_COUNT = 10;
 
 /** Seconds between one star and the next. */
@@ -940,9 +996,39 @@ const STARS = [
   { left: 92, top: 74, deg: 214, travel: 188, len: 80, dur: 0.92 },
 ];
 
-function ShootingStars({ color }: { color: string }) {
+function UltraSky({ color }: { color: string }) {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+      {/* The field first, so a streak passing over one paints on top of it. */}
+      {FIELD.map((f, i) => (
+        <motion.span
+          key={`f${i}`}
+          className="absolute block rounded-full"
+          style={{
+            left: `${f.x}%`,
+            top: `${f.y}%`,
+            width: f.r * 2,
+            height: f.r * 2,
+            background: "#fff",
+            boxShadow: `0 0 ${f.r * 4}px ${color}, 0 0 ${f.r * 8}px ${color}`,
+          }}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{
+            opacity: [f.hi * FIELD_FLOOR, f.hi, f.hi * FIELD_FLOOR],
+            scale: [0.8, 1, 0.8],
+          }}
+          transition={{
+            duration: f.dur,
+            // Its own offset, so the field breathes rather than flashes. It
+            // also means they come out over the first few seconds instead of
+            // all at once, which is the right way round for a sky.
+            delay: f.at,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+
       {STARS.map((st, i) => (
         // Placement and rotation on a plain element, the travel on a motion
         // one inside it. Animating a transform makes motion compose the whole
