@@ -438,6 +438,21 @@ export function BoxOpening({
           )}
         </AnimatePresence>
 
+        {/*
+          And the dust, once the piece is standing there.
+
+          In here rather than over the whole page, because it has to go off on
+          the figure and the figure is not in the middle of the screen — fired
+          from the viewport centre it burst a good 270px below the piece, which
+          reads as sparkles happening near a bear rather than off one. Absolute
+          rather than fixed: this container carries a perspective, which makes
+          it the containing block for anything fixed inside it, and dust that
+          cannot leave would pile up in the middle of the screen.
+        */}
+        <AnimatePresence>
+          {loud && stage === "reveal" && <GoldDust key="dust" />}
+        </AnimatePresence>
+
         {/* The pull */}
         <AnimatePresence>
           {stage === "reveal" && piece && (
@@ -528,6 +543,8 @@ export function BoxOpening({
       <AnimatePresence>
         {loud && opening && <ChaseBurst key="burst" color={glow} />}
       </AnimatePresence>
+
+
 
       {/*
         The blow-out, over the whole page for the same reason as the bloom: the
@@ -860,6 +877,111 @@ function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
  * to recognise as *the* chase moment, and the odd unlucky seed gives you a
  * lopsided spray on the one pull that has to look right.
  */
+/**
+ * Gold dust, on a chase, over the piece.
+ *
+ * The shards fire while the box is still breaking and are gone by the time
+ * anything is standing there. This is the other half: it goes off on top of
+ * the figure once you can see it, then stops being an effect and becomes
+ * weather — the burst throws it up and out, gravity takes it back, and it
+ * falls off the bottom of the screen.
+ *
+ * Two rules it has to obey, and they are the same rule twice. Nothing collects
+ * at the bottom: real dust settling on a floor would mean drawing a floor, and
+ * there isn't one — these just keep going past the edge. And none of it is
+ * still here at the end. A chase is the one pull somebody will stare at, so
+ * anything glittering over the piece has to get out of the way of the piece.
+ *
+ * Deterministic, like the shards, and for the same reason: this renders on the
+ * client only, but the one pull that has to look right every time is the rare
+ * one, and a spray that is different on every chase is harder to recognise as
+ * *the* chase moment.
+ */
+const DUST_COUNT = 96;
+
+/** Warm metal, not yellow. A single flat gold reads as confetti. */
+const DUST_TONES = ["#fff4d0", "#ffdf8e", "#ffc94f", "#f7a72c"];
+
+function GoldDust() {
+  const motes = Array.from({ length: DUST_COUNT }, (_, i) => {
+    // Spread around the circle, then nudged off it so it is not a starburst.
+    const angle = (i / DUST_COUNT) * Math.PI * 2 + (i % 5) * 0.21;
+    const thrown = 44 + (i % 7) * 26;
+    return {
+      // Flattened and lifted: an explosion over a figure throws wide and up,
+      // and a perfectly round one reads as a diagram of an explosion.
+      burstX: Math.cos(angle) * thrown,
+      burstY: Math.sin(angle) * thrown * 0.66 - 46,
+      // Where it drifts to on the way down. Dust does not fall straight.
+      sway: ((i % 5) - 2) * 30,
+      // Past the bottom of any phone from the middle of the screen, so nothing
+      // is left hanging in frame waiting to be noticed.
+      fall: 660 + (i % 9) * 48,
+      size: 3 + (i % 5),
+      spin: (i % 2 ? 1 : -1) * (110 + (i % 6) * 70),
+      tone: DUST_TONES[i % DUST_TONES.length],
+      delay: (i % 6) * 0.04,
+      // Staggered so they do not all wink out together, which would read as a
+      // layer being switched off rather than dust thinning out.
+      life: 2.5 + (i % 5) * 0.3,
+      twinkle: 0.5 + (i % 4) * 0.22,
+    };
+  });
+
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 z-30 grid place-items-center">
+      {motes.map((m, i) => {
+        // The burst is over almost immediately; everything after it is the
+        // fall. Splitting the timeline here is what lets one keyframe run
+        // outward fast and the next drop slowly under it.
+        const thrownAt = 0.24 / m.life;
+        const settledAt = 0.62 / m.life;
+        return (
+          <motion.span
+            key={i}
+            className="absolute"
+            initial={{ opacity: 0, x: 0, y: 0, rotate: 0 }}
+            animate={{
+              opacity: [0, 1, 1, 0],
+              x: [0, m.burstX, m.burstX + m.sway * 0.4, m.burstX + m.sway],
+              y: [0, m.burstY, m.burstY + m.fall * 0.14, m.burstY + m.fall],
+              rotate: [0, m.spin * 0.35, m.spin * 0.7, m.spin],
+            }}
+            transition={{
+              duration: m.life,
+              delay: m.delay,
+              times: [0, thrownAt, settledAt, 1],
+              // Out hard, hang, then accelerate downward — which is gravity,
+              // and the only part of this that has to feel like physics.
+              ease: ["easeOut", "easeOut", "easeIn"],
+            }}
+          >
+            {/* The glitter itself. Its own flicker, on its own clock, so the
+                grains catch the light independently of where they are. */}
+            <motion.span
+              className="block"
+              style={{
+                width: m.size,
+                height: m.size,
+                borderRadius: 999,
+                background: m.tone,
+                boxShadow: `0 0 5px ${m.tone}, 0 0 12px ${m.tone}, 0 0 22px ${m.tone}`,
+              }}
+              animate={{ opacity: [1, 0.35, 1], scale: [1, 0.72, 1] }}
+              transition={{
+                duration: m.twinkle,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: (i % 7) * 0.09,
+              }}
+            />
+          </motion.span>
+        );
+      })}
+    </div>
+  );
+}
+
 const SHARD_COUNT = 26;
 
 function ChaseBurst({ color }: { color: string }) {
