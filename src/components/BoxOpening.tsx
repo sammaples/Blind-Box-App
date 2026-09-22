@@ -933,31 +933,47 @@ function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
  */
 const FIELD = [
   // left
-  { x: 6, y: 12, r: 1.6, dur: 1.9, at: 0, hi: 0.95 },
-  { x: 14, y: 31, r: 1.1, dur: 1.5, at: 0.9, hi: 0.7 },
-  { x: 4, y: 48, r: 2, dur: 2.3, at: 1.7, hi: 1 },
-  { x: 22, y: 8, r: 1.2, dur: 1.8, at: 0.4, hi: 0.75 },
-  { x: 10, y: 68, r: 1.4, dur: 2, at: 2.2, hi: 0.82 },
-  { x: 26, y: 57, r: 1, dur: 1.6, at: 1.2, hi: 0.62 },
-  { x: 17, y: 86, r: 1.7, dur: 1.9, at: 0.6, hi: 0.88 },
-  { x: 3, y: 78, r: 1.2, dur: 1.7, at: 1.9, hi: 0.7 },
-  { x: 29, y: 22, r: 1.5, dur: 2.2, at: 2.6, hi: 0.82 },
+  { x: 6, y: 12, r: 1.6, dur: 4.1, at: 0, hi: 0.95 },
+  { x: 14, y: 31, r: 1.1, dur: 3.2, at: 0.9, hi: 0.7 },
+  { x: 4, y: 48, r: 2, dur: 4.9, at: 1.7, hi: 1 },
+  { x: 22, y: 8, r: 1.2, dur: 3.7, at: 0.4, hi: 0.75 },
+  { x: 10, y: 68, r: 1.4, dur: 4.3, at: 2.2, hi: 0.82 },
+  { x: 26, y: 57, r: 1, dur: 3.4, at: 1.2, hi: 0.62 },
+  { x: 17, y: 86, r: 1.7, dur: 3.9, at: 0.6, hi: 0.88 },
+  { x: 3, y: 78, r: 1.2, dur: 3.6, at: 1.9, hi: 0.7 },
+  { x: 29, y: 22, r: 1.5, dur: 4.6, at: 2.6, hi: 0.82 },
   // right
-  { x: 94, y: 16, r: 1.8, dur: 2, at: 0.3, hi: 0.96 },
-  { x: 82, y: 6, r: 1.1, dur: 1.5, at: 1.5, hi: 0.7 },
-  { x: 88, y: 39, r: 1.3, dur: 1.8, at: 2.1, hi: 0.78 },
-  { x: 73, y: 27, r: 1, dur: 1.7, at: 0.8, hi: 0.62 },
-  { x: 96, y: 61, r: 1.6, dur: 2.2, at: 1.1, hi: 0.92 },
-  { x: 79, y: 72, r: 1.2, dur: 1.4, at: 2.4, hi: 0.72 },
-  { x: 90, y: 88, r: 1.5, dur: 2.1, at: 0.2, hi: 0.85 },
-  { x: 70, y: 52, r: 1.1, dur: 1.8, at: 1.8, hi: 0.66 },
-  { x: 85, y: 96, r: 1.3, dur: 1.9, at: 2.9, hi: 0.75 },
+  { x: 94, y: 16, r: 1.8, dur: 4.2, at: 0.3, hi: 0.96 },
+  { x: 82, y: 6, r: 1.1, dur: 3.1, at: 1.5, hi: 0.7 },
+  { x: 88, y: 39, r: 1.3, dur: 3.8, at: 2.1, hi: 0.78 },
+  { x: 73, y: 27, r: 1, dur: 3.5, at: 0.8, hi: 0.62 },
+  { x: 96, y: 61, r: 1.6, dur: 4.7, at: 1.1, hi: 0.92 },
+  { x: 79, y: 72, r: 1.2, dur: 3, at: 2.4, hi: 0.72 },
+  { x: 90, y: 88, r: 1.5, dur: 4.4, at: 0.2, hi: 0.85 },
+  { x: 70, y: 52, r: 1.1, dur: 3.8, at: 1.8, hi: 0.66 },
+  { x: 85, y: 96, r: 1.3, dur: 4, at: 2.9, hi: 0.75 },
   // over its head and under its feet, which is all the middle has room for
-  { x: 44, y: 3, r: 1.4, dur: 1.8, at: 1.3, hi: 0.82 },
-  { x: 58, y: 9, r: 1, dur: 1.6, at: 2, hi: 0.62 },
-  { x: 39, y: 95, r: 1.2, dur: 2, at: 0.7, hi: 0.7 },
-  { x: 63, y: 91, r: 1.5, dur: 1.7, at: 1.6, hi: 0.78 },
+  { x: 44, y: 3, r: 1.4, dur: 3.9, at: 1.3, hi: 0.82 },
+  { x: 58, y: 9, r: 1, dur: 3.3, at: 2, hi: 0.62 },
+  { x: 39, y: 95, r: 1.2, dur: 4.2, at: 0.7, hi: 0.7 },
+  { x: 63, y: 91, r: 1.5, dur: 3.6, at: 1.6, hi: 0.78 },
 ];
+
+/**
+ * The shape of one breath: rise, hold lit, fall.
+ *
+ * A star that runs dim to bright to dim with nothing in between never
+ * actually arrives — the peak is a single instant it passes through on the way
+ * back down, so however long the period is, what you see is a flash. Holding a
+ * third of the cycle at full is what turns that into a star catching the light
+ * and letting it go.
+ *
+ * The rise is quicker than the fall, and both are eased against a flat middle.
+ * That asymmetry is the difference between a light coming on and a light being
+ * faded up by something with a dial.
+ */
+const TWINKLE_TIMES = [0, 0.28, 0.62, 1];
+const TWINKLE_EASE: ["easeOut", "linear", "easeIn"] = ["easeOut", "linear", "easeIn"];
 
 /**
  * How far down a star dims between breaths.
@@ -1030,11 +1046,11 @@ function UltraSky({ color }: { color: string }) {
           style={{ left: `${f.x}%`, top: `${f.y}%`, width: f.r * 2, height: f.r * 2 }}
           initial={{ opacity: 0, scale: 0.55 }}
           animate={{
-            opacity: [f.hi * FIELD_FLOOR, f.hi, f.hi * FIELD_FLOOR],
+            opacity: [f.hi * FIELD_FLOOR, f.hi, f.hi, f.hi * FIELD_FLOOR],
             // Swells as it brightens. A light getting brighter gets bigger —
             // the glow blooms outward — and holding the size flat is what made
             // the old field read as dots changing opacity.
-            scale: [0.55, 1.15, 0.55],
+            scale: [0.55, 1.15, 1.15, 0.55],
           }}
           transition={{
             duration: f.dur,
@@ -1043,7 +1059,8 @@ function UltraSky({ color }: { color: string }) {
             // all at once, which is the right way round for a sky.
             delay: f.at,
             repeat: Infinity,
-            ease: "easeInOut",
+            times: TWINKLE_TIMES,
+            ease: TWINKLE_EASE,
           }}
         >
           {/* The core, and the halo it throws. White at the centre falling
