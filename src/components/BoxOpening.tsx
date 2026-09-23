@@ -278,9 +278,16 @@ export function BoxOpening({
   // Known in time because the reveal call stores its result the moment it
   // lands, before the wind-up is over.
   const chase = piece?.rarity === "chase";
-  // An ultra gets its own reveal: stars behind the piece, for as long as
-  // somebody stays on the screen.
-  const starry = piece?.rarity === "ultra" && !reducedMotion;
+  // The two top rarities get a sky behind the piece, for as long as somebody
+  // stays on the screen — violet for an ultra, gold for a chase. It takes the
+  // tier's own glow colour, so there is one sky and not two.
+  //
+  // A chase keeps the dust as well. The two do not fight: the dust is an event
+  // in front of the figure that is gone inside ten seconds, and the sky is
+  // weather behind it that never stops. What you get is the burst, and then
+  // the room it leaves behind.
+  const starry =
+    (piece?.rarity === "ultra" || piece?.rarity === "chase") && !reducedMotion;
   const loud = chase && !reducedMotion;
   // Whatever is inside, the box fights for it — the rattle is not the chase's
   // any more. It still has to wait for the reveal call, because the wind it
@@ -457,12 +464,12 @@ export function BoxOpening({
         </AnimatePresence>
 
         {/*
-          And the ultra's sky. Behind the piece rather than over it — the whole
-          point is that it carries on while you read the card, so it cannot be
-          in front of the thing you are reading.
+          And the sky, on the two rarities that earn one. Behind the piece
+          rather than over it — the whole point is that it carries on while you
+          read the card, so it cannot be in front of what you are reading.
         */}
         <AnimatePresence>
-          {starry && stage === "reveal" && <UltraSky key="stars" color={glow} />}
+          {starry && stage === "reveal" && <RareSky key="stars" color={glow} />}
         </AnimatePresence>
 
         {/* The pull */}
@@ -890,22 +897,28 @@ function OpeningRays({ color, loud }: { color: string; loud: boolean }) {
  * lopsided spray on the one pull that has to look right.
  */
 /**
- * The ultra's sky: a field that twinkles, and stars that cross it.
+ * The sky: a field that twinkles, and stars that cross it.
  *
- * A chase gets an event: dust thrown over the figure that burns off in a few
- * seconds and leaves. An ultra gets weather instead — nothing happens at the
- * reveal, and then a star crosses the sky behind the piece, and keeps doing it
- * for as long as anyone stays on the screen. The difference is deliberate: a
- * chase should feel like something that happened to you, and an ultra like
- * somewhere you ended up.
+ * The two top rarities get one, and nothing below them does. A common or a
+ * rare is a box you opened; these are the two worth sitting with, and the sky
+ * is what gives you something to sit in — it starts when the piece lands and
+ * runs until you leave the screen.
  *
- * Ten of them on one rota rather than one on a random timer. Every star is a
- * different corner, angle and speed, and the cycle is long enough that the one
- * you just watched is ten stars away from coming round again — which is the
+ * One component, coloured by the pull. Violet for an ultra and gold for a
+ * chase, taken from the same `RARITY_COLOR` that paints the badge, the rate bar
+ * and the glow off the box, so the sky is never a colour the rest of the reveal
+ * is not. Two copies of this with the palette baked in would be two things to
+ * keep in step, and they would drift the first time one of them was tuned.
+ *
+ * A chase still gets the dust on top, because the two say different things: the
+ * dust is an event, thrown over the figure and gone inside ten seconds, and the
+ * sky is weather that never stops. A chase should feel like something that
+ * happened to you AND somewhere you ended up; an ultra only the second.
+ *
+ * Ten shooting stars on one rota rather than one on a random timer. Every star
+ * is a different corner, angle and speed, and the cycle is long enough that the
+ * one you just watched is ten stars away from coming round again — which is the
  * cheapest way to make a loop stop reading as a loop.
- *
- * Violet throughout, because that is what an ultra already is everywhere else
- * in the app: the badge, the rate bar, the glow off the box.
  */
 /**
  * The field the shooting stars cross.
@@ -1035,7 +1048,7 @@ const STARS = [
   { left: 92, top: 74, deg: 214, travel: 188, len: 80, dur: 0.92 },
 ];
 
-function UltraSky({ color }: { color: string }) {
+function RareSky({ color }: { color: string }) {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
       {/* The field first, so a streak passing over one paints on top of it. */}
