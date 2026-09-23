@@ -469,7 +469,7 @@ export function BoxOpening({
           read the card, so it cannot be in front of what you are reading.
         */}
         <AnimatePresence>
-          {starry && stage === "reveal" && <RareSky key="stars" color={glow} />}
+          {starry && stage === "reveal" && <RareSky key="stars" color={glow} far={!!chase} />}
         </AnimatePresence>
 
         {/* The pull */}
@@ -1035,6 +1035,29 @@ const STAR_EVERY = 1.5;
  * the rota every fifteen seconds. Every entry here leaves the centre column
  * at some point in its run. Move one and check it still does.
  */
+/**
+ * What a chase does with the same ten stars.
+ *
+ * The table below is the ultra's, and a chase runs it further and slower. The
+ * reach is the point: at 150–225px a streak crosses a third to a half of a
+ * phone, which reads as a star passing through a corner of the frame. At 1.6x
+ * it covers 56–84% of the width — most of the way across, without touching
+ * either edge, because a streak that starts and ends off-screen is a line
+ * being dragged past a window rather than something travelling.
+ *
+ * The duration stretches further than the reach on purpose. Scaling only the
+ * distance would make every chase star 60% faster, which is the opposite of
+ * what a bigger sky wants; at 1.75x they end up about 9% slower than an
+ * ultra's, so the extra ground is time you can watch rather than speed.
+ *
+ * One consequence worth knowing: at 1.5s apart, the longest of these now
+ * outlast the gap and two are briefly in the air at once. That is a tail
+ * fading under a new head rather than two stars competing, and it only
+ * happens on the pull that has earned a busier sky.
+ */
+const CHASE_REACH = 1.6;
+const CHASE_LINGER = 1.75;
+
 const STARS = [
   { left: -12, top: 14, deg: 28, travel: 180, len: 74, dur: 0.85 },
   { left: 104, top: 8, deg: 152, travel: 210, len: 92, dur: 1.05 },
@@ -1048,7 +1071,10 @@ const STARS = [
   { left: 92, top: 74, deg: 214, travel: 188, len: 80, dur: 0.92 },
 ];
 
-function RareSky({ color }: { color: string }) {
+function RareSky({ color, far }: { color: string; far: boolean }) {
+  const reach = far ? CHASE_REACH : 1;
+  const linger = far ? CHASE_LINGER : 1;
+
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
       {/* The field first, so a streak passing over one paints on top of it. */}
@@ -1136,17 +1162,19 @@ function RareSky({ color }: { color: string }) {
             }}
             initial={{ x: 0, opacity: 0, scaleX: 0.35 }}
             animate={{
-              x: [0, st.travel],
+              x: [0, st.travel * reach],
               opacity: [0, 1, 1, 0],
               scaleX: [0.35, 1, 1, 0.55],
             }}
             transition={{
-              duration: st.dur,
+              duration: st.dur * linger,
               delay: i * STAR_EVERY,
               repeat: Infinity,
               // Back round only after every other star has had its turn, so
               // the rota is ten stars long rather than one on a short leash.
-              repeatDelay: STAR_COUNT * STAR_EVERY - st.dur,
+              // The gap shrinks as the flight grows; it stays comfortably
+              // positive even at a chase's longest.
+              repeatDelay: STAR_COUNT * STAR_EVERY - st.dur * linger,
               times: [0, 0.18, 0.72, 1],
               ease: "easeOut",
             }}
