@@ -2,6 +2,7 @@ import "server-only";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { syncAdmin } from "./admin";
+import { HANDSHAKE_TTL_MS, type AppleIdentity, type Handshake } from "./apple";
 import { backend } from "./db";
 import type { Collector } from "./types";
 
@@ -97,6 +98,81 @@ export async function redeemLoginToken(token: string): Promise<Collector | null>
 
   const account = await backend().accountForEmail(email);
   // Admin follows ADMIN_EMAILS, applied at sign-in rather than by hand.
+  return syncAdmin(account);
+}
+
+/* --------------------------- the Apple handshake -------------------------- */
+
+const APPLE_COOKIE = "bb_apple";
+
+/**
+ * Parks the handshake for the round trip through Apple.
+ *
+ * `SameSite=None` is not a slip. Apple `form_post`s its answer, so the browser
+ * arrives at our callback on a cross-site POST, and a Lax cookie is not sent
+ * on one of those — the state would be missing every single time and every
+ * sign-in would fail closed. None plus Secure is what makes it arrive, and the
+ * cookie is worth nothing on its own: it holds a random state, a random nonce
+ * and a path, it is signed, and it is deleted the moment it is read.
+ *
+ * Which is also why it is short-lived. Ten minutes is long enough to read
+ * Apple's screens and short enough that an abandoned attempt does not sit in
+ * a browser for a week.
+ */
+export async function rememberHandshake(handshake: Handshake, next: string): Promise<void> {
+  const jar = await cookies();
+  const payload = `${handshake.state}.${handshake.nonce}.${b64(next)}`;
+  jar.set(APPLE_COOKIE, `${payload}.${signHandshake(payload)}`, {
+    httpOnly: true,
+    sameSite: "none",
+    secure: true,
+    path: "/",
+    maxAge: Math.floor(HANDSHAKE_TTL_MS / 1000),
+  });
+}
+
+/** Reads it back and retires it, so one handshake answers one callback. */
+export async function takeHandshake(): Promise<(Handshake & { next: string }) | null> {
+  const jar = await cookies();
+  const raw = jar.get(APPLE_COOKIE)?.value;
+  jar.delete(APPLE_COOKIE);
+  if (!raw) return null;
+
+  const cut = raw.lastIndexOf(".");
+  if (cut < 0) return null;
+  const payload = raw.slice(0, cut);
+  if (!sameString(raw.slice(cut + 1), signHandshake(payload))) return null;
+
+  const [state, nonce, next] = payload.split(".");
+  if (!state || !nonce) return null;
+  return { state, nonce, next: safeNext(unb64(next ?? "")) };
+}
+
+function signHandshake(payload: string): string {
+  return createHmac("sha256", secret()).update(`apple:${payload}`).digest("hex");
+}
+
+const b64 = (v: string) => Buffer.from(v).toString("base64url");
+const unb64 = (v: string) => Buffer.from(v, "base64url").toString();
+
+/**
+ * Signs somebody in from a verified Apple identity.
+ *
+ * The account is found by Apple's subject, never by the address — see the
+ * migration for why — and admin is reapplied here the same way the emailed
+ * link does it, so the two doors grant exactly the same rights.
+ */
+export async function signInWithApple(
+  identity: AppleIdentity,
+  displayName: string | null,
+): Promise<Collector> {
+  const account = await backend().accountForApple({
+    sub: identity.sub,
+    // An unverified address is not one to post anything to, and Apple's own
+    // relays are always verified — so this only ever drops something odd.
+    email: identity.emailVerified ? identity.email : null,
+    displayName,
+  });
   return syncAdmin(account);
 }
 

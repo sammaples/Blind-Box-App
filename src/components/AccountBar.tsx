@@ -6,17 +6,23 @@ import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useScrollLock } from "@/lib/useScrollLock";
+import { AppleButton } from "./AppleButton";
 
 export interface Account {
   id: string;
   email: string | null;
+  displayName: string | null;
   /** Whether this account may reach the inventory console. */
   isAdmin: boolean;
+  /** Whether they have been walked through how this works. */
+  onboarded: boolean;
 }
 
 interface AccountState {
   account: Account | null;
   loading: boolean;
+  /** Whether Sign in with Apple is configured on this deployment. */
+  apple: boolean;
   /** Opens the sign-in sheet. `reason` explains why it appeared. */
   signIn: (reason?: string) => void;
   signOut: () => Promise<void>;
@@ -39,6 +45,7 @@ export function useAccount(): AccountState {
 export function AccountProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [account, setAccount] = useState<Account | null>(null);
+  const [apple, setApple] = useState(false);
   const [loading, setLoading] = useState(true);
   const [prompt, setPrompt] = useState<string | null>(null);
 
@@ -47,6 +54,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       const res = await fetch("/api/auth/session");
       const data = await res.json();
       setAccount(data.account ?? null);
+      setApple(data.apple === true);
     } catch {
       setAccount(null);
     } finally {
@@ -65,11 +73,20 @@ export function AccountProvider({ children }: { children: ReactNode }) {
 
     void refresh();
     const claimed = Number(params.get("claimed") ?? 0);
-    if (params.get("signin") === "expired") {
-      setPrompt("That link has expired or was already used. Here is a fresh one.");
-    } else if (claimed > 0) {
-      setPrompt(null);
-    }
+    // Everything Apple can hand back, said in a way somebody can act on.
+    // "cancelled" deliberately says nothing at all: pressing Cancel is a
+    // decision, not a failure, and answering it with a banner is nagging.
+    const said: Record<string, string | null> = {
+      expired: "That sign-in took too long to come back. Try again.",
+      failed: "That sign-in did not complete. Please try again.",
+      unconfigured: "Sign-in is not set up on this deployment yet.",
+      cancelled: null,
+      ok: null,
+    };
+    const reason = params.get("signin");
+    const message = reason ? said[reason] : undefined;
+    if (message) setPrompt(message);
+    else if (message === null || claimed > 0) setPrompt(null);
     window.history.replaceState({}, "", window.location.pathname + window.location.hash);
   }, [refresh]);
 
@@ -84,6 +101,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       value={{
         account,
         loading,
+        apple,
         signIn: (reason) => setPrompt(reason ?? ""),
         signOut,
         refresh,
@@ -92,6 +110,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       {children}
       <SignInSheet
         open={prompt !== null}
+        apple={apple}
         reason={prompt || null}
         onClose={() => setPrompt(null)}
         onSignedIn={() => {
@@ -185,50 +204,25 @@ export function AccountButton() {
 
 function SignInSheet({
   open,
+  apple,
   reason,
   onClose,
   onSignedIn,
 }: {
   open: boolean;
+  apple: boolean;
   reason: string | null;
   onClose: () => void;
   onSignedIn: () => void;
 }) {
   useScrollLock(open);
-  const [email, setEmail] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [devLink, setDevLink] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
+  // Where to land afterwards. Captured on open rather than on click, so a
+  // visitor sent here from the checkout sheet comes back to the checkout
+  // sheet instead of the front page.
+  const [next, setNext] = useState("/");
   useEffect(() => {
-    if (open) {
-      setSent(false);
-      setDevLink(null);
-      setError(null);
-    }
+    if (open) setNext(window.location.pathname + window.location.search + window.location.hash);
   }, [open]);
-
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/auth/request", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Could not send that link");
-      setSent(true);
-      setDevLink(data.devLink ?? null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
     <AnimatePresence>
@@ -250,76 +244,93 @@ function SignInSheet({
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-md rounded-t-3xl border border-hairline bg-ink-raised p-6 sm:rounded-3xl"
           >
-            {sent ? (
-              <div className="text-center">
-                <h3 className="text-lg font-semibold tracking-tight">Check your email</h3>
-                <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-muted">
-                  We sent a sign-in link to <span className="text-chalk">{email}</span>. It
-                  works once, and expires in fifteen minutes.
-                </p>
+            <h3 className="text-lg font-semibold tracking-tight">Sign in to collect</h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              {reason ||
+                "Your pulls need somewhere to live, and a box has to reach a real address. One tap — no password, no sign-up form."}
+            </p>
 
-                {devLink && (
-                  <div className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-left">
-                    <p className="text-[11px] uppercase tracking-[0.16em] text-amber-300">
-                      No email provider configured
-                    </p>
-                    <p className="mt-1.5 text-xs leading-relaxed text-amber-200/90">
-                      Nothing was actually sent, so here is the link. This only ever
-                      appears outside production.
-                    </p>
-                    <a
-                      href={devLink}
-                      className="mt-3 block truncate rounded-lg bg-black/30 px-3 py-2 font-mono text-[11px] text-amber-200 underline"
-                    >
-                      {devLink}
-                    </a>
-                  </div>
-                )}
+            <div className="mt-5">
+              {apple ? (
+                <AppleButton next={next} />
+              ) : (
+                <DevSignIn next={next} onSignedIn={onSignedIn} />
+              )}
+            </div>
 
-                <button
-                  type="button"
-                  onClick={onSignedIn}
-                  className="mt-5 w-full rounded-xl bg-white/10 py-3 text-sm font-medium text-chalk transition-colors hover:bg-white/16"
-                >
-                  Done
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={submit}>
-                <h3 className="text-lg font-semibold tracking-tight">Sign in to collect</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">
-                  {reason ||
-                    "Your pulls need somewhere to live, and a box has to reach a real address. No password — we email you a link."}
-                </p>
-
-                <label className="mt-5 block">
-                  <span className="text-[11px] uppercase tracking-[0.16em] text-faint">
-                    Email
-                  </span>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    autoComplete="email"
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="mt-2 w-full rounded-xl border border-hairline bg-ink px-4 py-3 text-sm outline-none transition-colors focus:border-white/30"
-                  />
-                </label>
-
-                <button
-                  type="submit"
-                  disabled={busy || email.trim() === ""}
-                  className="mt-5 w-full rounded-xl bg-chalk py-3.5 text-sm font-semibold text-ink transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
-                >
-                  {busy ? "Sending…" : "Email me a link"}
-                </button>
-                {error && <p className="mt-3 text-center text-xs text-rose-400">{error}</p>}
-              </form>
-            )}
+            <p className="mt-4 text-center text-[11px] leading-relaxed text-faint">
+              We only ever get what Apple hands over, and you choose whether
+              that includes your address. Hide My Email works fine here.
+            </p>
           </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+/**
+ * The way in when Apple is not configured.
+ *
+ * Apple will not accept `localhost` as a return URL, so real Apple sign-in
+ * cannot happen on a development machine at all — which would leave nobody
+ * able to run the app without a paid developer account. This is the door for
+ * that case: the emailed-link flow that predates Apple, reached without a
+ * form because there is nothing to type. It refuses to appear in production,
+ * where an unconfigured deployment should say so rather than quietly offering
+ * a second way in.
+ */
+function DevSignIn({ next, onSignedIn }: { next: string; onSignedIn: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [link, setLink] = useState<string | null>(null);
+
+  const go = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/auth/request", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: "you@example.com", next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Could not start a session");
+      if (data.devLink) {
+        // Straight through rather than showing the link: on a machine with no
+        // email provider there is no inbox for it to land in.
+        window.location.href = data.devLink;
+      } else {
+        setLink(null);
+        onSignedIn();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+      <p className="text-[11px] uppercase tracking-[0.16em] text-amber-300">
+        Sign in with Apple is not configured
+      </p>
+      <p className="mt-1.5 text-xs leading-relaxed text-amber-200/90">
+        Set APPLE_CLIENT_ID, APPLE_TEAM_ID, APPLE_KEY_ID and APPLE_PRIVATE_KEY
+        to turn it on. Until then this development door signs you in as a test
+        collector.
+      </p>
+      <button
+        type="button"
+        onClick={() => void go()}
+        disabled={busy}
+        className="mt-3 w-full rounded-lg bg-amber-200/90 py-2.5 text-sm font-semibold text-black transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+      >
+        {busy ? "Signing in…" : "Continue as a test collector"}
+      </button>
+      {link && <p className="mt-2 truncate font-mono text-[11px] text-amber-200">{link}</p>}
+      {error && <p className="mt-2 text-center text-xs text-rose-400">{error}</p>}
+    </div>
   );
 }

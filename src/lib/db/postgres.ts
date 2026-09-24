@@ -60,6 +60,7 @@ function toCollector(r: Row): Collector {
   return {
     id: r.id as string,
     email: (r.email as string | null) ?? null,
+    appleSub: (r.apple_sub as string | null) ?? null,
     displayName: (r.display_name as string | null) ?? null,
     createdAt: (r.created_at as Date).toISOString(),
     onboardedAt: r.onboarded_at ? (r.onboarded_at as Date).toISOString() : null,
@@ -258,6 +259,31 @@ export function createPostgresBackend(connectionString: string): Backend {
            do update set last_login_at = now()
          returning *`,
         [`acc_${randomUUID().replace(/-/g, "").slice(0, 24)}`, key],
+      );
+      return toCollector(rows[0]);
+    },
+
+    async accountForApple({ sub, email, displayName }) {
+      // The partial unique index on apple_sub is what makes this one account
+      // even if somebody double-taps the button and two callbacks land at
+      // once. Email and name are only written when Apple offered them —
+      // coalesce, not assignment, because the name comes exactly once and a
+      // later sign-in must not blank it.
+      const { rows } = await query(
+        `insert into collectors (id, apple_sub, email, display_name, last_login_at)
+         values ($1, $2, $3, $4, now())
+         on conflict (apple_sub) where apple_sub is not null
+           do update set
+             email         = coalesce(excluded.email, collectors.email),
+             display_name  = coalesce(excluded.display_name, collectors.display_name),
+             last_login_at = now()
+         returning *`,
+        [
+          `acc_${randomUUID().replace(/-/g, "").slice(0, 24)}`,
+          sub,
+          email,
+          displayName,
+        ],
       );
       return toCollector(rows[0]);
     },

@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
 import { checkAdmin } from "@/lib/admin";
+import { appleConfigured } from "@/lib/apple";
 import { currentAccountId, endSession } from "@/lib/auth";
 import { backend } from "@/lib/db";
 
 /** Who is signed in, if anyone. */
 export async function GET() {
+  // Whether the Apple door is open at all. The sign-in sheet has to know
+  // before it can decide what to offer, and this is the call it already
+  // makes on mount — a second endpoint would be a second round trip to
+  // learn one boolean. It leaks nothing: a visitor finds out by pressing
+  // the button anyway.
+  const apple = appleConfigured();
+
   const accountId = await currentAccountId();
-  if (!accountId) return NextResponse.json({ account: null });
+  if (!accountId) return NextResponse.json({ account: null, apple });
 
   // Touch nothing: this is a read, and an unknown id simply is not signed in.
   const account = await backend().upsertCollector(accountId, {});
@@ -19,7 +27,17 @@ export async function GET() {
   const admin = await checkAdmin();
 
   return NextResponse.json({
-    account: { id: account.id, email: account.email, isAdmin: admin.ok },
+    apple,
+    account: {
+      id: account.id,
+      email: account.email,
+      displayName: account.displayName,
+      isAdmin: admin.ok,
+      // What the onboarding gates on, so a returning collector never sees it
+      // again on a new device — the answer travels with the account rather
+      // than with the browser.
+      onboarded: account.onboardedAt !== null,
+    },
   });
 }
 

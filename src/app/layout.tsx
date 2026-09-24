@@ -3,6 +3,7 @@ import { Lobster_Two } from "next/font/google";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AccountButton, AccountProvider, AdminLink } from "@/components/AccountBar";
+import { Onboarding } from "@/components/Onboarding";
 import "./globals.css";
 
 /**
@@ -40,6 +41,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <Header />
           <main className="relative z-10">{children}</main>
           <Footer />
+          {/* Last, and inside the provider, because what it shows depends on
+              who is signed in — and it covers the app rather than sitting in
+              it, so nothing above needs to know it exists. */}
+          <Onboarding />
         </AccountProvider>
       </body>
     </html>

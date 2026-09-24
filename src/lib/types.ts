@@ -231,6 +231,8 @@ export interface Shipment {
 export interface Collector {
   id: string;
   email: string | null;
+  /** Apple's stable id for this person, when they signed in that way. */
+  appleSub?: string | null;
   displayName: string | null;
   createdAt: string;
   onboardedAt: string | null;

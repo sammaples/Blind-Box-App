@@ -99,6 +99,23 @@ export interface Backend {
   accountForEmail(email: string): Promise<Collector>;
 
   /**
+   * The account behind an Apple id, created on first sign-in.
+   *
+   * Keyed on the subject and never on the address: Apple's Hide My Email
+   * gives a per-app relay that is deliverable but is neither the person's
+   * address nor stable across a revoke, so matching on it would eventually
+   * split one collector into two and give each half some of their pulls.
+   *
+   * The email and name are refreshed when Apple offers them — the name only
+   * ever arrives on a first authorisation — and left alone when it does not.
+   */
+  accountForApple(input: {
+    sub: string;
+    email: string | null;
+    displayName: string | null;
+  }): Promise<Collector>;
+
+  /**
    * Issues a single-use sign-in token, replacing any the address already has
    * so an old link in an inbox stops working once a new one is requested.
    */

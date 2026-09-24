@@ -63,6 +63,7 @@ function blankCollector(id: string): Collector {
   return {
     id,
     email: null,
+    appleSub: null,
     displayName: null,
     createdAt: new Date().toISOString(),
     onboardedAt: null,
@@ -159,6 +160,23 @@ export function createJsonBackend(): Backend {
           account.email = key;
           db.collectors.push(account);
         }
+        account.lastLoginAt = new Date().toISOString();
+        return account;
+      });
+    },
+
+    async accountForApple({ sub, email, displayName }) {
+      return transact((db) => {
+        let account = db.collectors.find((c) => c.appleSub === sub);
+        if (!account) {
+          account = blankCollector(`acc_${randomUUID().replace(/-/g, "").slice(0, 24)}`);
+          account.appleSub = sub;
+          db.collectors.push(account);
+        }
+        // Only when Apple offered them. The name arrives on a first
+        // authorisation and never again, so a later sign-in must not blank it.
+        if (email) account.email = email;
+        if (displayName && !account.displayName) account.displayName = displayName;
         account.lastLoginAt = new Date().toISOString();
         return account;
       });
