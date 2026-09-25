@@ -2,7 +2,12 @@ import type { Metadata, Viewport } from "next";
 import { Lobster_Two } from "next/font/google";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { AccountButton, AccountProvider, AdminLink } from "@/components/AccountBar";
+import {
+  AccountButton,
+  AccountProvider,
+  AdminLink,
+  CoinBalance,
+} from "@/components/AccountBar";
 import { Onboarding } from "@/components/Onboarding";
 import "./globals.css";
 
@@ -89,6 +94,7 @@ function Header() {
           >
             My vault
           </Link>
+          <CoinBalance />
           <AdminLink />
           <span className="ml-0.5 sm:ml-1.5">
             <AccountButton />

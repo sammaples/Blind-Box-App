@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type {
+  CoinEntry,
   AuditBatch,
   AuditEntry,
   Collector,
@@ -40,6 +41,7 @@ interface LoginToken {
 
 interface Db {
   collectors: Collector[];
+  coinLedger: CoinEntry[];
   pieces: Piece[];
   loginTokens: LoginToken[];
   orders: Order[];
@@ -50,6 +52,7 @@ interface Db {
 
 const EMPTY: Db = {
   collectors: [],
+  coinLedger: [],
   pieces: [],
   loginTokens: [],
   orders: [],
@@ -64,6 +67,7 @@ function blankCollector(id: string): Collector {
     id,
     email: null,
     appleSub: null,
+    coins: 0,
     displayName: null,
     createdAt: new Date().toISOString(),
     onboardedAt: null,
@@ -95,6 +99,7 @@ export function createJsonBackend(): Backend {
       const parsed = JSON.parse(raw) as Partial<Db>;
       return {
         collectors: parsed.collectors ?? [],
+        coinLedger: parsed.coinLedger ?? [],
         pieces: parsed.pieces ?? [],
         loginTokens: parsed.loginTokens ?? [],
         orders: parsed.orders ?? [],
@@ -182,6 +187,51 @@ export function createJsonBackend(): Backend {
       });
     },
 
+    async moveCoins({ collectorId, delta, reason, ref = null, note = null }) {
+      return transact((db) => {
+        const account = db.collectors.find((c) => c.id === collectorId);
+        if (!account) return { ok: false, balance: 0, applied: false };
+
+        // Already done. This file is single-process, so the check and the
+        // write cannot be raced here the way they can in Postgres — but the
+        // answer has to be the same either way.
+        if (ref) {
+          const seen = (db.coinLedger ?? []).find(
+            (e) => e.reason === reason && e.ref === ref,
+          );
+          if (seen) return { ok: true, balance: seen.balanceAfter, applied: false };
+        }
+
+        const balance = account.coins ?? 0;
+        const next = balance + delta;
+        // No overdrafts: coins cannot be bought, so a negative balance has no
+        // way back to zero.
+        if (next < 0) return { ok: false, balance, applied: false };
+
+        account.coins = next;
+        db.coinLedger = db.coinLedger ?? [];
+        db.coinLedger.push({
+          id: `coin_${randomUUID().replace(/-/g, "").slice(0, 20)}`,
+          collectorId,
+          delta,
+          reason,
+          ref,
+          balanceAfter: next,
+          note,
+          createdAt: new Date().toISOString(),
+        });
+        return { ok: true, balance: next, applied: true };
+      });
+    },
+
+    async coinHistory(collectorId, limit) {
+      const db = await read();
+      return (db.coinLedger ?? [])
+        .filter((e) => e.collectorId === collectorId)
+        .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+        .slice(0, Math.max(1, Math.min(limit, 200)));
+    },
+
     async createLoginToken({ tokenHash, email, expiresAt }) {
       const key = email.trim().toLowerCase();
       await transact((db) => {
@@ -255,7 +305,10 @@ export function createJsonBackend(): Backend {
       return transact((db) => {
         const picked = orderIds.map((oid) => db.orders.find((o) => o.id === oid));
         const eligible = picked.every(
-          (o) => o && o.collectorId === collectorId && !o.shipmentId && o.status !== "paid",
+          // `revealed` exactly: a traded order has no shipment and is not
+          // `paid`, so "anything but paid" would let it be shipped as well
+          // as sold back.
+          (o) => o && o.collectorId === collectorId && !o.shipmentId && o.status === "revealed",
         );
         if (!eligible) return null;
 

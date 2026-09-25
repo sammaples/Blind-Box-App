@@ -1,4 +1,6 @@
 import type {
+  CoinEntry,
+  CoinReason,
   AuditBatch,
   Collector,
   Order,
@@ -134,6 +136,35 @@ export interface Backend {
 
   /** Moves a browser's pre-account orders onto the account it signed into. */
   claimOrders(fromCollectorId: string, toCollectorId: string): Promise<number>;
+
+  /* coins */
+
+  /**
+   * Moves coins and records why, in one transaction.
+   *
+   * The balance and the ledger row are written together or not at all: a
+   * balance with no entry behind it is a number nobody can check, and an
+   * entry with no balance move is a promise that was not kept.
+   *
+   * `ref` is the idempotency key. A second call naming the same reason and
+   * ref does nothing and returns the balance as it already stands — which is
+   * what makes a double-tapped Trade in, or a retried request, safe.
+   *
+   * Refuses to go negative: a spend larger than the balance returns `ok:
+   * false` rather than writing an overdraft, because the check and the write
+   * have to happen under the same lock or two boxes can be bought with one
+   * box's worth of coins.
+   */
+  moveCoins(input: {
+    collectorId: string;
+    delta: number;
+    reason: CoinReason;
+    ref?: string | null;
+    note?: string | null;
+  }): Promise<{ ok: boolean; balance: number; applied: boolean }>;
+
+  /** The most recent movements, newest first. */
+  coinHistory(collectorId: string, limit: number): Promise<CoinEntry[]>;
 
   /** Grants or revokes admin on an account. */
   setAdmin(accountId: string, isAdmin: boolean): Promise<void>;

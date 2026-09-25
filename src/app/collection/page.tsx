@@ -8,6 +8,8 @@ import { currentCollectorId } from "@/lib/auth";
 import { listShipments } from "@/lib/shipments";
 import { listOrders } from "@/lib/store";
 import { ShipBundle, type ShippablePull } from "@/components/ShipBundle";
+import { TradeIn } from "@/components/TradeIn";
+import { tradeValue } from "@/lib/coins";
 import type { Piece, Shipment } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +20,7 @@ const STATUS_LABEL: Record<string, string> = {
   packing: "In a parcel, being packed",
   shipped: "Shipped",
   delivered: "Delivered",
+  traded: "Traded in for coins",
 };
 
 export default async function CollectionPage() {
@@ -36,9 +39,11 @@ export default async function CollectionPage() {
 
   const sealed = orders.filter((o) => o.status === "paid");
 
-  // Opened, and not already in a parcel — the pool a bundle is picked from.
+  // Opened, not already in a parcel, and not traded away — the pool a bundle
+  // is picked from. The server checks this too; this is so the list never
+  // offers something that would then be refused.
   const shippable: ShippablePull[] = pulls
-    .filter(({ order }) => order.shipmentId === null)
+    .filter(({ order }) => order.shipmentId === null && order.status === "revealed")
     .map(({ order, piece, odds }) => ({ orderId: order.id, piece, odds }));
 
   const shipments = collectorId ? await listShipments(collectorId) : [];
@@ -135,7 +140,13 @@ export default async function CollectionPage() {
         ) : (
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {pulls.map(({ order, piece, odds }) => (
-              <PullRow key={order.id} piece={piece} odds={odds} status={order.status} />
+              <PullRow
+                key={order.id}
+                orderId={order.id}
+                piece={piece}
+                odds={odds}
+                status={order.status}
+              />
             ))}
           </div>
         )}
@@ -211,11 +222,17 @@ function PullRow({
   piece,
   odds,
   status,
+  orderId,
 }: {
   piece: Piece;
   odds: number;
   status: string;
+  orderId: string;
 }) {
+  // Only a piece that is opened and not yet spoken for can be traded. A
+  // shipped one is gone, a packing one is already in a parcel, and a sealed
+  // one is not a piece yet.
+  const tradable = status === "revealed";
   return (
     <div className="flex gap-4 rounded-2xl border border-hairline bg-ink-card p-4">
       <div
@@ -235,6 +252,7 @@ function PullRow({
           <span className="font-mono text-[11px] text-muted">{formatOdds(odds)}</span>
         </div>
         <p className="mt-2 text-xs text-muted">{STATUS_LABEL[status] ?? status}</p>
+        {tradable && <TradeIn orderId={orderId} value={tradeValue(piece)} />}
       </div>
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   formatOdds,
   PRODUCTS,
@@ -16,6 +16,8 @@ import { ProductBox } from "./ProductBox";
 import { useAccount } from "./AccountBar";
 import { Price } from "./ui";
 import { useScrollLock } from "@/lib/useScrollLock";
+import { coinPrice } from "@/lib/coins";
+import { Coins } from "./Coin";
 
 /** The boxes on sale, plus the checkout sheet that seals one. */
 export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
@@ -256,8 +258,18 @@ function CheckoutSheet({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const { account } = useAccount();
+  const { account, refresh } = useAccount();
+  const coins = account?.coins ?? 0;
+  const price = product ? coinPrice(product.priceCents) : 0;
   const [busy, setBusy] = useState(false);
+  // Defaults to a card even when the balance would cover it. Coins are the
+  // scarcer of the two and spending them should be a thing somebody chose,
+  // not a default they have to notice and undo.
+  const [withCoins, setWithCoins] = useState(false);
+  useEffect(() => {
+    setWithCoins(false);
+    setError(null);
+  }, [product?.id]);
   const [error, setError] = useState<string | null>(null);
 
   // The sheet is fixed to the bottom of the screen; this is what stops the
@@ -272,10 +284,12 @@ function CheckoutSheet({
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ productId: product.id }),
+        body: JSON.stringify({ productId: product.id, pay: withCoins ? "coins" : "card" }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Could not complete the purchase");
+      // The balance in the header is now wrong by the price of a box.
+      if (withCoins) void refresh();
       router.push(`/open/${data.order.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -325,7 +339,7 @@ function CheckoutSheet({
             <button
               type="button"
               onClick={buy}
-              disabled={busy}
+              disabled={busy || (withCoins && coins < price)}
               /* Same finish as the card's "Buy a box", for the same reason:
                  this is the press that spends the money, so it should read as
                  the most object-like thing on the sheet. It drops while the
@@ -336,8 +350,46 @@ function CheckoutSheet({
               }`}
               style={{ background: product.accent }}
             >
-              {busy ? "Ripping…" : `Rip · $${(product.priceCents / 100).toFixed(2)}`}
+              {busy ? (
+                "Ripping…"
+              ) : withCoins ? (
+                <span className="inline-flex items-center gap-2">
+                  Rip · <Coins amount={price} size={17} />
+                </span>
+              ) : (
+                `Rip · $${(product.priceCents / 100).toFixed(2)}`
+              )}
             </button>
+
+            {/*
+              The coin option only appears to somebody who could actually use
+              it. Offering "pay with coins" to a collector with none is an
+              advertisement dressed as a control, and it would be disabled the
+              first hundred times anybody saw it.
+
+              When they have some but not enough, it still shows — greyed, with
+              the shortfall — because that is information, not noise: it says
+              how much closer one more trade-in would get them.
+            */}
+            {coins > 0 && (
+              <button
+                type="button"
+                onClick={() => setWithCoins((v) => !v)}
+                disabled={busy}
+                className={`mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border px-4 py-2.5 text-xs transition-colors ${
+                  withCoins
+                    ? "border-amber-300/60 bg-amber-300/10 text-amber-200"
+                    : "border-hairline text-muted hover:border-white/30 hover:text-chalk"
+                }`}
+              >
+                {withCoins ? "Paying with coins" : "Pay with coins"}
+                <span className="text-faint">·</span>
+                <Coins amount={coins} size={13} />
+                {coins < price && (
+                  <span className="text-faint">— {price - coins} short</span>
+                )}
+              </button>
+            )}
 
             {error && <p className="mt-3 text-center text-xs text-rose-400">{error}</p>}
 

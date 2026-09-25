@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { parseCoinValue } from "@/lib/coins";
 import { isAdmin } from "@/lib/admin";
 import { toCategory } from "@/lib/catalog";
 import {
@@ -166,6 +167,17 @@ export async function POST(request: Request) {
   // one", and those two want opposite things from a clash: an edit must land
   // on the row it names, while a new listing must never land on someone
   // else's — two products are allowed to share a title.
+  // Blank clears it back to "whatever this rarity is worth", which is a real
+  // choice and has to stay reachable — an editor that can only ever set a
+  // number leaves a piece stuck on a value somebody typed once by mistake.
+  const coinValue = parseCoinValue(body.coinValue);
+  if (coinValue === undefined) {
+    return NextResponse.json(
+      { error: "Coin value must be a whole number of zero or more" },
+      { status: 400 },
+    );
+  }
+
   const editingId = typeof body.id === "string" && body.id.trim() !== "" ? body.id : undefined;
   const draft = buildPiece({
     id: editingId,
@@ -178,6 +190,7 @@ export async function POST(request: Request) {
     category,
     imageUrl: body.imageUrl,
     notes: typeof body.notes === "string" ? body.notes : "",
+    coinValue,
   });
 
   let piece = draft;

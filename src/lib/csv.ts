@@ -1,5 +1,6 @@
 import { CATEGORY_ORDER, LEGACY_RARITY, toCategory } from "./catalog";
 import type { Rarity, Scale, Tier } from "./types";
+import { parseCoinValue } from "./coins";
 import { buildPiece, RARITIES, SCALES, slugFor, TIERS } from "./pieces";
 import type { Piece } from "./types";
 
@@ -97,6 +98,14 @@ const HEADER_ALIASES: Record<string, string> = {
   notes: "notes",
   description: "notes",
   blurb: "notes",
+  coins: "coins",
+  coin: "coins",
+  coinvalue: "coins",
+  coinsvalue: "coins",
+  tradevalue: "coins",
+  tradein: "coins",
+  tradeinvalue: "coins",
+  value: "coins",
   quantity: "quantity",
   qty: "quantity",
   stock: "quantity",
@@ -151,9 +160,12 @@ export interface ImportResult {
 export const CSV_TEMPLATE =
   // Carries a category column because a numbered series piece is rejected
   // without one — a template that fails its own import is worse than none.
-  "name,set,series,tier,scale,rarity,category,image,quantity,notes\n" +
-  "Sky Blue Bear,Series 47,47,bronze,100%,common,cute,https://example.com/sky.jpg,12,Gloss finish\n" +
-  "Chrome Grail,400% Collection,,diamond,400%,chase,,https://example.com/chrome.jpg,1,One of one\n";
+  "name,set,series,tier,scale,rarity,category,coins,image,quantity,notes\n" +
+  // The coins column left blank on the first row on purpose: blank is a real
+  // answer here and means "whatever this rarity is worth", which is what most
+  // rows want. The second says otherwise, which is what the column is for.
+  "Sky Blue Bear,Series 47,47,bronze,100%,common,cute,,https://example.com/sky.jpg,12,Gloss finish\n" +
+  "Chrome Grail,400% Collection,,diamond,400%,chase,,750,https://example.com/chrome.jpg,1,One of one\n";
 
 /**
  * Reads a catalogue spreadsheet. Every row is validated independently: a bad
@@ -265,6 +277,17 @@ export function importCatalogue(text: string): ImportResult {
       quantity = Math.trunc(parsed);
     }
 
+    // Blank means "no opinion", not zero — a sheet with an empty coins column
+    // should leave every piece on the rarity ladder rather than making the
+    // whole catalogue worthless. Only a value that is present and unreadable
+    // is an error.
+    const coinsRaw = get("coins");
+    const coinValue = parseCoinValue(coinsRaw);
+    if (coinValue === undefined) {
+      errors.push(`Line ${line}: "${coinsRaw}" is not a coin value.`);
+      continue;
+    }
+
     if (series !== null && category === null) {
       errors.push(`Line ${line}: "${name}" is a series piece, so it needs a category.`);
       continue;
@@ -281,6 +304,7 @@ export function importCatalogue(text: string): ImportResult {
       category,
       imageUrl: get("image"),
       notes: get("notes"),
+      coinValue,
     });
 
     if (seen.has(piece.id)) {

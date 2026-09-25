@@ -33,6 +33,8 @@ export async function GET() {
       email: account.email,
       displayName: account.displayName,
       isAdmin: admin.ok,
+      /** Coins in hand, so the header can show them without a second call. */
+      coins: account.coins ?? 0,
       // What the onboarding gates on, so a returning collector never sees it
       // again on a new device — the answer travels with the account rather
       // than with the browser.

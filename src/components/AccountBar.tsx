@@ -7,11 +7,14 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import type { ReactNode } from "react";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { AppleButton } from "./AppleButton";
+import { Coins } from "./Coin";
 
 export interface Account {
   id: string;
   email: string | null;
   displayName: string | null;
+  /** Coins in hand. */
+  coins: number;
   /** Whether this account may reach the inventory console. */
   isAdmin: boolean;
   /** Whether they have been walked through how this works. */
@@ -134,6 +137,29 @@ export function AccountProvider({ children }: { children: ReactNode }) {
  * On a phone it keeps the icon and drops the word, because the header has three
  * other things in it and 360 pixels to fit them in.
  */
+/**
+ * The balance, in the header.
+ *
+ * Next to the vault rather than beside the sign-out button, because coins are
+ * a thing you have rather than a thing about your account — and because the
+ * two places they are spent, the shop and the vault, are both one tap from
+ * here. Hidden entirely at zero: a nought is an advertisement for a feature
+ * somebody has not used, and it takes room a phone header does not have.
+ */
+export function CoinBalance() {
+  const { account } = useAccount();
+  if (!account || account.coins <= 0) return null;
+  return (
+    <Link
+      href="/collection#coins"
+      aria-label={`${account.coins} coins`}
+      className="flex items-center rounded-full border border-hairline px-2.5 py-1 text-xs text-chalk transition-colors hover:border-white/30 sm:px-3"
+    >
+      <Coins amount={account.coins} size={14} />
+    </Link>
+  );
+}
+
 export function AdminLink() {
   const { account } = useAccount();
   if (!account?.isAdmin) return null;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { defaultTradeValue } from "@/lib/coins";
 import {
   CATEGORY_LABEL,
   CATEGORY_ORDER,
@@ -102,6 +103,8 @@ export interface EditableProduct {
   imageUrl: string | null;
   blurb?: string;
   category: Category | null;
+  /** What it trades for. Null means it follows its rarity. */
+  coinValue?: number | null;
 }
 
 export function AddProduct({
@@ -121,6 +124,14 @@ export function AddProduct({
   const [category, setCategory] = useState<string>(editing?.category ?? "");
   const [rarity, setRarity] = useState<Rarity>(editing?.rarity ?? "common");
   const [notes, setNotes] = useState(editing?.blurb ?? "");
+  // A string, not a number, because "" has to stay reachable: blank is what
+  // puts a piece back on the rarity ladder, and a numeric state would round
+  // that to zero and quietly make it worthless.
+  const [coinValue, setCoinValue] = useState(
+    editing?.coinValue === null || editing?.coinValue === undefined
+      ? ""
+      : String(editing.coinValue),
+  );
   const [quantity, setQuantity] = useState("");
 
   const [imageUrl, setImageUrl] = useState<string | null>(editing?.imageUrl ?? null);
@@ -186,6 +197,7 @@ export function AddProduct({
           category: category === "" ? null : category,
           imageUrl,
           notes,
+          coinValue,
           // Optional: a listing can go straight onto the shelf, because most of
           // the time you are adding a product because a box of them just came in.
           quantity: quantity.trim() === "" ? undefined : Number(quantity),
@@ -445,6 +457,21 @@ export function AddProduct({
               />
             </Field>
           )}
+
+          <Field
+            label="Trade-in value"
+            hint={`Optional. Blank uses the ${rarity} rate of ${defaultTradeValue(rarity, tier)} coins.`}
+          >
+            <input
+              value={coinValue}
+              onChange={(e) => setCoinValue(e.target.value)}
+              type="number"
+              min={0}
+              inputMode="numeric"
+              placeholder={String(defaultTradeValue(rarity, tier))}
+              className={`${inputClass} sm:max-w-[calc(50%-0.5rem)]`}
+            />
+          </Field>
 
           <Field label="Notes" hint="Optional. Shown with the piece.">
             <textarea

@@ -111,6 +111,8 @@ export interface PieceInput {
   category?: unknown;
   imageUrl?: unknown;
   notes?: string;
+  /** What it trades for. Omit or pass null to let the rarity ladder decide. */
+  coinValue?: number | null;
 }
 
 /** Turns a name into a stable, readable id, so a re-import updates in place. */
@@ -155,6 +157,9 @@ export function buildPiece(input: PieceInput): Piece {
 
   return {
     id: input.id?.trim() || slugFor(input.name, scale),
+    // Undefined and null mean different things to the caller but the same
+    // thing here: no opinion, so the ladder decides.
+    coinValue: input.coinValue ?? null,
     name: input.name.trim().slice(0, 160),
     setName: (input.setName ?? "").trim().slice(0, 160),
     series:

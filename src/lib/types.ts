@@ -90,6 +90,11 @@ export interface Piece {
   palette: Palette;
   /** Relative draw weight inside its own pool. Never a probability by itself. */
   weight: number;
+  /**
+   * What this piece trades in for, in coins. Null means no opinion, and the
+   * ladder in `src/lib/coins.ts` decides from rarity and tier instead.
+   */
+  coinValue: number | null;
   blurb: string;
   /** A real photograph, when one has been uploaded. Falls back to vector art. */
   imageUrl: string | null;
@@ -133,7 +138,13 @@ export type OrderStatus =
   | "revealed"
   | "packing"
   | "shipped"
-  | "delivered";
+  | "delivered"
+  /**
+   * Handed back for coins. An end state, like delivered: the piece has left
+   * the vault and the unit is not coming back to the shelf, because what was
+   * sold was the pull and not a rental.
+   */
+  | "traded";
 
 export interface ShippingAddress {
   name: string;
@@ -200,6 +211,8 @@ export interface Order {
   email: string | null;
   /** The bundle carrying this piece, once it has been picked for shipping. */
   shipmentId: string | null;
+  /** Coins this box cost, when it was bought with them. Null means a card. */
+  paidCoins: number | null;
 }
 
 /** How far along a bundle is. Orders in it follow whatever it says. */
@@ -233,9 +246,34 @@ export interface Collector {
   email: string | null;
   /** Apple's stable id for this person, when they signed in that way. */
   appleSub?: string | null;
+  /** Coins in hand. The ledger is the history; this is the running total. */
+  coins: number;
   displayName: string | null;
   createdAt: string;
   onboardedAt: string | null;
   lastLoginAt: string | null;
   isAdmin: boolean;
+}
+
+
+/**
+ * One movement of coins.
+ *
+ * Signed, so the balance is a sum rather than two sums to subtract, and
+ * always written in the same transaction as the balance it produced.
+ */
+export type CoinReason = "trade_in" | "spend" | "refund" | "grant";
+
+export interface CoinEntry {
+  id: string;
+  collectorId: string;
+  /** Positive credits, negative spends. */
+  delta: number;
+  reason: CoinReason;
+  /** What caused it — an order id, usually. Null for a hand-made adjustment. */
+  ref: string | null;
+  /** The balance this row produced, so the history reads on its own. */
+  balanceAfter: number;
+  note: string | null;
+  createdAt: string;
 }

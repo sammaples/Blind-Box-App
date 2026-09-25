@@ -352,6 +352,9 @@ function buildPiece(seriesNo: number, spec: TypeSpec, index: number): Piece {
 
   return {
     id: `s${seriesNo}-${spec.type.toLowerCase()}-${index}`,
+    // The demo catalogue states no opinion, so every generated piece falls
+    // back to the rarity ladder. It is the console's job to disagree.
+    coinValue: null,
     name,
     setName: `Series ${seriesNo} · ${theme.name}`,
     series: seriesNo,
@@ -466,6 +469,7 @@ const BIG_TIERS: readonly Tier[] = ["bronze", "silver", "gold", "diamond"];
 
 export const BIG_PIECES: readonly Piece[] = BIG_SPECS.map((spec, i) => ({
   id: `big-${i}-${spec.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+  coinValue: null,
   name: spec.name,
   setName: "400% Collection",
   series: null,

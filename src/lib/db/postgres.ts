@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
 import { toCategory } from "../catalog";
 import type {
+  CoinEntry,
   AuditBatch,
   AuditEntry,
   Collector,
@@ -63,9 +64,23 @@ function toCollector(r: Row): Collector {
     appleSub: (r.apple_sub as string | null) ?? null,
     displayName: (r.display_name as string | null) ?? null,
     createdAt: (r.created_at as Date).toISOString(),
+    coins: Number(r.coins ?? 0),
     onboardedAt: r.onboarded_at ? (r.onboarded_at as Date).toISOString() : null,
     lastLoginAt: r.last_login_at ? (r.last_login_at as Date).toISOString() : null,
     isAdmin: r.is_admin === true,
+  };
+}
+
+function toCoinEntry(r: Row): CoinEntry {
+  return {
+    id: r.id as string,
+    collectorId: r.collector_id as string,
+    delta: Number(r.delta),
+    reason: r.reason as CoinEntry["reason"],
+    ref: (r.ref as string | null) ?? null,
+    balanceAfter: Number(r.balance_after),
+    note: (r.note as string | null) ?? null,
+    createdAt: (r.created_at as Date).toISOString(),
   };
 }
 
@@ -83,6 +98,9 @@ function toOrder(r: Row): Order {
     poolSnapshot: r.pool_snapshot as Order["poolSnapshot"],
     email: (r.email as string | null) ?? null,
     shipmentId: (r.shipment_id as string | null) ?? null,
+    paidCoins: r.paid_coins === null || r.paid_coins === undefined
+      ? null
+      : Number(r.paid_coins),
   };
 }
 
@@ -152,6 +170,9 @@ function toPiece(r: Row): Piece {
       wash: "hsl(220 24% 11%)",
     },
     weight: 1,
+    coinValue: r.coin_value === null || r.coin_value === undefined
+      ? null
+      : Number(r.coin_value),
     blurb: (r.notes as string) ?? "",
     imageUrl: (r.image_url as string | null) ?? null,
     archived: r.archived_at !== null && r.archived_at !== undefined,
@@ -288,6 +309,69 @@ export function createPostgresBackend(connectionString: string): Backend {
       return toCollector(rows[0]);
     },
 
+    async moveCoins({ collectorId, delta, reason, ref = null, note = null }) {
+      return withTx(async (client) => {
+        // The row is locked before the balance is read, so the read, the
+        // sufficiency check and the write are one indivisible step. Without
+        // this, two spends can both see enough coins and both succeed.
+        const { rows: held } = await client.query(
+          "select coins from collectors where id = $1 for update",
+          [collectorId],
+        );
+        if (held.length === 0) return { ok: false, balance: 0, applied: false };
+        const balance = Number(held[0].coins);
+
+        // Already done. The unique index below would refuse it anyway; this
+        // just answers without provoking an error the caller would have to
+        // tell apart from a real one.
+        if (ref) {
+          const { rows: seen } = await client.query(
+            "select balance_after from coin_ledger where reason = $1 and ref = $2",
+            [reason, ref],
+          );
+          if (seen.length > 0) {
+            return { ok: true, balance: Number(seen[0].balance_after), applied: false };
+          }
+        }
+
+        const next = balance + delta;
+        // No overdrafts. A spend bigger than the balance is refused rather
+        // than written, because coins cannot be bought and a negative balance
+        // has no way back to zero.
+        if (next < 0) return { ok: false, balance, applied: false };
+
+        await client.query("update collectors set coins = $2 where id = $1", [
+          collectorId,
+          next,
+        ]);
+        await client.query(
+          `insert into coin_ledger (id, collector_id, delta, reason, ref, balance_after, note)
+           values ($1,$2,$3,$4,$5,$6,$7)`,
+          [
+            `coin_${randomUUID().replace(/-/g, "").slice(0, 20)}`,
+            collectorId,
+            delta,
+            reason,
+            ref,
+            next,
+            note,
+          ],
+        );
+        return { ok: true, balance: next, applied: true };
+      });
+    },
+
+    async coinHistory(collectorId, limit) {
+      const { rows } = await query(
+        `select * from coin_ledger
+          where collector_id = $1
+          order by created_at desc, id desc
+          limit $2`,
+        [collectorId, Math.max(1, Math.min(limit, 200))],
+      );
+      return rows.map(toCoinEntry);
+    },
+
     async createLoginToken({ tokenHash, email, expiresAt }) {
       const key = email.trim().toLowerCase();
       await withTx(async (client) => {
@@ -377,13 +461,20 @@ export function createPostgresBackend(connectionString: string): Backend {
           [[...orderIds]],
         );
 
+        // `revealed` exactly, not "anything but paid".
+        //
+        // The looser test was right when the only end states were shipping
+        // ones, which carry a shipment_id and so were caught by the check
+        // beside it. Trading in does not: a traded order has no shipment and
+        // is not `paid`, so it would have sailed through and let somebody
+        // take the coins and the parcel.
         const eligible =
           picked.length === orderIds.length &&
           picked.every(
             (o: Row) =>
               o.collector_id === collectorId &&
               o.shipment_id === null &&
-              o.status !== "paid",
+              o.status === "revealed",
           );
         if (!eligible) return null;
 
@@ -433,8 +524,8 @@ export function createPostgresBackend(connectionString: string): Backend {
         for (const p of pieces) {
           await client.query(
             `insert into catalog_pieces
-               (id, name, set_name, series, scale, tier, rarity, image_url, notes, archived_at, category)
-             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+               (id, name, set_name, series, scale, tier, rarity, image_url, notes, archived_at, category, coin_value)
+             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
              on conflict (id) do update set
                name       = excluded.name,
                set_name   = excluded.set_name,
@@ -445,6 +536,7 @@ export function createPostgresBackend(connectionString: string): Backend {
                image_url  = excluded.image_url,
                notes      = excluded.notes,
                category   = excluded.category,
+               coin_value = excluded.coin_value,
                updated_at = now()`,
             [
               p.id,
@@ -458,6 +550,7 @@ export function createPostgresBackend(connectionString: string): Backend {
               p.blurb,
               p.archived ? new Date().toISOString() : null,
               p.category,
+              p.coinValue,
             ],
           );
         }
@@ -621,8 +714,8 @@ export function createPostgresBackend(connectionString: string): Backend {
         await client.query(
           `insert into orders (
              id, collector_id, product_id, piece_id, status, created_at,
-             revealed_at, roll_seed, roll_value, pool_snapshot, email
-           ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+             revealed_at, roll_seed, roll_value, pool_snapshot, email, paid_coins
+           ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
           [
             order.id,
             order.collectorId,
@@ -635,6 +728,7 @@ export function createPostgresBackend(connectionString: string): Backend {
             order.rollValue,
             JSON.stringify(order.poolSnapshot),
             order.email,
+            order.paidCoins,
           ],
         );
 
