@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { useAccount } from "./AccountBar";
 import { AppleButton } from "./AppleButton";
+import { ProductBox } from "./ProductBox";
 
 /**
  * What a first-time visitor is told, before anything asks them for something.
@@ -225,12 +226,22 @@ export function Onboarding() {
 /* ------------------------------------------------------------------ */
 
 /**
- * One picture per card, built from the shapes the app already uses.
+ * One picture per card.
  *
- * Deliberately not illustrations: a carton, a stack and a parcel, drawn from
- * the same geometry as the real box so the thing being described looks like
- * the thing you will meet a screen later.
+ * The first two show the real carton — the same component the shop card
+ * renders, at a size that suits a picture rather than a product tile. It was
+ * a hand-drawn stand-in, and a drawing of the box is the wrong thing to open
+ * an app with: the first carton somebody sees should be the carton they are
+ * about to buy, printed and turning, not an approximation of it that will
+ * quietly stop matching the moment the real one is tuned.
+ *
+ * The third is a parcel, which is the one thing here that is not a box you
+ * open — so it is still drawn.
  */
+
+/** The bronze card's accent, since that is the box a newcomer meets first. */
+const BRONZE = "#c2795a";
+
 function CardArt({ kind, reduced }: { kind: "box" | "vault" | "ship"; reduced: boolean }) {
   const float = reduced
     ? undefined
@@ -238,106 +249,56 @@ function CardArt({ kind, reduced }: { kind: "box" | "vault" | "ship"; reduced: b
 
   if (kind === "box") {
     return (
-      <motion.div animate={float} className="relative grid h-40 place-items-center">
+      <motion.div animate={float} className="relative grid h-44 place-items-center">
         <div
           aria-hidden
-          className="absolute size-44 rounded-full blur-2xl"
-          style={{ background: "radial-gradient(circle, #c2795a 0%, transparent 70%)", opacity: 0.55 }}
+          className="absolute size-52 rounded-full blur-2xl"
+          style={{ background: `radial-gradient(circle, ${BRONZE} 0%, transparent 70%)`, opacity: 0.6 }}
         />
-        <Carton />
+        <ProductBox accent={BRONZE} printed width={108} />
       </motion.div>
     );
   }
 
   if (kind === "vault") {
     return (
-      <motion.div animate={float} className="relative grid h-40 place-items-center">
+      <motion.div animate={float} className="relative grid h-44 place-items-center">
         <div
           aria-hidden
-          className="absolute size-44 rounded-full blur-2xl"
+          className="absolute size-52 rounded-full blur-2xl"
           style={{ background: "radial-gradient(circle, #c084fc 0%, transparent 70%)", opacity: 0.45 }}
         />
         {/* Three, fanned: a vault is more than one thing, and a neat stack
-            reads as a single object seen edge on. */}
-        <div className="relative">
-          <span className="absolute -left-9 top-3 block rotate-[-12deg]"><Carton scale={0.68} dim /></span>
-          <span className="absolute -right-9 top-3 block rotate-[12deg]"><Carton scale={0.68} dim /></span>
-          <Carton scale={0.86} />
+            reads as a single object seen edge on. Only the front one turns —
+            three boxes all turning at once is a display case, not a shelf. */}
+        <div className="relative grid place-items-center">
+          <span className="absolute -left-[76px] top-5 block rotate-[-14deg] opacity-40">
+            <ProductBox accent={BRONZE} printed width={62} spin={false} />
+          </span>
+          <span className="absolute -right-[76px] top-5 block rotate-[14deg] opacity-40">
+            <ProductBox accent={BRONZE} printed width={62} spin={false} />
+          </span>
+          <span className="relative z-10 block">
+            <ProductBox accent={BRONZE} printed width={88} />
+          </span>
         </div>
       </motion.div>
     );
   }
 
   return (
-    <motion.div animate={float} className="relative grid h-40 place-items-center">
+    <motion.div animate={float} className="relative grid h-44 place-items-center">
       <div
         aria-hidden
-        className="absolute size-44 rounded-full blur-2xl"
+        className="absolute size-52 rounded-full blur-2xl"
         style={{ background: "radial-gradient(circle, #34d399 0%, transparent 70%)", opacity: 0.4 }}
       />
-      {/* A parcel: the same proportions turned on their side, taped across
-          the middle, because that is what a box of several pieces looks like. */}
+      {/* A parcel: taped across the middle, because that is what a box with
+          several pieces in it looks like once it is sealed. */}
       <div className="relative h-24 w-32 rounded-lg bg-gradient-to-br from-[#d8cbb4] to-[#a8977c] shadow-[0_18px_30px_rgba(0,0,0,0.45)]">
         <span className="absolute inset-y-0 left-1/2 w-5 -translate-x-1/2 bg-white/25" />
         <span className="absolute inset-x-0 top-1/2 h-4 -translate-y-1/2 bg-white/15" />
       </div>
     </motion.div>
-  );
-}
-
-/** The carton, at a size. Three faces is enough to read as a box. */
-function Carton({ scale = 1, dim = false }: { scale?: number; dim?: boolean }) {
-  const w = 74 * scale;
-  const h = (74 * 11) / 7 * scale;
-  const d = 26 * scale;
-  return (
-    <div
-      aria-hidden
-      className="relative"
-      style={{ width: w + d, height: h + d * 0.6, opacity: dim ? 0.45 : 1 }}
-    >
-      {/* lid */}
-      <div
-        className="absolute left-0 top-0"
-        style={{
-          width: w,
-          height: d * 0.6,
-          transform: `skewX(-42deg) translateX(${d * 0.3}px)`,
-          background: "linear-gradient(#9fc6e8, #7fa9cf)",
-          borderRadius: 2,
-        }}
-      />
-      {/* side */}
-      <div
-        className="absolute right-0"
-        style={{
-          top: d * 0.6,
-          width: d,
-          height: h,
-          transform: "skewY(-42deg)",
-          transformOrigin: "left top",
-          background: "linear-gradient(#6f97ba, #4f6f8c)",
-          borderRadius: 2,
-        }}
-      />
-      {/* front, and the mark on it */}
-      <div
-        className="absolute left-0 grid place-items-center"
-        style={{
-          top: d * 0.6,
-          width: w,
-          height: h,
-          background: "linear-gradient(160deg, #a9d0ef, #7fa9cf)",
-          borderRadius: 3,
-        }}
-      >
-        <span
-          className="font-bold text-white"
-          style={{ fontSize: 26 * scale, textShadow: "0 2px 4px rgba(0,0,0,0.35)" }}
-        >
-          ?
-        </span>
-      </div>
-    </div>
   );
 }
