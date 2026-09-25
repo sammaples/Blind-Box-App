@@ -8,6 +8,7 @@ import { currentCollectorId } from "@/lib/auth";
 import { listShipments } from "@/lib/shipments";
 import { listOrders } from "@/lib/store";
 import { ShipBundle, type ShippablePull } from "@/components/ShipBundle";
+import { CoinWallet } from "@/components/CoinWallet";
 import { TradeIn } from "@/components/TradeIn";
 import { tradeValue } from "@/lib/coins";
 import type { Piece, Shipment } from "@/lib/types";
@@ -102,6 +103,8 @@ export default async function CollectionPage() {
       )}
 
       <ShipBundle pulls={shippable} />
+
+      <CoinWallet />
 
       {shipments.length > 0 && (
         <section className="mt-10">

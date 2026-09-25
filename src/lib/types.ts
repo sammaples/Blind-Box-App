@@ -262,7 +262,12 @@ export interface Collector {
  * Signed, so the balance is a sum rather than two sums to subtract, and
  * always written in the same transaction as the balance it produced.
  */
-export type CoinReason = "trade_in" | "spend" | "refund" | "grant";
+export type CoinReason =
+  | "trade_in"
+  | "purchase"
+  | "spend"
+  | "refund"
+  | "grant";
 
 export interface CoinEntry {
   id: string;

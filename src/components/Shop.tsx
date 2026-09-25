@@ -16,7 +16,8 @@ import { ProductBox } from "./ProductBox";
 import { useAccount } from "./AccountBar";
 import { Price } from "./ui";
 import { useScrollLock } from "@/lib/useScrollLock";
-import { coinPrice } from "@/lib/coins";
+import { coinPrice, topUpFor } from "@/lib/coins";
+import { BuyCoins } from "./BuyCoins";
 import { Coins } from "./Coin";
 
 /** The boxes on sale, plus the checkout sheet that seals one. */
@@ -389,6 +390,23 @@ function CheckoutSheet({
                   <span className="text-faint">— {price - coins} short</span>
                 )}
               </button>
+            )}
+
+            {/*
+              Short, and about to be stuck. The button above is disabled and
+              without this the sheet is a dead end — so the gap itself is
+              offered, rounded up to something worth charging a card for.
+              Only when they chose coins: pushing a top-up at somebody who was
+              about to pay with a card is selling them a second thing.
+            */}
+            {withCoins && coins < price && (
+              <div className="mt-3">
+                <BuyCoins
+                  suggested={topUpFor(price - coins)}
+                  compact
+                  onBought={() => setError(null)}
+                />
+              </div>
             )}
 
             {error && <p className="mt-3 text-center text-xs text-rose-400">{error}</p>}
