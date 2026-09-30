@@ -143,12 +143,14 @@ function FloatingBox({ product }: { product: Product }) {
     <div
       data-box-card
       className="group relative flex w-full shrink-0 snap-center items-center justify-center py-2"
-      style={{ minHeight: "15rem" }}
+      style={{ minHeight: "19rem" }}
     >
       {/* Floating for real, not just uncarded. The same drift the revealed
           piece uses, so the two read as one house style. */}
       <div className="relative float-soft">
-        <ProductBox accent={product.accent} printed={isPrinted(product.id)} width={91} />
+        {/* 120 wide, up from 91: the box is the whole of this screen now,
+            and at the old size it sat small in the middle of it. */}
+        <ProductBox accent={product.accent} printed={isPrinted(product.id)} width={120} />
       </div>
     </div>
   );

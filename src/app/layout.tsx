@@ -8,7 +8,9 @@ import {
   AdminLink,
   CoinBalance,
 } from "@/components/AccountBar";
+import { Monogram } from "@/components/Monogram";
 import { Onboarding } from "@/components/Onboarding";
+import { TabBar } from "@/components/TabBar";
 import "./globals.css";
 
 /**
@@ -36,6 +38,9 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#08080b",
+  // Lets the tab bar reach the bottom edge of an iPhone and pad itself above
+  // the home indicator, rather than floating on a strip of browser chrome.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -56,6 +61,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <Header />
           <main className="relative z-10">{children}</main>
           <Footer />
+          <TabBar />
         </AccountProvider>
       </body>
     </html>
@@ -72,34 +78,10 @@ function Header() {
             tightens; below 340px it goes altogether and the monogram carries
             the brand on its own, which is the job a monogram is for. */}
         <Link href="/" aria-label="Blind Box" className="flex shrink-0 items-center gap-2 min-[375px]:gap-2.5">
-          {/*
-            Two Bs, for Blind Box, interlocked the way a script monogram is.
-
-            Pulled together by negative tracking until the second overlaps the
-            first's bowls, then given an outline in the tile's own colour, so
-            where they cross the front letter cuts a thin channel through the
-            back one instead of the two merging into a blot. `paint-order`
-            puts that outline under the fill, so it only shows where it cuts.
-            The tracking also trails after the last letter, which would pull
-            the pair off centre, so the same amount is handed back as padding.
-
-            17 on 24 rather than the single letter's 18: two of them have to
-            fit, and any larger and the second B's tail meets the edge.
-          */}
-          <span
-            aria-hidden
-            className={`grid size-6 place-items-center rounded-md bg-chalk pb-px text-[17px] leading-none text-ink ${wordmark.className}`}
-          >
-            <span
-              style={{
-                letterSpacing: "-0.28em",
-                paddingRight: "0.28em",
-                WebkitTextStroke: "0.06em var(--color-chalk)",
-                paintOrder: "stroke fill",
-              }}
-            >
-              BB
-            </span>
+          {/* The mark carries the tile, so it is set to fill it — a small
+              shape adrift in a white square reads as a placeholder. */}
+          <span className="grid size-6 place-items-center rounded-md bg-chalk text-ink">
+            <Monogram className="size-[21px]" />
           </span>
           {/* A script sits small for its point size, so it is set larger than
               the nav beside it and nudged up to share a baseline with it. */}
@@ -109,31 +91,10 @@ function Header() {
             Blind Box
           </span>
         </Link>
-        {/* Nothing in here may wrap: a two-line header on a phone pushes the
-            page down and reads as broken. So the two links that are not the
-            vault go when the room runs out — "The set" is a section of the
-            page you are probably already on, and "How it works" is reachable
-            from the front page and the footer, which is where a phone finds
-            it. What is left is the one thing only this header can do. */}
+        {/* Pages are in the tab bar at the bottom now, where a thumb can reach
+            them. What stays up here is what belongs to you rather than to a
+            page: your coins, and your account. */}
         <nav className="flex shrink-0 items-center gap-0.5 whitespace-nowrap text-sm sm:gap-1">
-          <Link
-            href="/how-it-works"
-            className="hidden rounded-full px-3 py-1.5 text-muted transition-colors hover:text-chalk sm:inline-block"
-          >
-            How it works
-          </Link>
-          <Link
-            href="/#set"
-            className="hidden rounded-full px-3 py-1.5 text-muted transition-colors hover:text-chalk lg:inline-block"
-          >
-            The set
-          </Link>
-          <Link
-            href="/collection"
-            className="rounded-full px-2.5 py-1.5 text-muted transition-colors hover:text-chalk sm:px-3"
-          >
-            My vault
-          </Link>
           <CoinBalance />
           <AdminLink />
           <span className="ml-0.5 sm:ml-1.5">
@@ -154,13 +115,7 @@ function Footer() {
           against. Every order stores the seed it was drawn from.
         </p>
         <p>Demo build — checkout is simulated and nothing is charged.</p>
-        {/* The nav drops "How it works" on a phone, so the footer is where a
-            phone gets it back — and it is on every page, which the link on the
-            front of the home page is not. */}
-        <p className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
-          <Link href="/how-it-works" className="transition-colors hover:text-muted">
-            How it works
-          </Link>
+        <p className="pt-1">
           <Link href="/admin" className="transition-colors hover:text-muted">
             Inventory console
           </Link>
