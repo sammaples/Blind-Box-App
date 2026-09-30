@@ -342,11 +342,11 @@ export function BoxOpening({
       */}
       {/*
         And it sits lower until the reveal, by however much room the screen
-        has spare. Parked under the back link, the flaps opened into the top
-        of the phone with a hand's width of nothing under the caption; half of
-        that spare goes above instead, capped so a tall desktop window does not
-        push the box off the fold, and nothing at all on a small phone, which
-        has none to give.
+        has spare — half of it, less a quarter inch (2.5rem). Parked under the
+        back link, the flaps opened into the top of the phone; pushed down by
+        the whole half, the box read as sitting low. Capped so a tall desktop
+        window does not push it off the fold, and nothing at all on a small
+        phone, which has none to give.
 
         `svh`, not `dvh`: the small viewport does not change as iOS Safari's
         toolbar slides in and out, so the box does not creep while you look
@@ -360,7 +360,8 @@ export function BoxOpening({
         }`}
         style={{
           perspective: "1100px",
-          marginTop: stage === "reveal" ? 0 : "clamp(0px, calc((100svh - 46.5rem) * 0.5), 6rem)",
+          marginTop:
+            stage === "reveal" ? 0 : "clamp(0px, calc((100svh - 46.5rem) * 0.5 - 2.5rem), 3.5rem)",
         }}
       >
         {/*
