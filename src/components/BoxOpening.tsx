@@ -340,11 +340,28 @@ export function BoxOpening({
         at 21rem the second link ran 8px past the bottom of a 390x844 phone.
         Measured, not guessed, and worth re-measuring if those buttons grow.
       */}
+      {/*
+        And it sits lower until the reveal, by however much room the screen
+        has spare. Parked under the back link, the flaps opened into the top
+        of the phone with a hand's width of nothing under the caption; half of
+        that spare goes above instead, capped so a tall desktop window does not
+        push the box off the fold, and nothing at all on a small phone, which
+        has none to give.
+
+        `svh`, not `dvh`: the small viewport does not change as iOS Safari's
+        toolbar slides in and out, so the box does not creep while you look
+        at it. Dropped at the reveal, at the same moment as the height and for
+        the same reason — the frame is white — so the reveal keeps the layout
+        it was measured in.
+      */}
       <div
         className={`relative flex w-full items-center justify-center transition-[height] duration-500 ${
           stage === "reveal" ? "h-[20rem] sm:h-[25rem]" : "h-[34rem]"
         }`}
-        style={{ perspective: "1100px" }}
+        style={{
+          perspective: "1100px",
+          marginTop: stage === "reveal" ? 0 : "clamp(0px, calc((100svh - 46.5rem) * 0.5), 6rem)",
+        }}
       >
         {/*
           The light coming out of the box, in the colour of the tier inside it.
