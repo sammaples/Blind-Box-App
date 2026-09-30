@@ -241,8 +241,8 @@ export function Onboarding() {
  * about to buy, printed and turning, not an approximation of it that will
  * quietly stop matching the moment the real one is tuned.
  *
- * The third is a parcel, which is the one thing here that is not a box you
- * open — so it is still drawn.
+ * The third is a shipping box, which is the one thing here that is not a box
+ * you open — so it is drawn, in the flat cardboard style of a parcel icon.
  */
 
 /** The bronze card's accent, since that is the box a newcomer meets first. */
@@ -299,12 +299,40 @@ function CardArt({ kind, reduced }: { kind: "box" | "vault" | "ship"; reduced: b
         className="absolute size-52 rounded-full blur-2xl"
         style={{ background: "radial-gradient(circle, #34d399 0%, transparent 70%)", opacity: 0.4 }}
       />
-      {/* A parcel: taped across the middle, because that is what a box with
-          several pieces in it looks like once it is sealed. */}
-      <div className="relative h-24 w-32 rounded-lg bg-gradient-to-br from-[#d8cbb4] to-[#a8977c] shadow-[0_18px_30px_rgba(0,0,0,0.45)]">
-        <span className="absolute inset-y-0 left-1/2 w-5 -translate-x-1/2 bg-white/25" />
-        <span className="absolute inset-x-0 top-1/2 h-4 -translate-y-1/2 bg-white/15" />
-      </div>
+      {/* A shipping box, the kind that turns up on a doorstep: taped shut,
+          with the end of the tape left hanging where it was torn off the
+          roll. The flat taped square it replaced read as a tile, not as
+          anything that had been posted. */}
+      <ShippingBox />
     </motion.div>
+  );
+}
+
+/**
+ * A cardboard shipping box, drawn.
+ *
+ * Three faces lit from the top left — light lid, mid front, dark side — which
+ * is all the shading a flat illustration needs to read as a solid. Tape runs
+ * across the lid and hangs down the front with a torn edge, and a soft glare
+ * sits on the front face. The same markup is in the simulator.
+ */
+function ShippingBox() {
+  return (
+    <svg
+      viewBox="0 0 194 192"
+      width={150}
+      height={148}
+      aria-hidden
+      className="relative overflow-visible drop-shadow-[0_18px_20px_rgba(0,0,0,0.5)]"
+    >
+      <polygon points="82,30 184,66 112,94 10,58" fill="#E4B17E" />
+      <polygon points="10,58 112,94 112,184 10,148" fill="#D09760" />
+      <polygon points="112,94 184,66 184,156 112,184" fill="#B98150" />
+      <rect x="19" y="75" width="7" height="44" rx="3.5" fill="#DEAB77" />
+      <ellipse cx="22.5" cy="130" rx="3.6" ry="4.4" fill="#DEAB77" />
+      <polygon points="44.7,70.2 116.7,42.2 135,48.7 63,76.7" fill="#F3DEB3" />
+      <polygon points="44.7,70.2 63,76.7 63,128.7 61.2,122.1 59.4,127.4 57.5,120.8 55.7,126.1 53.9,119.5 52,124.8 50.2,118.2 48.4,123.5 46.5,116.9 44.7,122.2" fill="#DDB78E" />
+      <polyline points="10,58 112,94 184,66" fill="none" stroke="#EDC596" strokeWidth="1.2" strokeLinejoin="round" />
+    </svg>
   );
 }
