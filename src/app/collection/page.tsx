@@ -73,6 +73,18 @@ export default async function CollectionPage() {
         />
       </dl>
 
+      {/*
+        Directly under the stats, not after the shipping grid.
+        
+        It was below it, which is fine on an account with four pulls and
+        useless on one with ninety-seven: the ready-to-ship list is one tile
+        per piece, so the wallet ended up fifty rows down a phone and read as
+        missing rather than as further along. A balance is a headline — it is
+        the first thing somebody checks and the thing the Buy buttons spend —
+        so it goes where the other headline numbers already are.
+      */}
+      <CoinWallet />
+
       {sealed.length > 0 && (
         <section className="mt-10">
           <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-faint">
@@ -103,8 +115,6 @@ export default async function CollectionPage() {
       )}
 
       <ShipBundle pulls={shippable} />
-
-      <CoinWallet />
 
       {shipments.length > 0 && (
         <section className="mt-10">
