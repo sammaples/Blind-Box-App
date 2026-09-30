@@ -445,12 +445,20 @@ export function BoxCarousel({
         backdrop's negative layer from sinking behind the page rather than
         just behind the boxes, and the wrapper is sized by the scroller alone
         so the light is centred on the boxes and not on the dots as well.
+
+        The backdrop reaches the screen edges, like the rail does, and clips
+        there sideways only. The light is wider than a phone, and left alone
+        it made the whole document wider than one — which Chrome hides and
+        iOS Safari lets you pan into. `overflow-x: clip` is the one value that
+        does not drag the other axis along with it, the way `hidden` or `auto`
+        would: the light is cut at the edges of the glass, where a cut is
+        invisible, and still runs free above and below.
       */}
       <div className="relative isolate">
         {backdrop && (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 -z-10"
+            className="pointer-events-none absolute -inset-x-5 inset-y-0 -z-10 overflow-x-clip sm:-inset-x-8"
           >
             {backdrop}
           </div>
