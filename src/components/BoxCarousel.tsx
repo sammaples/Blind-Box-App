@@ -17,7 +17,15 @@ import type { ReactNode } from "react";
  * What is left to write is the part the browser has no opinion about: saying
  * which box you are on, and letting somebody jump to one.
  */
-export function BoxCarousel({ children }: { children: ReactNode }) {
+export function BoxCarousel({
+  children,
+  onActive,
+}: {
+  children: ReactNode;
+  /** Told whenever the centred card changes, so a panel outside the rail can
+      follow it without being inside it and scrolling away. */
+  onActive?: (index: number) => void;
+}) {
   const track = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   // Counted from the children, not measured from the DOM. Measuring meant the
@@ -69,6 +77,13 @@ export function BoxCarousel({ children }: { children: ReactNode }) {
     });
     setActive(nearest);
   }, []);
+
+  // Reported out on change rather than on every frame of a scroll: the panel
+  // below rerenders on this, and a scroll fires far more often than the
+  // centred card actually changes.
+  useEffect(() => {
+    onActive?.(active);
+  }, [active, onActive]);
 
   useEffect(() => {
     const el = track.current;

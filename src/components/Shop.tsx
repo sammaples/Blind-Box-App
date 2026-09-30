@@ -24,6 +24,10 @@ import { Coins } from "./Coin";
 /** The boxes on sale, plus the checkout sheet that seals one. */
 export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
   const [checkout, setCheckout] = useState<Product | null>(null);
+  // Which box the rail has centred. The panel below reads it; the rail owns
+  // it, because the rail is the thing that can be swiped.
+  const [active, setActive] = useState(0);
+  const showing = PRODUCTS[Math.min(active, PRODUCTS.length - 1)];
   const { account, signIn } = useAccount();
 
   /**
@@ -46,32 +50,104 @@ export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
     >
       <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Pick your box</h2>
 
-      <BoxCarousel>
-        {PRODUCTS.map((product, i) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            shelf={shelves[product.id] ?? []}
-            index={i}
-            onBuy={() => startCheckout(product)}
-          />
+      {/*
+        The boxes swipe; nothing else does.
+
+        They were cards, and a card meant every box carried its own copy of
+        the name, the rates and the button — so swiping moved four Buy buttons
+        past you and you pressed whichever happened to stop under your thumb.
+        Only the carton travels now. What it pulls and how to buy it sit
+        underneath, in one panel that stays where it is and changes to match.
+      */}
+      <BoxCarousel onActive={setActive}>
+        {PRODUCTS.map((product) => (
+          <FloatingBox key={product.id} product={product} />
         ))}
       </BoxCarousel>
+
+      <BoxDetail
+        product={showing}
+        shelf={shelves[showing.id] ?? []}
+        onBuy={() => startCheckout(showing)}
+      />
 
       <CheckoutSheet product={checkout} onClose={() => setCheckout(null)} />
     </section>
   );
 }
 
-function ProductCard({
+/**
+ * One box, floating.
+ *
+ * No card, no border, no background — the carton and the light it sits in,
+ * and nothing else to say which box is the subject. A card around it was
+ * doing two jobs, and the second one was the problem: it grouped the box with
+ * a name and a button, which is exactly the grouping that had to come apart
+ * for the button to stop moving.
+ *
+ * Full width and snap-centred, so one box is the thing in front of you and
+ * the next two sit half off each edge.
+ */
+function FloatingBox({ product }: { product: Product }) {
+  return (
+    <div
+      data-box-card
+      className="group relative flex w-full shrink-0 snap-center items-center justify-center py-2"
+      style={{ minHeight: "15rem" }}
+    >
+      {/*
+        The light it sits in. Two layers, as on the old card: a broad halo and
+        a tighter core behind the carton. One gradient blurred once comes out
+        evenly dim — spread over that much area nothing is bright enough
+        anywhere to read as a source — and the core is what the halo falls
+        away from. Each tier glows in its own accent, so bronze is warm and
+        diamond cold without either being told to be.
+      */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute size-80 rounded-full opacity-70 blur-2xl"
+        style={{
+          background: `radial-gradient(circle at 50% 50%, ${product.accent} 0%, ${product.accent} 26%, color-mix(in srgb, ${product.accent} 55%, transparent) 48%, transparent 74%)`,
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute size-44 rounded-full opacity-75 blur-xl"
+        style={{
+          background: `radial-gradient(circle at 50% 50%, ${product.accent} 0%, color-mix(in srgb, ${product.accent} 50%, transparent) 45%, transparent 72%)`,
+        }}
+      />
+
+      {/* Floating for real, not just uncarded. The same drift the revealed
+          piece uses, so the two read as one house style. */}
+      <div className="relative float-soft">
+        <ProductBox accent={product.accent} printed={isPrinted(product.id)} width={91} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * What the box in front of you pulls, and how to buy it.
+ *
+ * Outside the rail on purpose. The one rule this layout has is that the Buy
+ * button does not move, and the reason it is a rule is that a button which
+ * moves under a swiping thumb gets pressed by accident — on the one control
+ * in the app that takes money.
+ *
+ * Which makes the heights here load-bearing rather than cosmetic. A bronze
+ * shelf lists three rates and a diamond one lists two, so left to itself this
+ * panel is a different height per box and the button walks up and down as you
+ * swipe. Everything above the button is therefore given room for the worst
+ * case and told to stay that size.
+ */
+function BoxDetail({
   product,
   shelf,
-  index,
   onBuy,
 }: {
   product: Product;
   shelf: StockEntry[];
-  index: number;
   onBuy: () => void;
 }) {
   const inStock = shelf.filter((e) => e.available > 0);
@@ -82,106 +158,74 @@ function ProductCard({
   const comingSoon = product.comingSoon === true;
 
   return (
-    <motion.article
-      data-box-card
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-      /*
-        Width is the whole trick. At 86vw the next card's edge shows past the
-        screen, and that sliver is the only thing telling anybody this swipes
-        — a card that fills the viewport exactly looks like a page.
-      */
-      className="group relative flex w-[86vw] max-w-[26rem] shrink-0 snap-center flex-col overflow-hidden rounded-3xl border border-hairline bg-ink-card p-6 transition-colors hover:border-white/22 sm:w-[22rem]"
-    >
+    <div className="mx-auto mt-6 w-full max-w-md">
       {/*
-        The light the box is sitting in.
+        Named and described.
 
-        It used to be a flat disc hung above the card, so most of it fell off
-        the top edge and what reached the box was a faint wash — measured, it
-        lifted the card's own ground by about six levels out of 255. It is now
-        centred on the box itself and painted as a gradient rather than a solid
-        circle: a hot core, a broad shoulder, and nothing at the rim, which is
-        what makes it read as light coming off the carton instead of a coloured
-        blob behind it. Each tier glows in its own accent, so the bronze card is
-        warm and the diamond one cold without either being told to be.
-      */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-14 left-1/2 size-80 -translate-x-1/2 rounded-full opacity-70 blur-2xl transition-opacity duration-500 group-hover:opacity-100"
-        style={{
-          background: `radial-gradient(circle at 50% 50%, ${product.accent} 0%, ${product.accent} 26%, color-mix(in srgb, ${product.accent} 55%, transparent) 48%, transparent 74%)`,
-        }}
-      />
-      {/*
-        And a tighter core inside it. One broad gradient blurred once comes out
-        evenly dim: spread over that much area there is nothing bright enough
-        anywhere to read as a source. This second, smaller light sits right
-        behind the carton and gives the halo something to fall away from — the
-        difference between a lit box and a coloured patch.
-      */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute top-2 left-1/2 size-44 -translate-x-1/2 rounded-full opacity-75 blur-xl transition-opacity duration-500 group-hover:opacity-100"
-        style={{
-          background: `radial-gradient(circle at 50% 50%, ${product.accent} 0%, color-mix(in srgb, ${product.accent} 50%, transparent) 45%, transparent 72%)`,
-        }}
-      />
+        Keyed on the product and faded in, but deliberately not wrapped in an
+        AnimatePresence: `mode="wait"` keeps the outgoing name mounted while it
+        animates away, so for a couple of hundred milliseconds the panel shows
+        one box's name above another box's rates. Remounting on the key swaps
+        both together and has nothing to go stale.
 
-      <div className="relative flex h-40 items-center justify-center">
-        <ProductBox accent={product.accent} printed={isPrinted(product.id)} />
+        The height is fixed and the tagline clamped, and both are load-bearing.
+        Bronze's tagline runs to three lines where the others take two, which
+        on its own walked the button ten pixels down the screen every time you
+        swiped onto it. Five rem fits three lines; the clamp is what keeps a
+        longer tagline written later from breaking the rule again.
+      */}
+      <div className="min-h-[5rem] text-center">
+        <motion.div
+          key={product.id}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <h3 className="text-xl font-semibold tracking-tight">{product.name}</h3>
+          <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-muted">
+            {product.tagline}
+          </p>
+        </motion.div>
       </div>
 
-      <div className="relative mt-4 flex flex-1 flex-col">
-        <h3 className="text-lg font-semibold tracking-tight">{product.name}</h3>
-        <p className="mt-1 text-sm text-muted">{product.tagline}</p>
-
+      {/* Room for every rarity a shelf can list, whether or not this one lists
+          them. Four rows at 20px with 8px between them, plus the stock line —
+          the number is measured, not guessed, and it is what pins the button. */}
+      <div className="mt-5 min-h-[8.5rem]">
         <OddsByRarity shelf={shelf} />
 
-        {/* Nothing on the shelf, nothing to report: "In stock now: 0 pieces ·
-            0 units" is a line that only ever says the card is empty, which the
-            button already says better. When it goes, the button takes over
-            holding itself to the bottom of the card. */}
         {inStock.length > 0 && (
-          <div className="mt-auto border-t border-hairline pt-4 text-[11px] text-faint">
-            <p>
-              In stock now: {inStock.length} pieces ·{" "}
-              <span className="font-mono">{unitsLeft.toLocaleString()}</span> units
-            </p>
-          </div>
+          <p className="mt-3 text-[11px] text-faint">
+            In stock now: {inStock.length} pieces ·{" "}
+            <span className="font-mono">{unitsLeft.toLocaleString()}</span> units
+          </p>
         )}
-
-        {/* The card exists to be bought from, so the button gets the full width
-            rather than sharing a row with anything — and at this size it is
-            also a proper thumb target on a phone, which the old pill was not.
-            The price is not on it: the checkout sheet states it before anything
-            is committed to, which is the moment it has to be right. */}
-        <div className={inStock.length > 0 ? "mt-5 pt-1" : "mt-auto pt-1"}>
-          <button
-            type="button"
-            onClick={onBuy}
-            disabled={soldOut || comingSoon}
-            /* A disabled button is still read, and "Coming soon" is the whole
-               message on this card until the box goes on sale — so the dead
-               state gets light text on the grey (7.3:1) rather than the
-               accent's dark ink dimmed into it, which came out at 1.4:1. The
-               flat grey and the cursor are what say it cannot be pressed. */
-            /* The gloss only on a button that can actually be pressed: a
-               shimmer is an invitation, and "Sold out" is not inviting
-               anything. The finish sits over the accent rather than
-               replacing it, so each box keeps its own colour. */
-            className={`w-full rounded-2xl py-4 text-base font-semibold transition-transform disabled:cursor-not-allowed disabled:hover:scale-100 ${
-              soldOut || comingSoon
-                ? "text-chalk/80"
-                : "gloss text-ink hover:scale-[1.02] active:scale-[0.99]"
-            }`}
-            style={{ background: soldOut || comingSoon ? "#3a3a44" : product.accent }}
-          >
-            {comingSoon ? "Coming soon" : soldOut ? "Sold out" : "Buy a box"}
-          </button>
-        </div>
       </div>
-    </motion.article>
+
+      {/*
+        The one control that does not move.
+
+        The price is not on it: the checkout sheet states it before anything is
+        committed to, which is the moment it has to be right. The gloss only
+        when it can be pressed — a shimmer is an invitation and "Sold out" is
+        not inviting anything — and the dead state takes light text on grey
+        (7.3:1) rather than the accent's dark ink dimmed into it, which came
+        out at 1.4:1.
+      */}
+      <button
+        type="button"
+        onClick={onBuy}
+        disabled={soldOut || comingSoon}
+        className={`w-full rounded-2xl py-4 text-base font-semibold transition-[transform,background-color] duration-300 disabled:cursor-not-allowed disabled:hover:scale-100 ${
+          soldOut || comingSoon
+            ? "text-chalk/80"
+            : "gloss text-ink hover:scale-[1.02] active:scale-[0.99]"
+        }`}
+        style={{ background: soldOut || comingSoon ? "#3a3a44" : product.accent }}
+      >
+        {comingSoon ? "Coming soon" : soldOut ? "Sold out" : "Buy a box"}
+      </button>
+    </div>
   );
 }
 
@@ -223,10 +267,10 @@ function OddsByRarity({ shelf }: { shelf: StockEntry[] }) {
     }));
   }, [shelf]);
 
-  if (rows.length === 0) return <div className="pb-5" />;
+  if (rows.length === 0) return null;
 
   return (
-    <div className="mt-4 space-y-2 pb-5">
+    <div className="space-y-2">
       {rows.map(({ rarity, units, share }) => (
         <div
           key={rarity}
