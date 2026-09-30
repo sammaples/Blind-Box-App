@@ -66,21 +66,47 @@ function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-hairline/70 bg-ink/70 backdrop-blur-xl">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
-        <Link href="/" className="flex shrink-0 items-center gap-2.5">
-          {/* The letter carries the tile, so it is set to fill it — a small
-              glyph adrift in a white square reads as a placeholder. 18 on 24
-              is as large as the script goes before its tail meets the edge. */}
+        {/* "Blind Box" is two words where "Bricks" was one, and on the
+            narrowest phones, signed in with a coin balance showing, it met
+            the nav. Below 375px the name steps down a size and the gap
+            tightens; below 340px it goes altogether and the monogram carries
+            the brand on its own, which is the job a monogram is for. */}
+        <Link href="/" aria-label="Blind Box" className="flex shrink-0 items-center gap-2 min-[375px]:gap-2.5">
+          {/*
+            Two Bs, for Blind Box, interlocked the way a script monogram is.
+
+            Pulled together by negative tracking until the second overlaps the
+            first's bowls, then given an outline in the tile's own colour, so
+            where they cross the front letter cuts a thin channel through the
+            back one instead of the two merging into a blot. `paint-order`
+            puts that outline under the fill, so it only shows where it cuts.
+            The tracking also trails after the last letter, which would pull
+            the pair off centre, so the same amount is handed back as padding.
+
+            17 on 24 rather than the single letter's 18: two of them have to
+            fit, and any larger and the second B's tail meets the edge.
+          */}
           <span
-            className={`grid size-6 place-items-center rounded-md bg-chalk pb-px text-[18px] leading-none text-ink ${wordmark.className}`}
+            aria-hidden
+            className={`grid size-6 place-items-center rounded-md bg-chalk pb-px text-[17px] leading-none text-ink ${wordmark.className}`}
           >
-            B
+            <span
+              style={{
+                letterSpacing: "-0.28em",
+                paddingRight: "0.28em",
+                WebkitTextStroke: "0.06em var(--color-chalk)",
+                paintOrder: "stroke fill",
+              }}
+            >
+              BB
+            </span>
           </span>
           {/* A script sits small for its point size, so it is set larger than
               the nav beside it and nudged up to share a baseline with it. */}
           <span
-            className={`whitespace-nowrap text-[19px] leading-none -translate-y-px ${wordmark.className}`}
+            className={`whitespace-nowrap text-[17px] leading-none -translate-y-px max-[339px]:hidden min-[375px]:text-[19px] ${wordmark.className}`}
           >
-            Bricks
+            Blind Box
           </span>
         </Link>
         {/* Nothing in here may wrap: a two-line header on a phone pushes the

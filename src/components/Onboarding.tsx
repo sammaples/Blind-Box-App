@@ -113,7 +113,7 @@ export function Onboarding() {
           transition={{ duration: 0.3 }}
           role="dialog"
           aria-modal="true"
-          aria-label="Welcome to Bricks"
+          aria-label="Welcome to Blind Box"
         >
           {/* The same wash the app sits on, so this reads as the front door
               of the thing rather than a screen in front of it. */}

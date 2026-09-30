@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SectionLabel } from "@/components/ui";
 
 export const metadata: Metadata = {
-  title: "How it works — Bricks",
+  title: "How it works — Blind Box",
   description:
     "Open a sealed blind box, keep what you pull in your vault, and send the pieces you want in one parcel for a flat $5.",
 };
