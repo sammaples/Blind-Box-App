@@ -2,36 +2,9 @@ import Link from "next/link";
 import { ScrollToHash } from "@/components/ScrollToHash";
 import { SetBrowser } from "@/components/SetBrowser";
 import { Shop } from "@/components/Shop";
-import { SectionLabel } from "@/components/ui";
 import { PRODUCTS } from "@/lib/catalog";
 import { shelfFor } from "@/lib/stock";
 import type { StockEntry } from "@/lib/types";
-
-/**
- * Four steps, because there are four.
- *
- * The old third step said "we ship it", which stopped being true when
- * bundling arrived: nothing ships until you choose to send it, and what you
- * send goes in one parcel. That is the part people get wrong if nobody tells
- * them — they expect a box per pull and a postage charge per box.
- *
- * Written short and flat on purpose. No "curated", no "seamlessly", no
- * sentence that needs reading twice. The price is a number rather than a
- * policy, because "flat rate" is a phrase people skip and "$5" is not.
- */
-const STEPS = [
-  { n: "01", title: "Open", body: "Choose a box and open it." },
-  {
-    n: "02",
-    title: "Collect",
-    body: "Everything you open goes straight to your vault until you're ready to ship them.",
-  },
-  {
-    n: "03",
-    title: "Ship",
-    body: "Choose which pieces you want to send. Shipping is always $5, no matter how many pieces.",
-  },
-];
 
 export const dynamic = "force-dynamic";
 
@@ -70,20 +43,22 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        <div className="mt-16">
-          <SectionLabel>How it works</SectionLabel>
+        {/* The steps used to sit here, three cards deep, between the headline
+            and the boxes — an explanation in front of the thing it explains,
+            and half a screen of it on a phone. They have their own page now,
+            and this is the door to it: reachable from the front and from the
+            nav, and in the way of nobody who came here to buy a box. */}
+        <div className="mt-12">
+          <Link
+            href="/how-it-works"
+            className="group inline-flex items-center gap-2 text-sm font-medium text-muted transition-colors hover:text-chalk"
+          >
+            How it works
+            <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
+              →
+            </span>
+          </Link>
         </div>
-        {/* Two up on a small screen and four across on a wide one. Three
-            columns for four steps leaves one stranded on its own row. */}
-        <ol className="mt-5 grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline md:grid-cols-3">
-          {STEPS.map((step) => (
-            <li key={step.n} className="bg-ink-card p-6">
-              <p className="font-mono text-xs text-faint">{step.n}</p>
-              <p className="mt-3 text-sm font-semibold">{step.title}</p>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{step.body}</p>
-            </li>
-          ))}
-        </ol>
       </section>
 
       <Shop shelves={shelves} />

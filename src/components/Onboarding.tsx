@@ -1,14 +1,15 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { useAccount } from "./AccountBar";
 import { AppleButton } from "./AppleButton";
 import { ProductBox } from "./ProductBox";
 
 /**
- * What a first-time visitor is told, before anything asks them for something.
+ * What somebody is told when they open the app, before anything asks them for
+ * something.
  *
  * Three cards, and they are the three the front page already carries under
  * "How it works" — deliberately the same words. Onboarding that explains the
@@ -40,51 +41,44 @@ const CARDS = [
   },
 ] as const;
 
-/** Set once the cards have been seen, for a visitor with no account to write to. */
+/** Records that the cards have been seen. Nothing reads it — see below. */
 const SEEN_KEY = "bb_onboarded";
 
 /**
- * Whether to show it, decided from two places.
+ * Whether to show it: every time the app is opened.
  *
- * The account is the real record, so a collector who signed up on a phone is
- * not walked through it again on a laptop. The local flag is for everyone
- * else — somebody browsing before they sign in, who should still only see
- * this once.
+ * It used to be once, ever, remembered in the browser and on the account. It
+ * is now every open, which is a deliberate change and not a lost flag — the
+ * three cards are the shortest statement of what this shop is, and they are
+ * one tap to leave.
  *
- * Both have to be quiet before it opens, and the account wins: signing in is
- * the last card, so an account that has been through it has been through it
- * whatever the browser thinks.
+ * "Open" means a fresh load of the app, not a move around inside it. This
+ * lives in the root layout, so it mounts once per document and stays mounted
+ * across every link followed afterwards; going to the vault and back does not
+ * bring it round again.
+ *
+ * Open from the very first frame, rendered by the server, not switched on
+ * once the page has loaded. It used to wait for the account check, and on the
+ * home page — the heaviest one there is — that took up to three seconds, so
+ * the shop appeared, somebody started reading it, and then a full-screen card
+ * dropped over the top. That is a pop-up, however friendly its contents. The
+ * one part that depends on the account is the last card, which is at least
+ * two taps away, and the account is known long before anybody gets there.
+ *
+ * Both records are still written on the way out, and neither is read. That is
+ * on purpose: they are what "has this person been shown this" would be
+ * answered from, and keeping them true means going back to once-ever is a
+ * change to this function and nothing else.
  */
-function useFirstRun(): [boolean, () => void] {
-  const { account, loading } = useAccount();
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (loading) return;
-    if (account) {
-      // A signed-in collector who has done this is done. One who has not —
-      // an account made before onboarding existed — is not shown it either;
-      // they have already used the thing it explains.
-      setOpen(false);
-      return;
-    }
-    let seen = false;
-    try {
-      seen = window.localStorage.getItem(SEEN_KEY) === "1";
-    } catch {
-      // Private browsing, or storage switched off. Better to show nothing
-      // than to trap somebody in an overlay they cannot dismiss for good.
-      seen = true;
-    }
-    setOpen(!seen);
-  }, [account, loading]);
+function useWelcome(): [boolean, () => void] {
+  const [open, setOpen] = useState(true);
 
   const dismiss = useCallback(() => {
     setOpen(false);
     try {
       window.localStorage.setItem(SEEN_KEY, "1");
     } catch {
-      /* nothing to do: the flag is a convenience, not a requirement */
+      /* nothing to do: the flag is a record, not a requirement */
     }
     // And on the account too, when there is one to write to.
     void fetch("/api/auth/onboarded", { method: "POST" }).catch(() => {});
@@ -94,8 +88,8 @@ function useFirstRun(): [boolean, () => void] {
 }
 
 export function Onboarding() {
-  const [open, dismiss] = useFirstRun();
-  const { apple } = useAccount();
+  const [open, dismiss] = useWelcome();
+  const { account, apple } = useAccount();
   const reduced = useReducedMotion();
   const [card, setCard] = useState(0);
   useScrollLock(open);
@@ -104,7 +98,12 @@ export function Onboarding() {
   const step = CARDS[card];
 
   return (
-    <AnimatePresence>
+    // `initial={false}` on both of these: the first paint is the server's
+    // HTML, and an entrance animation there starts from opacity zero — so the
+    // page underneath would show through until the script had loaded and
+    // faded the cover in, which is the flash this is all here to avoid.
+    // Leaving still animates, and so does every card after the first.
+    <AnimatePresence initial={false}>
       {open && (
         <motion.div
           className="fixed inset-0 z-[80] flex flex-col bg-ink"
@@ -146,7 +145,7 @@ export function Onboarding() {
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
-              <AnimatePresence mode="wait">
+              <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={step.n}
                   initial={reduced ? { opacity: 0 } : { opacity: 0, x: 28 }}
@@ -188,7 +187,12 @@ export function Onboarding() {
               <div className="mt-4">
                 {last ? (
                   <>
-                    {apple ? (
+                    {/* Nobody is asked to sign in twice. These cards are shown
+                        on every open now, so the person reading them is as
+                        likely to be a collector with a vault as a stranger,
+                        and a signed-in collector wants the door held open,
+                        not a login. */}
+                    {apple && !account ? (
                       <AppleButton next="/#shop" label="Continue with Apple" />
                     ) : (
                       <button
@@ -200,9 +204,11 @@ export function Onboarding() {
                       </button>
                     )}
                     <p className="mt-3 text-center text-[11px] leading-relaxed text-faint">
-                      {apple
-                        ? "One tap, no password. Use Hide My Email if you would rather."
-                        : "Sign-in is not configured on this deployment yet."}
+                      {account
+                        ? "Signed in. Your vault is where everything you open goes."
+                        : apple
+                          ? "One tap, no password. Use Hide My Email if you would rather."
+                          : "Sign-in is not configured on this deployment yet."}
                     </p>
                   </>
                 ) : (
