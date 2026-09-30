@@ -337,8 +337,12 @@ export function BoxOpening({
         happens while the frame is still white, so it is never seen.
 
         The reveal height is set by what has to fit under it, not by the piece:
-        at 21rem the second link ran 8px past the bottom of a 390x844 phone.
-        Measured, not guessed, and worth re-measuring if those buttons grow.
+        at 21rem the second link ran 8px past the bottom of a 390x844 phone,
+        and when "Sell for" joined the buttons 20rem did the same on a 375x812.
+        18rem still clears the figure. A chase carries one line more, which on
+        a phone under 820px tall is enough to push the last link off again, so
+        there the stage gives up another 2rem. Measured, not guessed, and worth
+        re-measuring if those buttons grow.
       */}
       {/*
         And it sits lower until the reveal, by however much room the screen
@@ -356,7 +360,7 @@ export function BoxOpening({
       */}
       <div
         className={`relative flex w-full items-center justify-center transition-[height] duration-500 ${
-          stage === "reveal" ? "h-[20rem] sm:h-[25rem]" : "h-[34rem]"
+          stage === "reveal" ? "h-[18rem] sm:h-[25rem] [@media(max-height:820px)]:h-[16rem]" : "h-[34rem]"
         }`}
         style={{
           perspective: "1100px",
