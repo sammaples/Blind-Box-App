@@ -28,6 +28,11 @@ export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
   // it, because the rail is the thing that can be swiped.
   const [active, setActive] = useState(0);
   const showing = PRODUCTS[Math.min(active, PRODUCTS.length - 1)];
+  // The box is as big as the rail has room for. This page is laid out to fit
+  // the screen exactly, and the rail is the part that gives: a tall phone gets
+  // a bigger box, a short one a smaller box, and neither one scrolls.
+  const [trackHeight, setTrackHeight] = useState<number | null>(null);
+  const boxWidth = boxWidthFor(trackHeight);
   const { account, signIn } = useAccount();
 
   /**
@@ -46,9 +51,10 @@ export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
   return (
     <section
       id="shop"
-      className="relative z-10 mx-auto w-full max-w-6xl scroll-mt-20 px-5 sm:px-8"
+      className="relative z-10 mx-auto flex min-h-0 w-full max-w-6xl flex-1 scroll-mt-20 flex-col px-5 sm:px-8"
     >
-      <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Pick your box</h2>
+      {/* The page's heading now that there is no headline above it. */}
+      <h1 className="shrink-0 text-3xl font-semibold tracking-tight sm:text-4xl [@media(max-height:720px)]:text-2xl">Pick your box</h1>
 
       {/*
         The boxes swipe; nothing else does.
@@ -59,9 +65,15 @@ export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
         Only the carton travels now. What it pulls and how to buy it sit
         underneath, in one panel that stays where it is and changes to match.
       */}
-      <BoxCarousel onActive={setActive} loop backdrop={<BoxAura showing={showing.id} />}>
+      <BoxCarousel
+        onActive={setActive}
+        loop
+        fill
+        onTrackHeight={setTrackHeight}
+        backdrop={<BoxAura showing={showing.id} />}
+      >
         {PRODUCTS.map((product) => (
-          <FloatingBox key={product.id} product={product} />
+          <FloatingBox key={product.id} product={product} width={boxWidth} />
         ))}
       </BoxCarousel>
 
@@ -138,19 +150,31 @@ function BoxAura({ showing }: { showing: string }) {
  * Full width and snap-centred, so one box is the thing in front of you and
  * the next two sit half off each edge.
  */
-function FloatingBox({ product }: { product: Product }) {
+/**
+ * How wide a box fits in a rail this tall.
+ *
+ * Measured, not guessed: across a full turn and the float, a box paints
+ * 1.93 times as tall as it is wide. Less the card's padding and a little air,
+ * and kept to multiples of seven, which is what makes an 11:7 box land its
+ * height on a whole pixel. Capped so a tall desktop window does not get a box
+ * the size of a door, and floored so a very short one still shows a box.
+ */
+function boxWidthFor(trackHeight: number | null): number {
+  if (!trackHeight) return 119;
+  const fits = (trackHeight - 16 - 12) / 1.95;
+  return Math.max(56, Math.min(168, Math.floor(fits / 7) * 7));
+}
+
+function FloatingBox({ product, width }: { product: Product; width: number }) {
   return (
     <div
       data-box-card
-      className="group relative flex w-full shrink-0 snap-center items-center justify-center py-2"
-      style={{ minHeight: "19rem" }}
+      className="group relative flex h-full w-full shrink-0 snap-center items-center justify-center py-2"
     >
       {/* Floating for real, not just uncarded. The same drift the revealed
           piece uses, so the two read as one house style. */}
       <div className="relative float-soft">
-        {/* 120 wide, up from 91: the box is the whole of this screen now,
-            and at the old size it sat small in the middle of it. */}
-        <ProductBox accent={product.accent} printed={isPrinted(product.id)} width={120} />
+        <ProductBox accent={product.accent} printed={isPrinted(product.id)} width={width} />
       </div>
     </div>
   );
@@ -187,7 +211,7 @@ function BoxDetail({
   const comingSoon = product.comingSoon === true;
 
   return (
-    <div className="mx-auto mt-6 w-full max-w-md">
+    <div className="mx-auto mt-4 w-full max-w-md shrink-0 pb-4 [@media(max-height:720px)]:mt-2 [@media(max-height:720px)]:pb-3">
       {/*
         Named, and nothing else.
 
@@ -220,11 +244,11 @@ function BoxDetail({
       {/* Room for every rarity a shelf can list, whether or not this one lists
           them. Four rows at 20px with 8px between them, plus the stock line —
           the number is measured, not guessed, and it is what pins the button. */}
-      <div className="mt-5 min-h-[8.5rem]">
+      <div className="mt-5 min-h-[8.5rem] [@media(max-height:720px)]:mt-3 [@media(max-height:720px)]:min-h-[6.75rem]">
         <OddsByRarity shelf={shelf} />
 
         {inStock.length > 0 && (
-          <p className="mt-3 text-[11px] text-faint">
+          <p className="mt-3 text-[11px] text-faint [@media(max-height:720px)]:hidden">
             In stock now: {inStock.length} pieces ·{" "}
             <span className="font-mono">{unitsLeft.toLocaleString()}</span> units
           </p>
@@ -245,7 +269,7 @@ function BoxDetail({
         type="button"
         onClick={onBuy}
         disabled={soldOut || comingSoon}
-        className={`w-full rounded-2xl py-4 text-base font-semibold transition-[transform,background-color] duration-300 disabled:cursor-not-allowed disabled:hover:scale-100 ${
+        className={`w-full rounded-2xl py-4 text-base [@media(max-height:720px)]:py-3 font-semibold transition-[transform,background-color] duration-300 disabled:cursor-not-allowed disabled:hover:scale-100 ${
           soldOut || comingSoon
             ? "text-chalk/80"
             : "gloss text-ink hover:scale-[1.02] active:scale-[0.99]"

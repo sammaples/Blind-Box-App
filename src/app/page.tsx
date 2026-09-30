@@ -20,19 +20,21 @@ export default async function HomePage() {
           fragment can resolve before the section exists and land at the top. */}
       <ScrollToHash />
 
-      <section className="relative mx-auto w-full max-w-6xl px-5 pt-10 pb-10 sm:px-8 sm:pt-16">
-        <h1 className="max-w-3xl text-balance text-5xl font-semibold leading-[0.98] tracking-[-0.03em] sm:text-7xl">
-          Open it here.
-          <br />
-          <span className="text-muted">Keep it for real.</span>
-        </h1>
-        {/* No buttons under the headline any more: "Buy a box" and "See
-            current stock" pointed at things the tab bar now reaches from every
-            page, and "How it works" is a tab of its own. The boxes are right
-            underneath. */}
-      </section>
+      {/*
+        No headline above the shop, and no scrolling: this page is exactly one
+        screen — "Pick your box", the boxes, and the Buy button — between the
+        header and the tab bar. The height is the screen less those two (57px
+        of header including its border, the bar and the home-indicator inset
+        under it). `svh` so it is sized for the browser's toolbars showing,
+        which is the most room it can ever have, and so it never grows past
+        the screen when they slide away.
+      */}
+      {/* Short screens — an iPhone SE is 667 tall — take the spacing in
+          everywhere so the box, which is what gives, keeps a sensible size. */}
+      <div className="flex h-[calc(100svh-57px-4.25rem-env(safe-area-inset-bottom))] flex-col pt-5 sm:pt-10 [@media(max-height:720px)]:pt-3">
+        <Shop shelves={shelves} />
+      </div>
 
-      <Shop shelves={shelves} />
     </>
   );
 }

@@ -92,6 +92,8 @@ export function BoxCarousel({
   onActive,
   backdrop,
   loop = false,
+  fill = false,
+  onTrackHeight,
 }: {
   children: ReactNode;
   /** Told whenever the centred card changes, so a panel outside the rail can
@@ -109,6 +111,14 @@ export function BoxCarousel({
   backdrop?: ReactNode;
   /** Whether the rail wraps around instead of stopping at either end. */
   loop?: boolean;
+  /**
+   * Take whatever height the parent gives, instead of being as tall as the
+   * boxes. For a screen laid out to fit exactly, where the rail is the part
+   * that gives way.
+   */
+  fill?: boolean;
+  /** Told the track's height whenever it changes, so the boxes can be sized to it. */
+  onTrackHeight?: (height: number) => void;
 }) {
   const track = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
@@ -278,6 +288,17 @@ export function BoxCarousel({
     rendered.current = PAD;
   }, [cardsOf, jump, looping]);
 
+  // Measured before paint, so boxes sized from it are the right size in the
+  // first frame they are seen rather than one frame later.
+  useIsoLayoutEffect(() => {
+    const el = track.current;
+    if (!el || !onTrackHeight) return;
+    onTrackHeight(el.clientHeight);
+    const watch = new ResizeObserver(() => onTrackHeight(el.clientHeight));
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [onTrackHeight]);
+
   // Reported out on change rather than on every frame of a scroll: the panel
   // below rerenders on this, and a scroll fires far more often than the
   // centred card actually changes.
@@ -439,7 +460,7 @@ export function BoxCarousel({
   );
 
   return (
-    <div className="relative mt-8">
+    <div className={fill ? "relative mt-5 flex min-h-0 flex-1 flex-col [@media(max-height:720px)]:mt-3" : "relative mt-8"}>
       {/*
         The rail and the light it sits in, as siblings. `isolate` keeps the
         backdrop's negative layer from sinking behind the page rather than
@@ -454,7 +475,7 @@ export function BoxCarousel({
         would: the light is cut at the edges of the glass, where a cut is
         invisible, and still runs free above and below.
       */}
-      <div className="relative isolate">
+      <div className={fill ? "relative isolate min-h-0 flex-1" : "relative isolate"}>
         {backdrop && (
           <div
             aria-hidden
@@ -476,14 +497,14 @@ export function BoxCarousel({
             gutter, which is what makes it feel like a rail rather than a box
             with things sliding about inside it.
           */
-          className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain px-5 pb-2 sm:-mx-8 sm:px-8"
+          className={`no-scrollbar -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain px-5 pb-2 sm:-mx-8 sm:px-8 ${fill ? "h-full" : ""}`}
         >
           {rail}
         </div>
       </div>
 
       {count > 1 && (
-        <div className="mt-5 flex items-center justify-center gap-3">
+        <div className="mt-3 flex shrink-0 items-center justify-center gap-3">
           {/*
             Arrows for everything that is not a finger. A trackpad can swipe
             this and a phone obviously can, but a mouse has no gesture for it

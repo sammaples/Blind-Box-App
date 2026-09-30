@@ -10,6 +10,7 @@ import {
 } from "@/components/AccountBar";
 import { Monogram } from "@/components/Monogram";
 import { Onboarding } from "@/components/Onboarding";
+import { NotOnHome } from "@/components/NotOnHome";
 import { TabBar } from "@/components/TabBar";
 import "./globals.css";
 
@@ -60,7 +61,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <Onboarding />
           <Header />
           <main className="relative z-10">{children}</main>
-          <Footer />
+          <NotOnHome>
+            <Footer />
+          </NotOnHome>
           <TabBar />
         </AccountProvider>
       </body>
