@@ -59,7 +59,7 @@ export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
         Only the carton travels now. What it pulls and how to buy it sit
         underneath, in one panel that stays where it is and changes to match.
       */}
-      <BoxCarousel onActive={setActive}>
+      <BoxCarousel onActive={setActive} loop backdrop={<BoxAura showing={showing.id} />}>
         {PRODUCTS.map((product) => (
           <FloatingBox key={product.id} product={product} />
         ))}
@@ -77,13 +77,63 @@ export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
 }
 
 /**
+ * The light the boxes sit in.
+ *
+ * One glow for the whole rail rather than one per box, and it belongs to
+ * whichever box is in front of you: it stays put while the cartons slide
+ * through it, which is what a light in a room does. Two layers, because one
+ * gradient blurred once comes out evenly dim — spread over that much area
+ * nothing is bright enough anywhere to read as a source — and the broad halo
+ * needs a brighter core to fall away from.
+ *
+ * Crossfaded, not recoloured. A gradient is not something CSS can animate
+ * between, so a single div told to change colour would snap; every tier's
+ * glow is drawn instead and only the one in front is opaque. And because the
+ * gradients are drawn well past the rail's edges and nothing here clips, the
+ * colour carries up into the heading and down past the dots instead of
+ * stopping at a hard line.
+ */
+function BoxAura({ showing }: { showing: string }) {
+  return (
+    <>
+      {PRODUCTS.map((product) => (
+        <div
+          key={product.id}
+          className="absolute inset-0 transition-opacity duration-500 ease-out"
+          style={{ opacity: product.id === showing ? 1 : 0 }}
+        >
+          <div
+            className="absolute left-1/2 top-1/2 size-[30rem] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-60 blur-[64px]"
+            style={{
+              background: `radial-gradient(circle at 50% 50%, ${product.accent} 0%, color-mix(in srgb, ${product.accent} 62%, transparent) 34%, color-mix(in srgb, ${product.accent} 22%, transparent) 58%, transparent 78%)`,
+            }}
+          />
+          <div
+            className="absolute left-1/2 top-1/2 size-44 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-75 blur-xl"
+            style={{
+              background: `radial-gradient(circle at 50% 50%, ${product.accent} 0%, color-mix(in srgb, ${product.accent} 50%, transparent) 45%, transparent 72%)`,
+            }}
+          />
+        </div>
+      ))}
+    </>
+  );
+}
+
+/**
  * One box, floating.
  *
- * No card, no border, no background — the carton and the light it sits in,
- * and nothing else to say which box is the subject. A card around it was
- * doing two jobs, and the second one was the problem: it grouped the box with
- * a name and a button, which is exactly the grouping that had to come apart
- * for the button to stop moving.
+ * No card, no border, no background — the carton and nothing else. A card
+ * around it was doing two jobs, and the second one was the problem: it
+ * grouped the box with a name and a button, which is exactly the grouping
+ * that had to come apart for the button to stop moving.
+ *
+ * The light it sits in is deliberately NOT here. A horizontally scrolling
+ * element clips its other axis too — CSS will not let `overflow-x: auto`
+ * keep `overflow-y: visible`, it computes to auto — so any glow rendered
+ * inside the rail is sliced off flat at the rail's top and bottom edges. It
+ * read as letterboxing, which is a strange thing for a shop to look like.
+ * `BoxAura` draws it behind the rail instead, where nothing crops it.
  *
  * Full width and snap-centred, so one box is the thing in front of you and
  * the next two sit half off each edge.
@@ -95,29 +145,6 @@ function FloatingBox({ product }: { product: Product }) {
       className="group relative flex w-full shrink-0 snap-center items-center justify-center py-2"
       style={{ minHeight: "15rem" }}
     >
-      {/*
-        The light it sits in. Two layers, as on the old card: a broad halo and
-        a tighter core behind the carton. One gradient blurred once comes out
-        evenly dim — spread over that much area nothing is bright enough
-        anywhere to read as a source — and the core is what the halo falls
-        away from. Each tier glows in its own accent, so bronze is warm and
-        diamond cold without either being told to be.
-      */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute size-80 rounded-full opacity-70 blur-2xl"
-        style={{
-          background: `radial-gradient(circle at 50% 50%, ${product.accent} 0%, ${product.accent} 26%, color-mix(in srgb, ${product.accent} 55%, transparent) 48%, transparent 74%)`,
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute size-44 rounded-full opacity-75 blur-xl"
-        style={{
-          background: `radial-gradient(circle at 50% 50%, ${product.accent} 0%, color-mix(in srgb, ${product.accent} 50%, transparent) 45%, transparent 72%)`,
-        }}
-      />
-
       {/* Floating for real, not just uncarded. The same drift the revealed
           piece uses, so the two read as one house style. */}
       <div className="relative float-soft">
@@ -160,7 +187,11 @@ function BoxDetail({
   return (
     <div className="mx-auto mt-6 w-full max-w-md">
       {/*
-        Named and described.
+        Named, and nothing else.
+
+        The tagline is gone. It described a box that is already in front of
+        you, three lines of it, and the rates underneath say the same thing in
+        numbers — so it was the longest part of the panel and the least of it.
 
         Keyed on the product and faded in, but deliberately not wrapped in an
         AnimatePresence: `mode="wait"` keeps the outgoing name mounted while it
@@ -168,23 +199,19 @@ function BoxDetail({
         one box's name above another box's rates. Remounting on the key swaps
         both together and has nothing to go stale.
 
-        The height is fixed and the tagline clamped, and both are load-bearing.
-        Bronze's tagline runs to three lines where the others take two, which
-        on its own walked the button ten pixels down the screen every time you
-        swiped onto it. Five rem fits three lines; the clamp is what keeps a
-        longer tagline written later from breaking the rule again.
+        The height is still fixed, and still load-bearing. One line of name is
+        one line for every box today, but the rule is that nothing above the
+        Buy button may change height, and a longer name later must not be the
+        thing that breaks it.
       */}
-      <div className="min-h-[5rem] text-center">
+      <div className="min-h-[2rem] text-center">
         <motion.div
           key={product.id}
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
         >
-          <h3 className="text-xl font-semibold tracking-tight">{product.name}</h3>
-          <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-muted">
-            {product.tagline}
-          </p>
+          <h3 className="truncate text-xl font-semibold tracking-tight">{product.name}</h3>
         </motion.div>
       </div>
 
