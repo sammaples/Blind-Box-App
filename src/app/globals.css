@@ -69,6 +69,22 @@ body {
   border: 1px solid var(--color-hairline);
 }
 
+/*
+  A scroller with no visible bar.
+
+  For the box carousel, where the bar is noise: the cards peek past the edge
+  and the dots underneath say where you are, so a scrollbar adds a third
+  answer to a question already answered twice. The scrolling itself is
+  untouched — this hides the furniture, not the behaviour.
+*/
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Thin, unobtrusive scrollbars inside panels. */
 .scroll-slim {
   scrollbar-width: thin;

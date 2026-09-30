@@ -17,6 +17,7 @@ import { useAccount } from "./AccountBar";
 import { Price } from "./ui";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { coinPrice, topUpFor } from "@/lib/coins";
+import { BoxCarousel } from "./BoxCarousel";
 import { BuyCoins } from "./BuyCoins";
 import { Coins } from "./Coin";
 
@@ -45,7 +46,7 @@ export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
     >
       <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Pick your box</h2>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
+      <BoxCarousel>
         {PRODUCTS.map((product, i) => (
           <ProductCard
             key={product.id}
@@ -55,7 +56,7 @@ export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
             onBuy={() => startCheckout(product)}
           />
         ))}
-      </div>
+      </BoxCarousel>
 
       <CheckoutSheet product={checkout} onClose={() => setCheckout(null)} />
     </section>
@@ -82,11 +83,16 @@ function ProductCard({
 
   return (
     <motion.article
+      data-box-card
       initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-60px" }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-      className="group relative flex flex-col overflow-hidden rounded-3xl border border-hairline bg-ink-card p-6 transition-colors hover:border-white/22"
+      /*
+        Width is the whole trick. At 86vw the next card's edge shows past the
+        screen, and that sliver is the only thing telling anybody this swipes
+        — a card that fills the viewport exactly looks like a page.
+      */
+      className="group relative flex w-[86vw] max-w-[26rem] shrink-0 snap-center flex-col overflow-hidden rounded-3xl border border-hairline bg-ink-card p-6 transition-colors hover:border-white/22 sm:w-[22rem]"
     >
       {/*
         The light the box is sitting in.
