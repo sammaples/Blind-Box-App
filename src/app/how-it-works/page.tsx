@@ -65,8 +65,7 @@ export default function HowItWorksPage() {
           side by side they read as options to choose between. */}
       <ol className="mt-10 grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline">
         {STEPS.map((step) => (
-          <li key={step.n} className="flex gap-5 bg-ink-card p-6 sm:gap-6 sm:p-7">
-            <p className="mt-0.5 font-mono text-xs text-faint">{step.n}</p>
+          <li key={step.n} className="bg-ink-card p-6 sm:p-7">
             <div>
               <p className="text-base font-semibold">{step.title}</p>
               <p className="mt-1.5 text-sm leading-relaxed text-muted">{step.body}</p>

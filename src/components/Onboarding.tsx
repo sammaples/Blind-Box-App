@@ -155,8 +155,9 @@ export function Onboarding() {
                   className="flex w-full max-w-sm flex-col items-center"
                 >
                   <CardArt kind={step.art} reduced={!!reduced} />
-                  <p className="mt-8 font-mono text-xs text-faint">{step.n}</p>
-                  <h2 className="mt-2 text-4xl font-semibold tracking-tight">{step.title}</h2>
+                  {/* No step number above the title: the dots already say
+                      where you are, and "02" over "Collect" was saying it twice. */}
+                  <h2 className="mt-8 text-4xl font-semibold tracking-tight">{step.title}</h2>
                   <p className="mt-3 text-[15px] leading-relaxed text-muted">{step.body}</p>
                 </motion.div>
               </AnimatePresence>
@@ -276,12 +277,14 @@ function CardArt({ kind, reduced }: { kind: "box" | "vault" | "ship"; reduced: b
         />
         {/* Three, fanned: a vault is more than one thing, and a neat stack
             reads as a single object seen edge on. Only the front one turns —
-            three boxes all turning at once is a display case, not a shelf. */}
+            three boxes all turning at once is a display case, not a shelf.
+            The two behind are solid and a shade darker rather than
+            see-through: boxes behind the front one, not ghosts of it. */}
         <div className="relative grid place-items-center">
-          <span className="absolute -left-[76px] top-5 block rotate-[-14deg] opacity-40">
+          <span className="absolute -left-[76px] top-5 block rotate-[-14deg] brightness-[0.62]">
             <ProductBox accent={BRONZE} printed width={62} spin={false} />
           </span>
-          <span className="absolute -right-[76px] top-5 block rotate-[14deg] opacity-40">
+          <span className="absolute -right-[76px] top-5 block rotate-[14deg] brightness-[0.62]">
             <ProductBox accent={BRONZE} printed width={62} spin={false} />
           </span>
           <span className="relative z-10 block">
