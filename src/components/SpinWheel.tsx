@@ -48,17 +48,41 @@ const ease = (t: number) => 1 - Math.pow(1 - t, 4.2);
 
 function useSound() {
   const ctx = useRef<AudioContext | null>(null);
-  const last = useRef(0);
+  const out = useRef<AudioNode | null>(null);
+  const noise = useRef<AudioBuffer | null>(null);
+  const air = useRef<{ src: AudioBufferSourceNode; filter: BiquadFilterNode; gain: GainNode } | null>(null);
+
+  /** Made on the tap itself: a browser only lets sound start from a gesture. */
   const unlock = () => {
     if (!ctx.current) {
       const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (AC) ctx.current = new AC();
+      if (!AC) return;
+      const ac = new AC();
+      // Everything goes through one gentle compressor, so seventy clicks a
+      // second at full speed rattle rather than clip.
+      const comp = ac.createDynamicsCompressor();
+      comp.threshold.value = -16;
+      comp.knee.value = 12;
+      comp.ratio.value = 5;
+      comp.attack.value = 0.002;
+      comp.release.value = 0.12;
+      const master = ac.createGain();
+      master.gain.value = 0.9;
+      master.connect(comp).connect(ac.destination);
+      // A second of white noise, the raw material of every snap and of the air.
+      const buf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      ctx.current = ac;
+      out.current = master;
+      noise.current = buf;
     }
-    void ctx.current?.resume();
+    void ctx.current.resume();
   };
+
   const tone = (freq: number, at: number, dur: number, gain: number, type: OscillatorType = "sine") => {
     const ac = ctx.current;
-    if (!ac) return;
+    if (!ac || !out.current) return;
     const o = ac.createOscillator();
     const g = ac.createGain();
     o.type = type;
@@ -66,23 +90,99 @@ function useSound() {
     g.gain.setValueAtTime(0.0001, ac.currentTime + at);
     g.gain.exponentialRampToValueAtTime(gain, ac.currentTime + at + 0.008);
     g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + at + dur);
-    o.connect(g).connect(ac.destination);
+    o.connect(g).connect(out.current);
     o.start(ac.currentTime + at);
     o.stop(ac.currentTime + at + dur + 0.02);
   };
-  /** The click of the pointer catching a peg. Throttled: at full speed they would blur. */
-  const tick = () => {
-    const now = performance.now();
-    if (now - last.current < 38) return;
-    last.current = now;
-    tone(1500 + Math.random() * 200, 0, 0.045, 0.05, "triangle");
+
+  /**
+   * The pointer's flapper snapping off a peg, `delay` seconds from now.
+   *
+   * Two parts, the way the real thing has two: a sliver of filtered noise for
+   * the plastic snap, and a short falling knock for the peg's own body. Each
+   * one is a little different in pitch and weight, because a real wheel never
+   * clicks the same twice. `speed` runs from 0 (crawling) to 1 (flat out):
+   * fast clicks are light and short and blur into a rattle; slow ones are
+   * full, as the flapper bends all the way before it lets go.
+   */
+  const click = (delay = 0, speed = 0, weight = 1) => {
+    const ac = ctx.current;
+    if (!ac || !out.current || !noise.current) return;
+    const t = ac.currentTime + Math.max(0, delay);
+    const vary = 0.93 + Math.random() * 0.14;
+    const loud = (0.5 + 0.5 * (1 - speed)) * (0.85 + Math.random() * 0.3) * weight;
+    const ring = 0.012 + 0.03 * (1 - speed);
+
+    const snap = ac.createBufferSource();
+    snap.buffer = noise.current;
+    snap.playbackRate.value = vary;
+    const hp = ac.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = 1100;
+    const bp = ac.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = (2800 + 1600 * speed) * vary;
+    bp.Q.value = 1.6;
+    const sg = ac.createGain();
+    sg.gain.setValueAtTime(0.0001, t);
+    sg.gain.exponentialRampToValueAtTime(0.9 * loud, t + 0.0012);
+    sg.gain.exponentialRampToValueAtTime(0.0001, t + ring);
+    snap.connect(hp).connect(bp).connect(sg).connect(out.current);
+    snap.start(t, Math.random() * 0.9, ring + 0.02);
+
+    const knock = ac.createOscillator();
+    knock.type = "triangle";
+    knock.frequency.setValueAtTime(1250 * vary, t);
+    knock.frequency.exponentialRampToValueAtTime(420 * vary, t + 0.04);
+    const kg = ac.createGain();
+    kg.gain.setValueAtTime(0.0001, t);
+    kg.gain.exponentialRampToValueAtTime(0.18 * loud, t + 0.002);
+    kg.gain.exponentialRampToValueAtTime(0.0001, t + ring + 0.02);
+    knock.connect(kg).connect(out.current);
+    knock.start(t);
+    knock.stop(t + ring + 0.05);
   };
+
+  /** The rush of air off a big wheel, following its speed from 0 to 1. */
+  const airStart = () => {
+    const ac = ctx.current;
+    if (!ac || !out.current || !noise.current || air.current) return;
+    const src = ac.createBufferSource();
+    src.buffer = noise.current;
+    src.loop = true;
+    const filter = ac.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = 400;
+    filter.Q.value = 0.8;
+    const gain = ac.createGain();
+    gain.gain.value = 0;
+    src.connect(filter).connect(gain).connect(out.current);
+    src.start();
+    air.current = { src, filter, gain };
+  };
+  const airSpeed = (speed: number) => {
+    const ac = ctx.current;
+    const a = air.current;
+    if (!ac || !a) return;
+    a.filter.frequency.setTargetAtTime(350 + 1900 * speed, ac.currentTime, 0.06);
+    a.gain.gain.setTargetAtTime(0.16 * speed * speed, ac.currentTime, 0.08);
+  };
+  const airStop = () => {
+    const ac = ctx.current;
+    const a = air.current;
+    if (!ac || !a) return;
+    a.gain.gain.setTargetAtTime(0, ac.currentTime, 0.12);
+    a.src.stop(ac.currentTime + 0.8);
+    air.current = null;
+  };
+
   const win = (big: boolean) => {
     const notes = big ? [523, 659, 784, 1047, 1319, 1568, 2093] : [659, 784, 1047, 1319];
-    notes.forEach((f, i) => tone(f, i * (big ? 0.09 : 0.075), big ? 0.9 : 0.55, big ? 0.09 : 0.07));
-    if (big) [2637, 3136, 2637, 3520].forEach((f, i) => tone(f, 0.7 + i * 0.12, 0.6, 0.03));
+    notes.forEach((f, i) => tone(f, i * (big ? 0.09 : 0.075), big ? 0.9 : 0.55, big ? 0.2 : 0.16));
+    if (big) [2637, 3136, 2637, 3520].forEach((f, i) => tone(f, 0.7 + i * 0.12, 0.6, 0.07));
   };
-  return { unlock, tick, win };
+
+  return { unlock, click, airStart, airSpeed, airStop, win };
 }
 
 /* ------------------------------- wheel ------------------------------- */
@@ -282,12 +382,12 @@ export function SpinWheel() {
     setPhase("ready");
   };
 
+  /** The pointer flicking back off a peg. The sound is scheduled by the caller, to the peg. */
   const kick = () => {
     pointer.current?.animate(
       [{ transform: "rotate(-24deg)" }, { transform: "rotate(0deg)" }],
       { duration: 160, easing: "cubic-bezier(.2,.9,.3,1.3)" },
     );
-    sound.tick();
     navigator.vibrate?.(5);
   };
 
@@ -340,6 +440,8 @@ export function SpinWheel() {
       return;
     }
     sound.unlock();
+    // The clack of a hand taking hold of the wheel.
+    sound.click(0, 0, 1.2);
     setError(null);
     setLit(null);
     setPhase("spinning");
@@ -388,22 +490,39 @@ export function SpinWheel() {
     const dur = reduced ? 1200 : SPIN_MS;
 
     let peg = Math.floor((start + SEG / 2) / SEG);
+    // The fastest the wheel goes, at the very start of the ease, so speed can
+    // be given to the sound as 0 to 1.
+    const top = (4.2 * (target - start)) / dur;
+    sound.airStart();
     await new Promise<void>((resolve) => {
       const t0 = performance.now();
+      let lastT = t0;
+      let lastDeg = start;
       const frame = (t: number) => {
         const p = Math.min(1, (t - t0) / dur);
         const deg = start + (target - start) * ease(p);
         turnTo(deg);
+        const speed = Math.min(1, Math.max(0, (deg - lastDeg) / Math.max(1, t - lastT) / top));
+        sound.airSpeed(speed);
+        // Every peg passed since the last frame gets its own click, spread
+        // across the frame where it fell — at full speed that is more than
+        // one a frame, and dropping any would lose the rattle.
         const now = Math.floor((deg + SEG / 2) / SEG);
-        if (now !== peg) {
+        const passed = now - peg;
+        if (passed > 0) {
+          const span = (t - lastT) / 1000;
+          for (let i = 0; i < passed; i++) sound.click((span * i) / passed, speed);
           peg = now;
           kick();
         }
+        lastT = t;
+        lastDeg = deg;
         if (p < 1) requestAnimationFrame(frame);
         else resolve();
       };
       requestAnimationFrame(frame);
     });
+    sound.airStop();
 
     setLit(result.slot);
     setWon(result.coins);
