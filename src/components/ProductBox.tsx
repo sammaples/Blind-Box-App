@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { useId } from "react";
+import { memo, useId } from "react";
 import { boxGeometry, type BoxFace } from "@/lib/boxShape";
 import { BoxPrint } from "./BoxPrint";
 
@@ -25,7 +25,7 @@ import { BoxPrint } from "./BoxPrint";
  */
 const SPIN_SECONDS = 44.4;
 
-export function ProductBox({
+function ProductBoxImpl({
   accent,
   printed,
   width = 63,
@@ -112,7 +112,10 @@ export function ProductBox({
   const MARK_GLOSS = "M 15.2 14.2 C 15.6 10.9 19.0 9.7 22.0 10.1";
   const MARK_DOT = { cx: 20, cy: 33, r: 3.5 };
 
-  const Mark = ({ face }: { face: "front" | "right" | "back" | "left" }) => {
+  // A function, not a component. Declared as a component inside this one,
+  // it was a new component type on every render, so React threw all four
+  // marks away and built them again whenever the box rendered.
+  const mark = (face: "front" | "right" | "back" | "left") => {
     // Each mark is turned to face out of its own wall, or it would read in
     // mirror writing from every side but the front.
     const turn = {
@@ -138,6 +141,7 @@ export function ProductBox({
 
     return (
       <div
+        key={face}
         aria-hidden
         className="absolute inset-x-0 top-1/2 flex justify-center"
         style={{
@@ -247,11 +251,21 @@ export function ProductBox({
         <Face name="back" lit={18} shade={0.22} />
         <Face name="top" lit={14} shade={0.26} />
 
-        <Mark face="front" />
-        <Mark face="right" />
-        <Mark face="back" />
-        <Mark face="left" />
+        {mark("front")}
+        {mark("right")}
+        {mark("back")}
+        {mark("left")}
       </motion.div>
     </motion.div>
   );
 }
+
+/**
+ * Memoised: a box only changes when its colour, print, size or spin does.
+ *
+ * The shop re-renders every time the centred box changes, and the rail holds
+ * eight of these at around six hundred elements each. Rebuilding all of them
+ * for a change none of them shows held the page for long enough that the
+ * light and the name visibly lagged the swipe.
+ */
+export const ProductBox = memo(ProductBoxImpl);

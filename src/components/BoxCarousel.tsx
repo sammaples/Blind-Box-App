@@ -205,7 +205,11 @@ export function BoxCarousel({
       }
     });
     rendered.current = nearest;
-    setActive(boxAt(nearest, count, looping));
+    // While one of our glides is under way the answer is where it is going,
+    // not where it has got to — the tap already said which box. Following the
+    // scroll instead would show the old box until the rail was halfway over,
+    // which reads as the screen lagging behind the tap.
+    if (glide.current === null) setActive(boxAt(nearest, count, looping));
   }, [cardsOf, count, looping]);
 
   /**
@@ -235,19 +239,24 @@ export function BoxCarousel({
     el.style.scrollBehavior = behaviour;
   }, []);
 
-  /** Slides the rail to a card, animated, the way a tap or an arrow should. */
-  const glideTo = useCallback((card: HTMLElement) => {
+  /**
+   * Slides the rail to a card, animated, the way a tap or an arrow should —
+   * and says which box it is going to straight away, so the name, the rates
+   * and the light change on the tap rather than halfway through the slide.
+   */
+  const glideTo = useCallback((card: HTMLElement, slot: number) => {
     const el = track.current;
     if (!el) return;
     const left = card.offsetLeft + card.offsetWidth / 2 - el.clientWidth / 2;
     glide.current = left;
+    setActive(boxAt(slot, count, looping));
     el.scrollTo({
       left,
       // Honoured by the browser, which turns it off by itself when the
       // reader has asked for reduced motion — so there is nothing to check.
       behavior: "smooth",
     });
-  }, []);
+  }, [count, looping]);
 
   /**
    * Puts the rail back in the middle copy, if it has wandered out of it.
@@ -420,9 +429,9 @@ export function BoxCarousel({
       // instant and invisible, and it is what lets the arrows be hammered.
       recentre();
       const cards = cardsOf(el);
-      const want = rendered.current + delta;
-      const card = cards[Math.max(0, Math.min(want, cards.length - 1))];
-      if (card) glideTo(card);
+      const slot = Math.max(0, Math.min(rendered.current + delta, cards.length - 1));
+      const card = cards[slot];
+      if (card) glideTo(card, slot);
     },
     [cardsOf, glideTo, recentre],
   );
@@ -453,8 +462,9 @@ export function BoxCarousel({
         }
       });
 
-      const card = cards[nearest] ?? cards[Math.min(index, cards.length - 1)];
-      if (card) glideTo(card);
+      const slot = nearest >= 0 ? nearest : Math.min(index, cards.length - 1);
+      const card = cards[slot];
+      if (card) glideTo(card, slot);
     },
     [cardsOf, count, glideTo, looping, recentre],
   );

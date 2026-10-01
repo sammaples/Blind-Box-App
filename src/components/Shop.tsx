@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import {
   formatOdds,
   PRODUCTS,
@@ -98,9 +98,10 @@ export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
  * nothing is bright enough anywhere to read as a source — and the broad halo
  * needs a brighter core to fall away from.
  *
- * Crossfaded, not recoloured. A gradient is not something CSS can animate
- * between, so a single div told to change colour would snap; every tier's
- * glow is drawn instead and only the one in front is opaque. And because the
+ * Switched, not faded. Every tier's glow is drawn and only the one in front
+ * is shown, and the change is instant: a half-second crossfade read as the
+ * screen lagging behind the swipe, with the old box's colour still behind
+ * the new box. And because the
  * gradients are drawn well past the rail's edges and nothing here clips, the
  * colour carries up into the heading and down past the dots instead of
  * stopping at a hard line.
@@ -111,7 +112,7 @@ function BoxAura({ showing }: { showing: string }) {
       {PRODUCTS.map((product) => (
         <div
           key={product.id}
-          className="absolute inset-0 transition-opacity duration-500 ease-out"
+          className="absolute inset-0"
           style={{ opacity: product.id === showing ? 1 : 0 }}
         >
           <div
@@ -165,7 +166,7 @@ function boxWidthFor(trackHeight: number | null): number {
   return Math.max(56, Math.min(168, Math.floor(fits / 7) * 7));
 }
 
-function FloatingBox({ product, width }: { product: Product; width: number }) {
+const FloatingBox = memo(function FloatingBox({ product, width }: { product: Product; width: number }) {
   return (
     <div
       data-box-card
@@ -178,7 +179,7 @@ function FloatingBox({ product, width }: { product: Product; width: number }) {
       </div>
     </div>
   );
-}
+});
 
 /**
  * What the box in front of you pulls, and how to buy it.
@@ -269,7 +270,7 @@ function BoxDetail({
         type="button"
         onClick={onBuy}
         disabled={soldOut || comingSoon}
-        className={`w-full rounded-2xl py-4 text-base [@media(max-height:720px)]:py-3 font-semibold transition-[transform,background-color] duration-300 disabled:cursor-not-allowed disabled:hover:scale-100 ${
+        className={`w-full rounded-2xl py-4 text-base [@media(max-height:720px)]:py-3 font-semibold transition-transform duration-300 disabled:cursor-not-allowed disabled:hover:scale-100 ${
           soldOut || comingSoon
             ? "text-chalk/80"
             : "gloss text-ink hover:scale-[1.02] active:scale-[0.99]"
