@@ -258,7 +258,7 @@ function BoxDetail({
   const comingSoon = product.comingSoon === true;
 
   return (
-    <div className="mx-auto mt-7 w-full max-w-md shrink-0 pb-4 [@media(max-height:720px)]:mt-4 [@media(max-height:720px)]:pb-3">
+    <div className="mx-auto mt-7 w-full max-w-md shrink-0 pb-2 [@media(max-height:720px)]:mt-4 [@media(max-height:720px)]:pb-1.5">
       {/*
         Named, and nothing else.
 
@@ -373,7 +373,7 @@ function OddsByRarity({ shelf }: { shelf: StockEntry[] }) {
   if (rows.length === 0) return null;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1">
       {rows.map(({ rarity, share }) => (
         <div
           key={rarity}
