@@ -12,7 +12,7 @@ import type { Piece, Rarity, Scale, Tier } from "./types";
  * empty shop so it has something to show, not the source of truth.
  */
 
-export const SCALES: readonly Scale[] = ["100%", "400%"];
+export const SCALES: readonly Scale[] = ["100%", "400%", "400%/100%"];
 /** Cheapest first, which is the order every picker and filter shows them in. */
 export const TIERS: readonly Tier[] = ["bronze", "silver", "gold", "diamond"];
 export const RARITIES: readonly Rarity[] = ["common", "rare", "ultra", "chase"];
@@ -123,7 +123,7 @@ export function slugFor(name: string, scale: Scale): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
-  const size = scale === "400%" ? "400" : "100";
+  const size = scale === "400%/100%" ? "400-100" : scale === "400%" ? "400" : "100";
   return `${size}-${slug || "piece"}`;
 }
 

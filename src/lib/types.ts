@@ -48,7 +48,8 @@ export type PatternKind =
  * the large format needs to know which is which. What it no longer decides is
  * which box you can find it in — that is the tier.
  */
-export type Scale = "100%" | "400%";
+/** "400%/100%" is a combo: the 400% and its matching 100%, sold together. */
+export type Scale = "100%" | "400%" | "400%/100%";
 
 /**
  * Which box a piece comes out of, and the only thing that decides a pool.

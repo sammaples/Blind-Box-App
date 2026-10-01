@@ -109,7 +109,7 @@ export async function POST(request: Request) {
   const scale = body.scale as Scale;
   if (!SCALES.includes(scale)) {
     return NextResponse.json(
-      { error: "Scale must be 100% or 400%" },
+      { error: "Scale must be 100%, 400% or 400%/100%" },
       { status: 400 },
     );
   }

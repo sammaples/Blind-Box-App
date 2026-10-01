@@ -119,6 +119,9 @@ function normaliseHeader(value: string): string | null {
 
 function normaliseScale(value: string): Scale | null {
   const v = value.trim().toLowerCase().replace(/\s/g, "");
+  // The combo first, in any of the ways a spreadsheet might spell it.
+  const pair = v.replace(/%/g, "").replace(/[+&,]|and/g, "/");
+  if (pair === "400/100" || pair === "100/400" || v === "combo") return "400%/100%";
   if (v === "100" || v === "100%" || v === "1x") return "100%";
   if (v === "400" || v === "400%" || v === "4x") return "400%";
   return null;
@@ -192,7 +195,7 @@ export function importCatalogue(text: string): ImportResult {
   if (!columns.includes("scale")) {
     return {
       rows: [],
-      errors: ["No 'scale' column found. Each piece needs 100% or 400%."],
+      errors: ["No 'scale' column found. Each piece needs 100%, 400% or 400%/100%."],
       columns,
     };
   }
@@ -229,7 +232,7 @@ export function importCatalogue(text: string): ImportResult {
     const scale = normaliseScale(get("scale"));
     if (!scale) {
       errors.push(
-        `Line ${line}: "${get("scale")}" is not a scale — use 100% or 400%.`,
+        `Line ${line}: "${get("scale")}" is not a scale — use 100%, 400% or 400%/100%.`,
       );
       continue;
     }

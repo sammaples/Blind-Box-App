@@ -12,6 +12,7 @@ import type { Piece, Rarity, Scale, Tier } from "./types";
 export const UNITS_BY_RARITY: Record<Scale, Record<Rarity, number>> = {
   "100%": { common: 24, rare: 8, ultra: 3, chase: 1 },
   "400%": { common: 60, rare: 14, ultra: 5, chase: 2 },
+  "400%/100%": { common: 60, rare: 14, ultra: 5, chase: 2 },
 };
 
 /**
