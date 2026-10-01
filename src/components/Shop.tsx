@@ -17,11 +17,10 @@ import { useAccount } from "./AccountBar";
 import { Price } from "./ui";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { useLivePulls } from "@/lib/useLivePulls";
-import { coinPrice, topUpFor } from "@/lib/coins";
+import { redeemCost } from "@/lib/coins";
 import { BoxCarousel } from "./BoxCarousel";
 import { HowItWorksButton } from "./HowItWorks";
 import { RecentPulls } from "./RecentPulls";
-import { BuyCoins } from "./BuyCoins";
 import { Coins } from "./Coin";
 
 /** The boxes on sale, plus the checkout sheet that seals one. */
@@ -414,11 +413,11 @@ function CheckoutSheet({
   const router = useRouter();
   const { account, refresh } = useAccount();
   const coins = account?.coins ?? 0;
-  const price = product ? coinPrice(product.priceCents) : 0;
+  const price = product ? redeemCost(product.tier) : 0;
   const [busy, setBusy] = useState(false);
-  // Defaults to a card even when the balance would cover it. Coins are the
-  // scarcer of the two and spending them should be a thing somebody chose,
-  // not a default they have to notice and undo.
+  // Defaults to a card even when the balance would cover it. Coins take a
+  // while to save, and spending them should be a thing somebody chose, not
+  // a default they have to notice and undo.
   const [withCoins, setWithCoins] = useState(false);
   useEffect(() => {
     setWithCoins(false);
@@ -516,14 +515,12 @@ function CheckoutSheet({
             </button>
 
             {/*
-              The coin option only appears to somebody who could actually use
-              it. Offering "pay with coins" to a collector with none is an
-              advertisement dressed as a control, and it would be disabled the
-              first hundred times anybody saw it.
+              Redeeming with coins. Only offered to somebody holding some: to a
+              collector with none it is an advertisement dressed as a control.
 
-              When they have some but not enough, it still shows — greyed, with
-              the shortfall — because that is information, not noise: it says
-              how much closer one more trade-in would get them.
+              When they have some but not enough, it still shows, with the
+              shortfall — that is information, not noise: it says how many
+              more boxes until this one is free.
             */}
             {coins > 0 && (
               <button
@@ -536,34 +533,18 @@ function CheckoutSheet({
                     : "border-hairline text-muted hover:border-white/30 hover:text-chalk"
                 }`}
               >
-                {withCoins ? "Paying with coins" : "Pay with coins"}
+                {withCoins ? "Redeeming with coins" : "Pay with coins"}
                 <span className="text-faint">·</span>
                 {/* What the box costs in coins, not what you hold: this is a
                     price on a button, and your balance is already in the
                     header. */}
                 <Coins amount={price} size={13} />
                 {coins < price && (
-                  <span className="text-faint">— {price - coins} short</span>
+                  <span className="text-faint">— {(price - coins).toLocaleString()} short</span>
                 )}
               </button>
             )}
 
-            {/*
-              Short, and about to be stuck. The button above is disabled and
-              without this the sheet is a dead end — so the gap itself is
-              offered, rounded up to something worth charging a card for.
-              Only when they chose coins: pushing a top-up at somebody who was
-              about to pay with a card is selling them a second thing.
-            */}
-            {withCoins && coins < price && (
-              <div className="mt-3">
-                <BuyCoins
-                  suggested={topUpFor(price - coins)}
-                  compact
-                  onBought={() => setError(null)}
-                />
-              </div>
-            )}
 
             {error && <p className="mt-3 text-center text-xs text-rose-400">{error}</p>}
 

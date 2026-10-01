@@ -197,7 +197,8 @@ export function BoxOpening({
   orderId: string;
   product: Product;
   initialPiece: Piece | null;
-  onRevealed?: (piece: Piece) => void;
+  /** `earned` is the coins this open credited — zero on a revisit. */
+  onRevealed?: (piece: Piece, earned: number) => void;
 }) {
   const reducedMotion = useReducedMotion();
   const [stage, setStage] = useState<Stage>(initialPiece ? "reveal" : "sealed");
@@ -231,6 +232,7 @@ export function BoxOpening({
 
       // The piece comes back with the reveal; the catalogue is server-side.
       const pulled = (data.piece ?? null) as Piece | null;
+      const earned = typeof data.earned === "number" ? data.earned : 0;
       if (!pulled) throw new Error("This order is missing its piece");
 
       // Stored before the wait, not after: the wind-up, the rattle and the
@@ -252,7 +254,7 @@ export function BoxOpening({
       // The flash is already covering the frame by now, so the swap from box
       // to piece happens behind it and is never seen.
       setStage("reveal");
-      onRevealed?.(pulled);
+      onRevealed?.(pulled, earned);
     } catch (err) {
       sound?.stop();
       await waitUntil(400);

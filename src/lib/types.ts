@@ -92,8 +92,8 @@ export interface Piece {
   /** Relative draw weight inside its own pool. Never a probability by itself. */
   weight: number;
   /**
-   * What this piece trades in for, in coins. Null means no opinion, and the
-   * ladder in `src/lib/coins.ts` decides from rarity and tier instead.
+   * A coin value of its own, kept from when pieces could be traded in for
+   * coins. Nothing spends it now; null means none was set.
    */
   coinValue: number | null;
   blurb: string;
@@ -295,6 +295,7 @@ export interface Collector {
  * always written in the same transaction as the balance it produced.
  */
 export type CoinReason =
+  | "earn"
   | "trade_in"
   | "purchase"
   | "spend"

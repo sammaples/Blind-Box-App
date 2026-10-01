@@ -3,7 +3,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useState } from "react";
-import { tradeValue } from "@/lib/coins";
 import type { PublicOrder } from "@/lib/serialize";
 import type { Piece, Product } from "@/lib/types";
 import { useAccount } from "./AccountBar";
@@ -21,8 +20,9 @@ export function OpenExperience({
   piece: Piece | null;
 }) {
   const [revealed, setRevealed] = useState(initialPiece !== null);
-  // What came out, once it has — the sell button needs its value.
-  const [pulled, setPulled] = useState<Piece | null>(initialPiece);
+  // Coins this open earned. Zero on a revisit: an old reveal pays nothing.
+  const [earned, setEarned] = useState(0);
+  const { refresh } = useAccount();
 
   /*
    * Tighter on a phone than on anything else.
@@ -39,9 +39,11 @@ export function OpenExperience({
         orderId={initialOrder.id}
         product={product}
         initialPiece={initialPiece}
-        onRevealed={(piece) => {
-          setPulled(piece ?? null);
+        onRevealed={(_piece, coins) => {
+          setEarned(coins);
           setRevealed(true);
+          // The balance in the header just went up.
+          if (coins > 0) void refresh();
         }}
       />
 
@@ -82,9 +84,7 @@ export function OpenExperience({
                     sit on negative z inside the button's own stacking context. */}
                 <span className="relative">Open another</span>
               </Link>
-              {pulled && (
-                <SellPull orderId={initialOrder.id} piece={pulled} status={initialOrder.status} />
-              )}
+              {earned > 0 && <EarnedCoins amount={earned} />}
               <Link
                 href="/collection"
                 className="rounded-xl px-4 py-2.5 text-center text-sm font-medium text-muted transition-colors hover:text-chalk"
@@ -101,100 +101,22 @@ export function OpenExperience({
 }
 
 /**
- * Sell the piece that just came out, for coins, without leaving the screen.
+ * What opening this box earned.
  *
- * The moment somebody decides they do not want a pull is the moment they see
- * it, so the offer is made here rather than a trip to the vault later. It is
- * the vault's trade-in — the same route, the same value, the same one-credit-
- * per-piece guard in the ledger — so the number on the button is the number
- * that lands in the balance.
- *
- * Two taps, because it cannot be undone: a sold piece leaves the vault and
- * can never be shipped. The second tap is where that is said. Every state is
- * the same 48px tall, so tapping Sell never moves "Ship your pieces" — on a
- * small phone that link sits a few pixels off the bottom edge.
+ * Said on the reveal, because that is the moment it happened: the coins are
+ * the reward for opening, and a balance that quietly ticks up in the header
+ * is a reward nobody notices. The same 48px the sell button had, so the
+ * links around it sit where they always have.
  */
-function SellPull({
-  orderId,
-  piece,
-  status,
-}: {
-  orderId: string;
-  piece: Piece;
-  status: PublicOrder["status"];
-}) {
-  const { refresh } = useAccount();
-  const value = tradeValue(piece);
-  const [stage, setStage] = useState<"idle" | "armed" | "busy" | "sold">(
-    status === "traded" ? "sold" : "idle",
-  );
-  const [error, setError] = useState<string | null>(null);
-
-  // `status` is the order as the page loaded it, so a box opened on this
-  // screen still reads "paid" — sealed then, opened now. That and "revealed"
-  // can be sold; a piece already in a parcel or on its way cannot.
-  if (status !== "paid" && status !== "revealed" && status !== "traded") return null;
-
-  const sell = async () => {
-    setStage("busy");
-    setError(null);
-    try {
-      const res = await fetch(`/api/orders/${orderId}/trade`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Could not sell that piece");
-      setStage("sold");
-      // The balance is in the header; tell it.
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      setStage("idle");
-    }
-  };
-
-  if (stage === "sold") {
-    return (
-      <p className="flex h-12 items-center justify-center gap-1.5 rounded-xl border border-hairline px-4 text-sm text-muted">
-        Sold for <Coins amount={value} size={14} /> — they are in your balance.
-      </p>
-    );
-  }
-
-  if (stage === "idle") {
-    return (
-      <>
-        <button
-          type="button"
-          onClick={() => setStage("armed")}
-          className="flex h-12 items-center justify-center gap-2 rounded-xl border border-hairline px-4 text-base font-semibold text-chalk transition-colors hover:border-white/30"
-        >
-          Sell for <Coins amount={value} size={16} />
-        </button>
-        {error && <p className="text-center text-xs text-rose-400">{error}</p>}
-      </>
-    );
-  }
-
+function EarnedCoins({ amount }: { amount: number }) {
   return (
-    <div className="flex gap-2">
-      <button
-        type="button"
-        onClick={() => setStage("idle")}
-        disabled={stage === "busy"}
-        className="h-12 rounded-xl border border-hairline px-4 text-sm font-medium text-muted transition-colors hover:text-chalk"
-      >
-        Keep it
-      </button>
-      <button
-        type="button"
-        onClick={() => void sell()}
-        disabled={stage === "busy"}
-        className="flex h-12 flex-1 flex-col items-center justify-center rounded-xl bg-amber-300 px-4 text-black transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60"
-      >
-        <span className="flex items-center gap-1.5 text-sm font-semibold">
-          {stage === "busy" ? "Selling…" : <>Yes, sell for <Coins amount={value} size={14} /></>}
-        </span>
-        <span className="text-[10.5px] leading-tight text-black/60">It leaves your vault and can’t be shipped</span>
-      </button>
-    </div>
+    <Link
+      href="/wallet"
+      className="flex h-12 items-center justify-center gap-2 rounded-xl border border-amber-300/30 bg-amber-300/[0.07] px-4 text-base font-semibold text-amber-100 transition-colors hover:border-amber-300/60"
+    >
+      <span className="text-emerald-300">+</span>
+      <Coins amount={amount} size={16} />
+      <span className="text-sm font-medium text-amber-100/70">earned</span>
+    </Link>
   );
 }

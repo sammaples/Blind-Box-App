@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getProduct } from "@/lib/catalog";
-import { coinPrice } from "@/lib/coins";
+import { redeemCost } from "@/lib/coins";
 import { backend } from "@/lib/db";
 import { drawFrom } from "@/lib/draw";
 import { payments } from "@/lib/payments";
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
   }
 
   const withCoins = body.pay === "coins";
-  const price = coinPrice(product.priceCents);
+  const price = redeemCost(product.tier);
   let reference = "";
 
   // Coins are taken before the draw, not after.
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
     if (!spend.ok) {
       return NextResponse.json(
         {
-          error: `That box costs ${price} coins and you have ${spend.balance}.`,
+          error: `That box takes ${price.toLocaleString()} coins and you have ${spend.balance.toLocaleString()}.`,
           coins: spend.balance,
         },
         { status: 402 },

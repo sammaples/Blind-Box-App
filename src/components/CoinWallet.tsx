@@ -3,19 +3,19 @@
 import { useEffect, useState } from "react";
 import type { CoinEntry } from "@/lib/types";
 import { useAccount } from "./AccountBar";
-import { BuyCoins } from "./BuyCoins";
 import { Coins } from "./Coin";
 
 const REASON_LABEL: Record<string, string> = {
+  earn: "Opened a box",
   trade_in: "Traded in",
   purchase: "Bought coins",
-  spend: "Opened a box",
+  spend: "Redeemed a box",
   refund: "Refunded",
   grant: "Added by the shop",
 };
 
 /**
- * The balance, where it came from, and how to get more.
+ * The balance, and where it came from.
  *
  * The history is the point of this panel, not the number. A balance on its
  * own is a figure somebody either accepts or argues with; a list of what
@@ -48,21 +48,13 @@ export function CoinWallet() {
   if (!account) return null;
 
   return (
-    <section id="coins" className="mt-10 scroll-mt-24">
-      <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-faint">Coins</h2>
-
-      <div className="mt-4 rounded-2xl border border-hairline bg-ink-card p-5">
+    <section id="coins" className="mt-8 scroll-mt-24">
+      <div className="rounded-2xl border border-hairline bg-ink-card p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <p className="text-3xl font-semibold">
             <Coins amount={coins} size={26} />
           </p>
-          <p className="text-xs text-faint">
-            One coin is one dollar. Trade a piece in, or buy more.
-          </p>
-        </div>
-
-        <div className="mt-5">
-          <BuyCoins />
+          <p className="text-xs text-faint">Earned by opening boxes.</p>
         </div>
 
         {history.length > 0 && (

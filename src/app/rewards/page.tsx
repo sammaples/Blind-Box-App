@@ -3,15 +3,13 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Rewards — Blind Box",
-  description: "Rewards for collecting are on the way.",
+  description: "Ways to earn coins beyond opening boxes — daily sign-ins and more, on the way.",
 };
 
 /**
- * Held for what comes next.
- *
- * Coins moved to the Wallet tab, which is where people look for money. This
- * tab stays so the bar does not reshuffle when rewards arrive, and says so
- * plainly rather than showing an empty page.
+ * Held for what comes next: the other ways to earn coins — a daily sign-in,
+ * and whatever follows it. Opening a box already earns them; this tab is
+ * where the rest will live, and it says so plainly rather than sitting empty.
  */
 export default function RewardsPage() {
   return (
@@ -20,7 +18,8 @@ export default function RewardsPage() {
       <div className="mt-8 rounded-3xl border border-dashed border-hairline px-6 py-12 text-center">
         <p className="text-base font-semibold">Coming soon</p>
         <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-muted">
-          Rewards for collecting are on the way. Your coins live in the Wallet.
+          Daily sign-in rewards and more ways to earn coins are on the way. For now, every box
+          you open earns coins.
         </p>
         <Link
           href="/wallet"

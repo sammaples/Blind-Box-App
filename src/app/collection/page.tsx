@@ -8,9 +8,6 @@ import { currentCollectorId } from "@/lib/auth";
 import { listShipments } from "@/lib/shipments";
 import { listOrders } from "@/lib/store";
 import { ShipBundle, type ShippablePull } from "@/components/ShipBundle";
-import { CoinWallet } from "@/components/CoinWallet";
-import { TradeIn } from "@/components/TradeIn";
-import { tradeValue } from "@/lib/coins";
 import type { Piece, Shipment } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -57,21 +54,7 @@ export default async function CollectionPage() {
         Everything you have opened, and where each physical piece is up to.
       </p>
 
-      {/*
-        No stats panel. "Boxes opened" and "Best pull" were numbers about the
-        vault rather than anything in it, and they sat between the heading
-        and the two things people come here for: the coins, and the pieces.
-
-        The wallet goes first, not after the shipping grid.
-        
-        It was below it, which is fine on an account with four pulls and
-        useless on one with ninety-seven: the ready-to-ship list is one tile
-        per piece, so the wallet ended up fifty rows down a phone and read as
-        missing rather than as further along. A balance is a headline — it is
-        the first thing somebody checks and the thing the Buy buttons spend —
-        so it goes where the other headline numbers already are.
-      */}
-      <CoinWallet />
+      {/* Coins live in the Wallet tab; this page is the pieces. */}
 
       {sealed.length > 0 && (
         <section className="mt-10">
@@ -143,7 +126,6 @@ export default async function CollectionPage() {
             {pulls.map(({ order, piece, odds }) => (
               <PullRow
                 key={order.id}
-                orderId={order.id}
                 piece={piece}
                 odds={odds}
                 status={order.status}
@@ -214,17 +196,11 @@ function PullRow({
   piece,
   odds,
   status,
-  orderId,
 }: {
   piece: Piece;
   odds: number;
   status: string;
-  orderId: string;
 }) {
-  // Only a piece that is opened and not yet spoken for can be traded. A
-  // shipped one is gone, a packing one is already in a parcel, and a sealed
-  // one is not a piece yet.
-  const tradable = status === "revealed";
   return (
     <div className="flex gap-4 rounded-2xl border border-hairline bg-ink-card p-4">
       <div
@@ -244,7 +220,6 @@ function PullRow({
           <span className="font-mono text-[11px] text-muted">{formatOdds(odds)}</span>
         </div>
         <p className="mt-2 text-xs text-muted">{STATUS_LABEL[status] ?? status}</p>
-        {tradable && <TradeIn orderId={orderId} value={tradeValue(piece)} />}
       </div>
     </div>
   );

@@ -151,7 +151,7 @@ export function CoinBalance() {
   if (!account || account.coins <= 0) return null;
   return (
     <Link
-      href="/collection#coins"
+      href="/wallet"
       aria-label={`${account.coins} coins`}
       className="flex items-center rounded-full border border-hairline px-2.5 py-1 text-xs text-chalk transition-colors hover:border-white/30 sm:px-3"
     >

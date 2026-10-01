@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { defaultTradeValue } from "@/lib/coins";
 import {
   CATEGORY_LABEL,
   CATEGORY_ORDER,
@@ -125,14 +124,12 @@ export function AddProduct({
   const [category, setCategory] = useState<string>(editing?.category ?? "");
   const [rarity, setRarity] = useState<Rarity>(editing?.rarity ?? "common");
   const [notes, setNotes] = useState(editing?.blurb ?? "");
-  // A string, not a number, because "" has to stay reachable: blank is what
-  // puts a piece back on the rarity ladder, and a numeric state would round
-  // that to zero and quietly make it worthless.
-  const [coinValue, setCoinValue] = useState(
+  // Pieces are no longer traded in for coins, so there is no field for this;
+  // an edit just carries forward whatever value the piece already had.
+  const coinValue =
     editing?.coinValue === null || editing?.coinValue === undefined
       ? ""
-      : String(editing.coinValue),
-  );
+      : String(editing.coinValue);
   const [quantity, setQuantity] = useState("");
 
   const [imageUrl, setImageUrl] = useState<string | null>(editing?.imageUrl ?? null);
@@ -458,21 +455,6 @@ export function AddProduct({
               />
             </Field>
           )}
-
-          <Field
-            label="Trade-in value"
-            hint={`Optional. Blank uses the ${rarity} rate of ${defaultTradeValue(rarity, tier)} coins.`}
-          >
-            <input
-              value={coinValue}
-              onChange={(e) => setCoinValue(e.target.value)}
-              type="number"
-              min={0}
-              inputMode="numeric"
-              placeholder={String(defaultTradeValue(rarity, tier))}
-              className={`${inputClass} sm:max-w-[calc(50%-0.5rem)]`}
-            />
-          </Field>
 
           <Field label="Notes" hint="Optional. Shown with the piece.">
             <textarea

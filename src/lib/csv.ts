@@ -163,12 +163,11 @@ export interface ImportResult {
 export const CSV_TEMPLATE =
   // Carries a category column because a numbered series piece is rejected
   // without one — a template that fails its own import is worse than none.
-  "name,set,series,tier,scale,rarity,category,coins,image,quantity,notes\n" +
-  // The coins column left blank on the first row on purpose: blank is a real
-  // answer here and means "whatever this rarity is worth", which is what most
-  // rows want. The second says otherwise, which is what the column is for.
-  "Sky Blue Bear,Series 47,47,bronze,100%,common,cute,,https://example.com/sky.jpg,12,Gloss finish\n" +
-  "Chrome Grail,400% Collection,,diamond,400%,chase,,750,https://example.com/chrome.jpg,1,One of one\n";
+  // No coins column: pieces are not traded in for coins any more. A sheet
+  // that still has one imports fine; the column is read and kept, not used.
+  "name,set,series,tier,scale,rarity,category,image,quantity,notes\n" +
+  "Sky Blue Bear,Series 47,47,bronze,100%,common,cute,https://example.com/sky.jpg,12,Gloss finish\n" +
+  "Chrome Grail,400% Collection,,diamond,400%,chase,,https://example.com/chrome.jpg,1,One of one\n";
 
 /**
  * Reads a catalogue spreadsheet. Every row is validated independently: a bad
