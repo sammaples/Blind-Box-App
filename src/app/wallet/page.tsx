@@ -24,7 +24,8 @@ export default function WalletPage() {
     <div className="mx-auto w-full max-w-3xl px-5 pb-10 pt-10 sm:px-8 sm:pt-16">
       <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Wallet</h1>
       <p className="mt-2 text-sm leading-relaxed text-muted">
-        Every box you open earns coins. Save them up and redeem them for a box of your own.
+        Every box you open earns 10 coins for each dollar it cost. Save them up and redeem them for
+        a box of your own, at 100 coins a dollar.
       </p>
 
       <CoinWallet />
@@ -34,7 +35,7 @@ export default function WalletPage() {
           Earn for every box you open
         </h2>
         <Table
-          rows={PRODUCTS.map((p) => ({ id: p.id, name: p.name, accent: p.accent, coins: boxReward(p.tier), plus: true }))}
+          rows={PRODUCTS.map((p) => ({ id: p.id, name: p.name, accent: p.accent, coins: boxReward(p.priceCents), plus: true }))}
         />
       </section>
 
@@ -43,7 +44,7 @@ export default function WalletPage() {
           Redeem for a box
         </h2>
         <Table
-          rows={PRODUCTS.map((p) => ({ id: p.id, name: p.name, accent: p.accent, coins: redeemCost(p.tier), plus: false }))}
+          rows={PRODUCTS.map((p) => ({ id: p.id, name: p.name, accent: p.accent, coins: redeemCost(p.priceCents), plus: false }))}
         />
         <p className="mt-3 text-[12px] leading-relaxed text-faint">
           Pick a box, tap Buy a box, then choose Pay with coins. A box redeemed with coins does not

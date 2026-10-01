@@ -413,7 +413,7 @@ function CheckoutSheet({
   const router = useRouter();
   const { account, refresh } = useAccount();
   const coins = account?.coins ?? 0;
-  const price = product ? redeemCost(product.tier) : 0;
+  const price = product ? redeemCost(product.priceCents) : 0;
   const [busy, setBusy] = useState(false);
   // Defaults to a card even when the balance would cover it. Coins take a
   // while to save, and spending them should be a thing somebody chose, not

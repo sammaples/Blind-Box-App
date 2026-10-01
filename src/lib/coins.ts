@@ -1,5 +1,3 @@
-import type { Tier } from "./types";
-
 /**
  * Coins.
  *
@@ -9,40 +7,36 @@ import type { Tier } from "./types";
  * Rewards for other things — a daily sign-in and whatever follows — credit
  * the same balance, through the same ledger, from the Rewards tab.
  *
- * Both tables below are the whole economy, and they are meant to be tuned.
+ * The two rates below are the whole economy, and they are meant to be tuned.
  * Change a number here and every page, the checkout and the server move
  * with it.
  */
 
-/** What opening a box earns, by the box it was. */
-export const BOX_REWARD: Record<Tier, number> = {
-  bronze: 50,
-  silver: 100,
-  gold: 500,
-  diamond: 1000,
-};
+/**
+ * Every dollar spent on a box earns ten coins.
+ *
+ * Tied to the price rather than set per box, so the rate holds everywhere:
+ * a $25 box earns 250, a $250 box earns 2,500, and a new box at any price
+ * earns its share without anybody choosing a number for it.
+ */
+export const COINS_EARNED_PER_DOLLAR = 10;
 
 /**
- * What a box costs redeemed with coins.
+ * And a box costs a hundred coins per dollar of its price, redeemed.
  *
- * Ten times what it earns: open ten of a box and the eleventh is on the
- * house. One rule rather than four prices, so it can be said in a sentence.
+ * Ten times what it earns — so ten boxes bought pays for the next one at the
+ * same price, which is the whole deal in one sentence.
  */
-export const REDEEM_COST: Record<Tier, number> = {
-  bronze: BOX_REWARD.bronze * 10,
-  silver: BOX_REWARD.silver * 10,
-  gold: BOX_REWARD.gold * 10,
-  diamond: BOX_REWARD.diamond * 10,
-};
+export const COINS_PER_DOLLAR_REDEEMED = 100;
 
-/** Coins earned by opening a box of this tier. */
-export function boxReward(tier: Tier): number {
-  return BOX_REWARD[tier];
+/** Coins earned by opening a box bought at this price. */
+export function boxReward(priceCents: number): number {
+  return Math.round((priceCents / 100) * COINS_EARNED_PER_DOLLAR);
 }
 
-/** Coins it takes to redeem a box of this tier. */
-export function redeemCost(tier: Tier): number {
-  return REDEEM_COST[tier];
+/** Coins it takes to redeem a box at this price. */
+export function redeemCost(priceCents: number): number {
+  return Math.round((priceCents / 100) * COINS_PER_DOLLAR_REDEEMED);
 }
 
 /**

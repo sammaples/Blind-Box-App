@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { BOX_REWARD, formatCoins, redeemCost } from "@/lib/coins";
+import { PRODUCTS } from "@/lib/catalog";
+import { boxReward, COINS_EARNED_PER_DOLLAR, COINS_PER_DOLLAR_REDEEMED, formatCoins, redeemCost } from "@/lib/coins";
 import { HOW_IT_WORKS } from "@/lib/howItWorks";
 
 export const metadata: Metadata = {
@@ -16,11 +17,12 @@ export const metadata: Metadata = {
  */
 export default function SupportPage() {
   const contact = process.env.SUPPORT_EMAIL;
+  const bronze = PRODUCTS[0];
   const faqs: { q: string; a: string }[] = [
     ...HOW_IT_WORKS.map((s) => ({ q: s.title === "Open" ? "How does a box work?" : s.title === "Collect" ? "Where do my pieces go?" : "How does shipping work?", a: s.body })),
     {
       q: "How do coins work?",
-      a: `Every box you open earns coins — ${formatCoins(BOX_REWARD.bronze)} for a Bronze Box up to ${formatCoins(BOX_REWARD.diamond)} for a Diamond Box. Save them up and redeem them for a box: a Bronze Box takes ${formatCoins(redeemCost("bronze"))}. A box redeemed with coins does not earn coins itself. Coins can’t be bought or cashed out.`,
+      a: `Every box you open earns ${COINS_EARNED_PER_DOLLAR} coins for each dollar it cost — ${formatCoins(boxReward(bronze.priceCents))} for a ${bronze.name}. Redeeming a box takes ${COINS_PER_DOLLAR_REDEEMED} coins a dollar, so a ${bronze.name} takes ${formatCoins(redeemCost(bronze.priceCents))}. A box redeemed with coins does not earn coins itself. Coins can’t be bought or cashed out.`,
     },
     {
       q: "How do I sign in?",

@@ -62,7 +62,7 @@ export async function POST(request: Request) {
   }
 
   const withCoins = body.pay === "coins";
-  const price = redeemCost(product.tier);
+  const price = redeemCost(product.priceCents);
   let reference = "";
 
   // Coins are taken before the draw, not after.

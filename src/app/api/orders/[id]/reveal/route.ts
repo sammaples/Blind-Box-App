@@ -40,7 +40,7 @@ export async function POST(
   let coins: number | null = null;
   const product = getProduct(order.productId);
   if (opening && product && earnsCoins(order)) {
-    const reward = boxReward(product.tier);
+    const reward = boxReward(product.priceCents);
     const credit = await backend().moveCoins({
       collectorId,
       delta: reward,
