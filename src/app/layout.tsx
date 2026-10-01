@@ -14,6 +14,13 @@ export const metadata: Metadata = {
   title: "Blind Box — open digitally, collect physically",
   description:
     "Buy a sealed collectible blind box, open it with a live pull, and have the physical piece shipped to you. Every pull rate published up front.",
+  // Added to an iPhone's home screen, it opens full screen like an app, with
+  // the status bar in the app's own dark rather than Safari around it.
+  appleWebApp: {
+    capable: true,
+    title: "Blind Box",
+    statusBarStyle: "black",
+  },
 };
 
 export const viewport: Viewport = {
