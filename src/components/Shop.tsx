@@ -245,7 +245,7 @@ function BoxDetail({
   const comingSoon = product.comingSoon === true;
 
   return (
-    <div className="mx-auto mt-4 w-full max-w-md shrink-0 pb-4 [@media(max-height:720px)]:mt-2 [@media(max-height:720px)]:pb-3">
+    <div className="mx-auto mt-7 w-full max-w-md shrink-0 pb-4 [@media(max-height:720px)]:mt-4 [@media(max-height:720px)]:pb-3">
       {/*
         Named, and nothing else.
 
@@ -353,7 +353,6 @@ function OddsByRarity({ shelf }: { shelf: StockEntry[] }) {
     const order = [...RARITY_ORDER].reverse();
     return order.filter((r) => (units.get(r) ?? 0) > 0).map((rarity) => ({
       rarity,
-      units: units.get(rarity)!,
       share: units.get(rarity)! / total,
     }));
   }, [shelf]);
@@ -362,11 +361,10 @@ function OddsByRarity({ shelf }: { shelf: StockEntry[] }) {
 
   return (
     <div className="space-y-2">
-      {rows.map(({ rarity, units, share }) => (
+      {rows.map(({ rarity, share }) => (
         <div
           key={rarity}
           className="flex items-center gap-3 text-[13px]"
-          title={`${units} ${units === 1 ? "unit" : "units"} of ${RARITY_LABEL[rarity]} left`}
         >
           <span className="w-[4.5rem] shrink-0 truncate text-muted">
             {RARITY_LABEL[rarity]}

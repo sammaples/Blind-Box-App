@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { RARITY_COLOR, RARITY_LABEL } from "@/lib/catalog";
 import type { Pull, StockEntry } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
@@ -52,6 +52,16 @@ export function RecentPulls({
   const [paused, setPaused] = useState(false);
   const track = useRef<HTMLDivElement>(null);
 
+  // What the row is showing, which trails `pulls` while a new one is let in
+  // (see "A new pull, live" below).
+  const [shown, setShown] = useState(pulls);
+  const [shownFor, setShownFor] = useState(productId);
+  if (shownFor !== productId) {
+    // A different box's list is not news; it arrives with the box's own fade.
+    setShownFor(productId);
+    setShown(pulls);
+  }
+
   /*
    * Rendered on the server and the client from the same list, so the "how long
    * ago" has to be decided after mount or the two disagree and React throws the
@@ -72,7 +82,7 @@ export function RecentPulls({
    * nothing behind a sheet should be moving.
    */
   useEffect(() => {
-    if (paused || selected || pulls.length < 2) return;
+    if (paused || selected || shown.length < 2) return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
 
     // The row is looked up on every tick rather than once: switching boxes
@@ -90,43 +100,73 @@ export function RecentPulls({
     // The box and the newest pull are dependencies so the clock restarts on a
     // new box or a new pull, rather than moving the card that just came into
     // view on a moment after it got there.
-  }, [paused, selected, pulls.length, productId, pulls[0]?.orderId]);
+  }, [paused, selected, shown.length, productId, shown[0]?.orderId]);
 
   /*
    * A new pull, live.
    *
-   * It arrives at the front of the list, which is usually off the left of the
-   * row, since the row has been moving along by itself. Left alone, the cards
-   * in view would jump a place to the right the instant it lands. So first
-   * the row is shifted by exactly the width that was added, before paint,
-   * which leaves what is on screen standing still — and then, unless somebody
-   * has a finger on the row or a sheet open, it glides back to the start so
-   * the new one is the thing in front of you. Someone mid-swipe keeps their
-   * place; the new card waits at the front for them.
+   * The row shows `shown`, not `pulls`, so that a pull can be let in at the
+   * right moment rather than the moment the poll answers. The row has usually
+   * moved along by itself, so the new card's place at the front is off to the
+   * left. Inserting it there and then would be invisible — and worse, a
+   * snapping row re-snaps to whichever card it was resting on, so the cards in
+   * view would lurch along instead. So the row first glides back to the start
+   * with the list it already has, then snapping is switched off, the new card
+   * is let in and grows in place at the front, pushing the rest along, and
+   * snapping comes back once it has landed. The glow plays where it can be
+   * seen.
    *
-   * A list that does not contain the old first pull at all is a different
-   * box's list, not news, and is left to the box's own fade.
+   * Somebody with a finger on the row, or a sheet open, keeps their place: the
+   * pull waits until they let go, then comes in the same way.
    */
-  const firstId = useRef(pulls[0]?.orderId);
-  const holding = useRef(false);
-  holding.current = paused || selected !== null;
-  useLayoutEffect(() => {
-    const before = firstId.current;
-    firstId.current = pulls[0]?.orderId;
+  const holding = paused || selected !== null;
+  const fresh =
+    shownFor === productId &&
+    pulls.length > 0 &&
+    pulls[0].orderId !== shown[0]?.orderId;
+
+  useEffect(() => {
+    if (!fresh || holding) return;
     const el = track.current;
-    if (!el || !before || before === pulls[0]?.orderId) return;
+    if (!el) {
+      setShown(pulls);
+      return;
+    }
+    let raf = 0;
+    let cancelled = false;
+    const land = () => {
+      if (cancelled) return;
+      el.style.scrollSnapType = "none";
+      el.scrollLeft = 0;
+      setShown(pulls);
+    };
+    if (el.scrollLeft <= 1) {
+      land();
+    } else {
+      const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      el.scrollTo({ left: 0, behavior: reduced ? "auto" : "smooth" });
+      const began = performance.now();
+      const wait = () => {
+        if (el.scrollLeft <= 1 || performance.now() - began > 1200) land();
+        else raf = requestAnimationFrame(wait);
+      };
+      raf = requestAnimationFrame(wait);
+    }
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
+  }, [fresh, holding, pulls]);
 
-    const added = pulls.findIndex((p) => p.orderId === before);
-    if (added <= 0) return;
-
-    const card = el.firstElementChild as HTMLElement | null;
-    if (!card) return;
-    if (el.scrollLeft > 4) el.scrollLeft += added * (card.offsetWidth + 8);
-
-    if (holding.current) return;
-    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    el.scrollTo({ left: 0, behavior: reduced ? "auto" : "smooth" });
-  }, [pulls]);
+  // Snapping back on once the new card has grown in.
+  useEffect(() => {
+    const el = track.current;
+    if (!el || el.style.scrollSnapType !== "none") return;
+    const t = setTimeout(() => {
+      el.style.scrollSnapType = "";
+    }, 700);
+    return () => clearTimeout(t);
+  }, [shown]);
 
   /*
    * A pull opens the same sheet the shelf opens, and that sheet wants the
@@ -186,7 +226,7 @@ export function RecentPulls({
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="h-full"
           >
-            {pulls.length === 0 ? (
+            {shown.length === 0 ? (
               <p className="flex h-full items-center justify-center rounded-2xl border border-dashed border-hairline text-[12px] text-faint">
                 Nothing pulled from this box yet
               </p>
@@ -200,12 +240,12 @@ export function RecentPulls({
                    scrollport, which ignores padding, so without it the browser
                    parks the first card against the edge of the phone and out of
                    line with the heading above it. */
-                className="no-scrollbar -mx-5 flex h-full snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain px-5 scroll-pl-5 sm:-mx-1 sm:px-1 sm:scroll-pl-1"
+                className="no-scrollbar -mx-5 flex h-full [overflow-anchor:none] snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain px-5 scroll-pl-5 sm:-mx-1 sm:px-1 sm:scroll-pl-1"
               >
                 {/* `initial={false}`: the cards the page loads with are just
                     there. Only one that arrives afterwards animates in. */}
                 <AnimatePresence initial={false}>
-                  {pulls.map((pull) => (
+                  {shown.map((pull) => (
                     <PullCard
                       key={pull.orderId}
                       pull={pull}
@@ -240,29 +280,42 @@ function PullCard({
 }) {
   const { piece } = pull;
   return (
-    /* A new pull lands with a small pop in its rarity's colour — a ring that
-       lights and fades — so it reads as something that just happened rather
-       than the row reshuffling. Scale and opacity only: its width is there
-       from the first frame, which is what lets the row above shift by exactly
-       one card without a jump. */
+    /* A new pull grows into its place at the front — from no width, pushing
+       the rest along, so it is seen arriving rather than appearing — and
+       lands lit in its rarity's colour: a ring and a wash of light that hold
+       while it settles, then fade. The negative margin cancels the row's gap
+       while the card has no width, so nothing beside it jumps. */
     <motion.button
       type="button"
       /* Inset, because the row scrolls sideways and so clips top and bottom:
-         a ring drawn outside the card would be cut off flat. */
-      initial={{ opacity: 0, scale: 0.86, boxShadow: `inset 0 0 0 2px ${RARITY_COLOR[piece.rarity]}` }}
-      animate={{ opacity: 1, scale: 1, boxShadow: `inset 0 0 0 2px ${RARITY_COLOR[piece.rarity]}00` }}
+         a glow drawn outside the card would be cut off flat. */
+      initial={{
+        width: "0rem",
+        marginRight: "-0.5rem",
+        opacity: 0,
+        scale: 0.86,
+        boxShadow: `inset 0 0 0 2px ${RARITY_COLOR[piece.rarity]}, inset 0 0 22px ${RARITY_COLOR[piece.rarity]}88`,
+      }}
+      animate={{
+        width: "13.5rem",
+        marginRight: "0rem",
+        opacity: 1,
+        scale: 1,
+        boxShadow: `inset 0 0 0 2px ${RARITY_COLOR[piece.rarity]}00, inset 0 0 22px ${RARITY_COLOR[piece.rarity]}00`,
+      }}
       exit={{ opacity: 0, transition: { duration: 0.15 } }}
       transition={{
-        opacity: { duration: 0.3 },
-        scale: { type: "spring", stiffness: 420, damping: 24 },
-        // Held lit for a second after the card has landed, so it is seen
-        // standing still and not only while the row glides — then an even
-        // fade, not an ease-out that drops most of it in the first instant.
-        boxShadow: { duration: 1.3, ease: "easeInOut", delay: 1.1 },
+        width: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
+        marginRight: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
+        opacity: { duration: 0.35, delay: 0.1 },
+        scale: { type: "spring", stiffness: 420, damping: 24, delay: 0.1 },
+        // Held lit after the card has landed, so it is seen standing still,
+        // then an even fade rather than one that drops most of it at once.
+        boxShadow: { duration: 1.4, ease: "easeInOut", delay: 1.6 },
       }}
       onClick={onSelect}
       aria-label={`${piece.name}, ${RARITY_LABEL[piece.rarity]}`}
-      className="group flex h-full w-[13.5rem] shrink-0 snap-start items-center gap-2.5 rounded-2xl border border-hairline bg-white/[0.04] p-2 text-left transition-colors hover:border-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400"
+      className="group flex h-full w-[13.5rem] shrink-0 snap-start items-center overflow-hidden gap-2.5 rounded-2xl border border-hairline bg-white/[0.04] p-2 text-left transition-colors hover:border-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400"
     >
       <span
         className="grid h-full w-[3.25rem] shrink-0 place-items-center overflow-hidden rounded-xl"

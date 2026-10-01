@@ -88,7 +88,7 @@ export function PieceDetail({
                 <RarityChip rarity={piece.rarity} />
               </div>
               <p className="text-sm leading-relaxed text-muted">{piece.blurb}</p>
-              <dl className="grid grid-cols-4 gap-3 border-t border-hairline pt-4 text-center text-sm">
+              <dl className="grid grid-cols-3 gap-3 border-t border-hairline pt-4 text-center text-sm">
                 {/* Which box to buy if you want this piece. It is the first
                     thing anyone reading a piece page actually needs. */}
                 <div>
@@ -100,12 +100,6 @@ export function PieceDetail({
                 <div>
                   <dt className="text-[11px] uppercase tracking-[0.14em] text-faint">Scale</dt>
                   <dd className="mt-1 font-mono">{piece.scale}</dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] uppercase tracking-[0.14em] text-faint">In stock</dt>
-                  <dd className="mt-1 font-mono">
-                    {entry.available}
-                  </dd>
                 </div>
                 <div>
                   <dt className="text-[11px] uppercase tracking-[0.14em] text-faint">Pull rate</dt>

@@ -63,11 +63,6 @@ export function PieceCard({
             </span>
           )}
         </div>
-        {!soldOut && (
-          <p className="font-mono text-[10px] text-faint">
-            {available} left
-          </p>
-        )}
       </div>
     </motion.button>
   );

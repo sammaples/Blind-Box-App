@@ -96,7 +96,6 @@ export function SetBrowser({
   }, [available]);
 
   const product = PRODUCTS.find((p) => p.id === productId)!;
-  const unitsLeft = shelf.reduce((sum, e) => sum + e.available, 0);
 
   return (
     <section
@@ -160,11 +159,6 @@ export function SetBrowser({
         ))}
       </div>
 
-      <p className="mt-4 text-xs text-faint">
-        Showing {entries.length} of {available.length} pieces in {product.name} ·{" "}
-        <span className="font-mono">{unitsLeft.toLocaleString()}</span> units left
-      </p>
-
       {/* Hiding sold-out pieces means the grid can now legitimately be empty —
           a shelf that has sold through, or a filter that has outlived its
           stock. Either way it needs to say so rather than end in blank space. */}
@@ -188,7 +182,6 @@ export function SetBrowser({
                 {/* The tier's rate, not the piece's: what share of this box's
                     remaining units sits in this section. */}
                 <p className="shrink-0 font-mono text-[11px] text-muted" title={oddsAsOneIn(group.share)}>
-                  {group.entries.length} {group.entries.length === 1 ? "piece" : "pieces"} ·{" "}
                   {formatOdds(group.share)}
                 </p>
               </div>
