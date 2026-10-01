@@ -201,7 +201,9 @@ function BoxAura({ showing }: { showing: string }) {
  */
 function boxWidthFor(trackHeight: number | null): number {
   if (!trackHeight) return 119;
-  const fits = (trackHeight - 16 - 12) / 1.95;
+  // The last 12 is air: room left around the box rather than given to it,
+  // so it floats in the space instead of filling it.
+  const fits = (trackHeight - 16 - 12 - 12) / 1.95;
   return Math.max(56, Math.min(168, Math.floor(fits / 7) * 7));
 }
 
@@ -213,8 +215,14 @@ const FloatingBox = memo(function FloatingBox({ product, width }: { product: Pro
     >
       {/* Floating for real, not just uncarded. The same drift the revealed
           piece uses, so the two read as one house style. */}
-      <div className="relative float-soft">
-        <ProductBox accent={product.accent} printed={isPrinted(product.id)} width={width} glint />
+      {/* Lifted a few pixels: at the larger sizes the lid's tilt puts more of
+          the painted box below its middle than above, so a box centred by
+          layout reads low. Measured, this levels the gap over it with the gap
+          under it; the smallest box is already level and is left alone. */}
+      <div style={{ transform: `translateY(${-Math.round(Math.min(7, Math.max(0, (width - 56) * 0.12)))}px)` }}>
+        <div className="relative float-soft">
+          <ProductBox accent={product.accent} printed={isPrinted(product.id)} width={width} glint />
+        </div>
       </div>
     </div>
   );

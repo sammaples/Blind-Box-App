@@ -35,7 +35,7 @@ export default async function HomePage() {
       */}
       {/* Short screens — an iPhone SE is 667 tall — take the spacing in
           everywhere so the box, which is what gives, keeps a sensible size. */}
-      <div className="flex h-[calc(100svh-57px-4.25rem-env(safe-area-inset-bottom))] flex-col pt-5 sm:pt-10 [@media(max-height:720px)]:pt-3">
+      <div className="flex h-[calc(100svh-57px-4.25rem-env(safe-area-inset-bottom))] flex-col pt-2 sm:pt-6 [@media(max-height:720px)]:pt-1.5">
         <Shop shelves={shelves} pulls={pulls} />
       </div>
 
