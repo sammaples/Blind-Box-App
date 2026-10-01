@@ -562,9 +562,6 @@ export const PRODUCTS: readonly Product[] = [
     ],
     accent: "#7fd7e8",
     tier: "diamond",
-    // Listed and stockable, not yet buyable — the large format behind this
-    // tier goes out through the drop-shipper, and that is not wired up.
-    comingSoon: true,
   },
 ];
 
