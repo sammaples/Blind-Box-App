@@ -55,7 +55,7 @@ export function ChaseRail({
      * would otherwise fill.
      */
     <div className="mx-auto w-full max-w-md shrink-0">
-      <div className="flex items-baseline justify-between px-0.5">
+      <div className="px-0.5">
         <h2 className="flex items-center gap-2 text-[13px] font-semibold tracking-tight">
           <span
             aria-hidden
@@ -64,11 +64,6 @@ export function ChaseRail({
           />
           Chases
         </h2>
-        {chases.length > 0 && (
-          <span className="font-mono text-[11px] text-faint">
-            {chases.length} in the pool
-          </span>
-        )}
       </div>
 
       <div className="mt-2 h-[4.5rem] [@media(max-height:720px)]:h-[3.75rem]">
