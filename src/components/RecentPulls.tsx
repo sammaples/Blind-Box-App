@@ -37,6 +37,13 @@ function ago(iso: string, now: number): string {
 /** How long a card sits in front of you before the row moves on. */
 const ROTATE_MS = 5550;
 
+/**
+ * How long a new pull stays lit, start to finish: about four and a half
+ * seconds held with a slow pulse, then a fade. Long enough to be noticed by
+ * somebody who was looking at the box rather than the row when it landed.
+ */
+const GLOW_S = 6;
+
 export function RecentPulls({
   pulls,
   shelf,
@@ -50,6 +57,8 @@ export function RecentPulls({
 }) {
   const [selected, setSelected] = useState<StockEntry | null>(null);
   const [paused, setPaused] = useState(false);
+  // Set as a new pull is let in, so the row knows to wait out its glow.
+  const landed = useRef(false);
   const track = useRef<HTMLDivElement>(null);
 
   // What the row is showing, which trails `pulls` while a new one is let in
@@ -88,15 +97,27 @@ export function RecentPulls({
     // The row is looked up on every tick rather than once: switching boxes
     // swaps it for a new element after the old one has faded out, and an
     // interval holding the first one would go on scrolling a detached node.
-    const id = setInterval(() => {
+    const step = () => {
       const el = track.current;
       const card = el?.firstElementChild as HTMLElement | null | undefined;
       if (!el || !card) return;
-      const step = card.offsetWidth + 8;
+      const by = card.offsetWidth + 8;
       const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
-      el.scrollTo({ left: atEnd ? 0 : el.scrollLeft + step, behavior: "smooth" });
-    }, ROTATE_MS);
-    return () => clearInterval(id);
+      el.scrollTo({ left: atEnd ? 0 : el.scrollLeft + by, behavior: "smooth" });
+    };
+    // A pull that has just landed holds the row until its glow has run out,
+    // so the card is not carried off while it is still lit.
+    const first = landed.current ? Math.max(ROTATE_MS, GLOW_S * 1000 + 600) : ROTATE_MS;
+    landed.current = false;
+    let id = 0;
+    const lead = window.setTimeout(() => {
+      step();
+      id = window.setInterval(step, ROTATE_MS);
+    }, first);
+    return () => {
+      window.clearTimeout(lead);
+      window.clearInterval(id);
+    };
     // The box and the newest pull are dependencies so the clock restarts on a
     // new box or a new pull, rather than moving the card that just came into
     // view on a moment after it got there.
@@ -138,6 +159,7 @@ export function RecentPulls({
       if (cancelled) return;
       el.style.scrollSnapType = "none";
       el.scrollLeft = 0;
+      landed.current = true;
       setShown(pulls);
     };
     if (el.scrollLeft <= 1) {
@@ -279,6 +301,10 @@ function PullCard({
   onSelect: () => void;
 }) {
   const { piece } = pull;
+  const c = RARITY_COLOR[piece.rarity];
+  const lit = `inset 0 0 0 2px ${c}, inset 0 0 22px ${c}88`;
+  const bright = `inset 0 0 0 2.5px ${c}, inset 0 0 30px ${c}cc`;
+  const out = `inset 0 0 0 2px ${c}00, inset 0 0 22px ${c}00`;
   return (
     /* A new pull grows into its place at the front — from no width, pushing
        the rest along, so it is seen arriving rather than appearing — and
@@ -294,14 +320,15 @@ function PullCard({
         marginRight: "-0.5rem",
         opacity: 0,
         scale: 0.86,
-        boxShadow: `inset 0 0 0 2px ${RARITY_COLOR[piece.rarity]}, inset 0 0 22px ${RARITY_COLOR[piece.rarity]}88`,
+        boxShadow: lit,
       }}
       animate={{
         width: "13.5rem",
         marginRight: "0rem",
         opacity: 1,
         scale: 1,
-        boxShadow: `inset 0 0 0 2px ${RARITY_COLOR[piece.rarity]}00, inset 0 0 22px ${RARITY_COLOR[piece.rarity]}00`,
+        // Lit, breathing brighter twice while it is held, then out.
+        boxShadow: [lit, bright, lit, bright, lit, out],
       }}
       exit={{ opacity: 0, transition: { duration: 0.15 } }}
       transition={{
@@ -309,9 +336,10 @@ function PullCard({
         marginRight: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
         opacity: { duration: 0.35, delay: 0.1 },
         scale: { type: "spring", stiffness: 420, damping: 24, delay: 0.1 },
-        // Held lit after the card has landed, so it is seen standing still,
-        // then an even fade rather than one that drops most of it at once.
-        boxShadow: { duration: 1.4, ease: "easeInOut", delay: 1.6 },
+        // Held lit well after the card has landed, so it is seen standing
+        // still, then an even fade rather than one that drops most of it at
+        // once. The last quarter of the time is the fade.
+        boxShadow: { duration: GLOW_S, times: [0, 0.2, 0.4, 0.58, 0.75, 1], ease: "easeInOut" },
       }}
       onClick={onSelect}
       aria-label={`${piece.name}, ${RARITY_LABEL[piece.rarity]}`}

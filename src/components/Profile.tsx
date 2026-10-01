@@ -13,8 +13,8 @@ import { AppleMark } from "./AppleButton";
 import { Coins } from "./Coin";
 import { Monogram } from "./Monogram";
 
-/** The avatar: ice — a pale frost at the top running into a clear cold blue. */
-const AVATAR_GRADIENT = "linear-gradient(145deg, #e3f8ff 0%, #9fdcf7 38%, #4fb1e8 72%, #2a86cf 100%)";
+/** The avatar: plain silver — a bright top edge running down into a cool grey. */
+const AVATAR_GRADIENT = "linear-gradient(160deg, #fbfbfd 0%, #dcdee4 42%, #a9adb8 100%)";
 
 function PersonGlyph({ className }: { className?: string }) {
   return (
@@ -40,12 +40,12 @@ export function ProfileButton() {
       onClick={openProfile}
       aria-label={account ? "Your account" : "Sign in"}
       aria-haspopup="dialog"
-      className={`grid size-9 place-items-center rounded-full text-white shadow-[0_4px_14px_rgba(79,177,232,0.35)] transition-transform hover:scale-[1.05] active:scale-[0.96] ${
+      className={`grid size-9 place-items-center rounded-full text-[#1b1c22] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.35)] transition-transform hover:scale-[1.05] active:scale-[0.96] ${
         loading ? "opacity-0" : "opacity-100"
       }`}
       style={{ background: AVATAR_GRADIENT }}
     >
-      <PersonGlyph className="size-[18px] drop-shadow-[0_1px_1.5px_rgba(14,70,120,0.45)]" />
+      <PersonGlyph className="size-[18px]" />
     </button>
   );
 }
@@ -197,10 +197,10 @@ function SignedIn({ onClose }: { onClose: () => void }) {
       <section className="mt-2 overflow-hidden rounded-[28px] border border-white/10 bg-[#1c1c1f]">
         <div className="flex items-center gap-4 px-6 pb-6 pt-7">
           <span
-            className="grid size-16 shrink-0 place-items-center rounded-full text-white"
+            className="grid size-16 shrink-0 place-items-center rounded-full text-[#1b1c22]"
             style={{ background: AVATAR_GRADIENT }}
           >
-            <PersonGlyph className="size-8 drop-shadow-[0_1px_2px_rgba(14,70,120,0.45)]" />
+            <PersonGlyph className="size-8" />
           </span>
           <div className="min-w-0">
             <p className="truncate text-[20px] font-semibold tracking-tight">
