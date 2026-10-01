@@ -533,9 +533,14 @@ export function BoxOpening({
                 animate={{ opacity: 0.22, scaleY: 1 }}
                 transition={{ duration: 1.1 }}
               />
+              {/* Sized to sit inside the stage with air to spare, not to fill
+                  it. At 18rem it was the height of the stage and taller than
+                  the short one, so its feet came down onto the name below. A
+                  third of the spare goes under it; with the caption's own
+                  margin that is a clear gap of about 2rem above the title. */}
               <PieceImage
                 piece={piece}
-                className={`relative h-72 w-auto drop-shadow-[0_24px_40px_rgba(0,0,0,0.65)] sm:h-80 ${
+                className={`relative h-[15rem] w-auto drop-shadow-[0_24px_40px_rgba(0,0,0,0.65)] sm:h-80 [@media(max-height:820px)]:h-[13.5rem] ${
                   reducedMotion ? "" : "float-soft"
                 }`}
               />
