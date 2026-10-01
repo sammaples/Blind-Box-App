@@ -35,7 +35,7 @@ function ago(iso: string, now: number): string {
 }
 
 /** How long a card sits in front of you before the row moves on. */
-const ROTATE_MS = 5000;
+const ROTATE_MS = 5550;
 
 export function RecentPulls({
   pulls,
