@@ -107,12 +107,6 @@ export function ShipBundle({ pulls }: { pulls: ShippablePull[] }) {
         </button>
       </div>
 
-      <p className="mt-2 max-w-prose text-sm text-muted">
-        Everything you tick goes in one box for a flat $5, however many pieces
-        that is. Pieces keep until you are ready — there is no hurry to send
-        them.
-      </p>
-
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {ordered.map(({ orderId, piece, odds }) => {
           const on = picked.has(orderId);
@@ -164,20 +158,33 @@ export function ShipBundle({ pulls }: { pulls: ShippablePull[] }) {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
-            className="sticky bottom-4 z-20 mt-5"
+            /* Pinned just above the tab bar the moment anything is ticked, so
+               the button is always on screen however far down the grid you
+               are. It used to stick inside the list, which put it under the
+               tab bar until you scrolled to the very end. */
+            className="fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom)+0.5rem)] z-[35] px-4 sm:px-8"
           >
-            <div className="rounded-2xl border border-hairline bg-ink-raised/95 p-4 backdrop-blur-xl">
+            <div className="mx-auto max-h-[calc(100svh-11rem)] max-w-5xl overflow-y-auto rounded-2xl border border-hairline bg-ink-raised/95 p-4 shadow-[0_12px_40px_rgba(0,0,0,0.6)] backdrop-blur-xl">
               {!addressing ? (
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-sm">
-                    <span className="font-semibold">{picked.size}</span>{" "}
-                    {picked.size === 1 ? "piece" : "pieces"} in this parcel
-                    <span className="text-faint"> · $5 shipping</span>
-                  </p>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm">
+                      <span className="font-semibold">{picked.size}</span>{" "}
+                      {picked.size === 1 ? "piece" : "pieces"}
+                      <span className="text-faint"> · $5 shipping</span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={toggleAll}
+                      className="mt-0.5 text-xs font-medium text-muted underline-offset-4 transition-colors hover:text-chalk hover:underline"
+                    >
+                      {allPicked ? "Clear selection" : `Select all ${ordered.length}`}
+                    </button>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setAddressing(true)}
-                    className="rounded-xl bg-chalk px-5 py-2.5 text-sm font-semibold text-ink transition-transform hover:scale-[1.02] active:scale-[0.99]"
+                    className="shrink-0 rounded-xl bg-chalk px-5 py-2.5 text-sm font-semibold text-ink transition-transform hover:scale-[1.02] active:scale-[0.99]"
                   >
                     Ship {picked.size} together
                   </button>
@@ -221,6 +228,8 @@ export function ShipBundle({ pulls }: { pulls: ShippablePull[] }) {
           </motion.div>
         )}
       </AnimatePresence>
+      {/* Room under the last row, so the pinned bar never covers a piece. */}
+      {picked.size > 0 && <div aria-hidden className="h-24" />}
     </section>
   );
 }
