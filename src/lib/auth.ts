@@ -224,6 +224,11 @@ export async function currentAccountId(): Promise<string | null> {
   const [accountId, issuedAt, signature] = parts;
 
   if (!sameString(signature, sign(accountId, issuedAt))) return null;
+
+  // A deleted account's cookie may still be sitting on another device. The
+  // cookie is signed, not stored, so this is the one place it can be refused.
+  const account = await backend().upsertCollector(accountId, {});
+  if (account.deletedAt) return null;
   return accountId;
 }
 

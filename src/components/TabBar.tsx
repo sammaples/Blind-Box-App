@@ -9,9 +9,8 @@ import type { ReactNode } from "react";
  *
  * At the bottom rather than in the header because this is used one-handed on
  * a phone, and the top of a phone screen is the one place a thumb cannot
- * reach. Five tabs, which is as many as fit at 360px wide with their labels
- * still readable — a sixth would need labels dropped, and icons alone make
- * people guess.
+ * reach. Four tabs; five is as many as fit at 360px wide with their labels
+ * still readable. Your account is the profile button at the top, not a tab.
  */
 const TABS: { href: string; label: string; icon: ReactNode; match: (path: string) => boolean }[] = [
   {
@@ -50,18 +49,6 @@ const TABS: { href: string; label: string; icon: ReactNode; match: (path: string
       <>
         <rect x="3.5" y="8" width="17" height="4" rx="1" />
         <path d="M5 12v7.5h14V12M12 8v11.5M12 8c-1.6-3.4-5.5-3.6-5.5-1.3C6.5 8 9 8 12 8Zm0 0c1.6-3.4 5.5-3.6 5.5-1.3C17.5 8 15 8 12 8Z" />
-      </>
-    ),
-  },
-  {
-    href: "/wallet",
-    label: "Wallet",
-    match: (p) => p.startsWith("/wallet"),
-    icon: (
-      <>
-        <path d="M5.5 7.5 15.8 4.6a1.5 1.5 0 0 1 1.9 1.4v1.5" />
-        <rect x="3.5" y="7.5" width="17" height="12" rx="2.5" />
-        <path d="M20.5 11.5h-3.2a2 2 0 0 0 0 4h3.2" />
       </>
     ),
   },

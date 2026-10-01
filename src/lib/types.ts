@@ -285,6 +285,8 @@ export interface Collector {
   onboardedAt: string | null;
   lastLoginAt: string | null;
   isAdmin: boolean;
+  /** Set when the account was deleted. Its sessions are refused from then on. */
+  deletedAt?: string | null;
 }
 
 

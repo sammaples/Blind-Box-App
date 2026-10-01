@@ -154,6 +154,19 @@ export function createJsonBackend(): Backend {
       });
     },
 
+    async deleteAccount(id) {
+      await transact((db) => {
+        const account = db.collectors.find((c) => c.id === id);
+        if (!account) return;
+        account.email = null;
+        account.displayName = null;
+        account.appleSub = null;
+        account.coins = 0;
+        account.isAdmin = false;
+        account.deletedAt = new Date().toISOString();
+      });
+    },
+
     async accountForEmail(email) {
       const key = email.trim().toLowerCase();
       return transact((db) => {

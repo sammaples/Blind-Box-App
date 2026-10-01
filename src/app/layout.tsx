@@ -1,35 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Lobster_Two } from "next/font/google";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import {
-  AccountButton,
-  AccountProvider,
-  AdminLink,
-  CoinBalance,
-} from "@/components/AccountBar";
+import { AccountProvider, CoinBalance } from "@/components/AccountBar";
 import { Monogram } from "@/components/Monogram";
 import { Onboarding } from "@/components/Onboarding";
+import { ProfileButton } from "@/components/Profile";
 import { NotOnHome } from "@/components/NotOnHome";
 import { TabBar } from "@/components/TabBar";
+import { wordmark } from "@/lib/fonts";
 import "./globals.css";
-
-/**
- * The wordmark's face — a heavy brush script, the one thing on the page that is
- * not the interface typeface. Bold italic on purpose: the weight and the lean
- * are what make it read as a painted sign rather than handwriting.
- *
- * Loaded through next/font rather than a stylesheet link: it is self-hosted at
- * build time, so the name is painted in its own face on first frame instead of
- * appearing in a fallback and then jumping. `display: swap` keeps the header
- * readable if that ever fails.
- */
-const wordmark = Lobster_Two({
-  weight: "700",
-  style: "italic",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Blind Box — open digitally, collect physically",
@@ -96,13 +75,11 @@ function Header() {
         </Link>
         {/* Pages are in the tab bar at the bottom now, where a thumb can reach
             them. What stays up here is what belongs to you rather than to a
-            page: your coins, and your account. */}
-        <nav className="flex shrink-0 items-center gap-0.5 whitespace-nowrap text-sm sm:gap-1">
+            page: your coins, and you. Signing in and out, the console and
+            the rest of the account live behind the profile button. */}
+        <nav className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm">
           <CoinBalance />
-          <AdminLink />
-          <span className="ml-0.5 sm:ml-1.5">
-            <AccountButton />
-          </span>
+          <ProfileButton />
         </nav>
       </div>
     </header>

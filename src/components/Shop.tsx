@@ -52,7 +52,7 @@ export function Shop({
   const startCheckout = (product: Product) => {
     if (product.comingSoon) return;
     if (!account) {
-      signIn("A box is a real object that has to reach you, so we need an account before you buy. No password — we email you a link.");
+      signIn("A box is a real object that has to reach you, so sign in before you buy. It takes one tap.");
       return;
     }
     setCheckout(product);

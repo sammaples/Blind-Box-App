@@ -68,6 +68,7 @@ function toCollector(r: Row): Collector {
     onboardedAt: r.onboarded_at ? (r.onboarded_at as Date).toISOString() : null,
     lastLoginAt: r.last_login_at ? (r.last_login_at as Date).toISOString() : null,
     isAdmin: r.is_admin === true,
+    deletedAt: r.deleted_at ? (r.deleted_at as Date).toISOString() : null,
   };
 }
 
@@ -267,6 +268,16 @@ export function createPostgresBackend(connectionString: string): Backend {
         ],
       );
       return toCollector(rows[0]);
+    },
+
+    async deleteAccount(id) {
+      await query(
+        `update collectors
+            set email = null, display_name = null, apple_sub = null,
+                coins = 0, is_admin = false, deleted_at = now()
+          where id = $1`,
+        [id],
+      );
     },
 
     async accountForEmail(email) {

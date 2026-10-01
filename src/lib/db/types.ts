@@ -102,6 +102,12 @@ export interface Backend {
   accountForEmail(email: string): Promise<Collector>;
 
   /**
+   * Deletes an account: empties everything that identifies the person, zeroes
+   * the coins and stamps it deleted. Orders and parcels stay, unnamed.
+   */
+  deleteAccount(id: string): Promise<void>;
+
+  /**
    * The account behind an Apple id, created on first sign-in.
    *
    * Keyed on the subject and never on the address: Apple's Hide My Email
