@@ -15,6 +15,7 @@ import {
 import type { Piece, Rarity, StockEntry } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
 import { PieceCard } from "./PieceCard";
+import { PieceDetail } from "./PieceDetail";
 import { RarityChip } from "./ui";
 import { useScrollLock } from "@/lib/useScrollLock";
 
@@ -167,103 +168,5 @@ export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> 
         onClose={() => setSelected(null)}
       />
     </section>
-  );
-}
-
-function PieceDetail({
-  entry,
-  productName,
-  onClose,
-}: {
-  entry: StockEntry | null;
-  productName: string;
-  onClose: () => void;
-}) {
-  const piece: Piece | undefined = entry?.piece;
-  useScrollLock(entry !== null);
-
-  return (
-    <AnimatePresence>
-      {entry && piece && (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-        >
-          <motion.div
-            role="dialog"
-            aria-label={piece.name}
-            initial={{ y: 40, opacity: 0, scale: 0.98 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 24, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 320, damping: 32 }}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg overflow-hidden rounded-t-3xl border border-hairline bg-ink-raised sm:rounded-3xl"
-          >
-            <div
-              className="flex h-64 items-center justify-center"
-              style={{
-                background: `radial-gradient(120% 90% at 50% 10%, ${piece.palette.wash}, #0b0b10 76%)`,
-              }}
-            >
-              <PieceImage
-                piece={piece}
-                className="h-56 w-auto drop-shadow-[0_18px_30px_rgba(0,0,0,0.6)]"
-              />
-            </div>
-            <div className="space-y-4 p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-xl font-semibold tracking-tight">{piece.name}</h3>
-                  <p className="mt-1 text-sm text-muted">{pieceSubtitle(piece)}</p>
-                </div>
-                <RarityChip rarity={piece.rarity} />
-              </div>
-              <p className="text-sm leading-relaxed text-muted">{piece.blurb}</p>
-              <dl className="grid grid-cols-4 gap-3 border-t border-hairline pt-4 text-center text-sm">
-                {/* Which box to buy if you want this piece. It is the first
-                    thing anyone reading a piece page actually needs. */}
-                <div>
-                  <dt className="text-[11px] uppercase tracking-[0.14em] text-faint">Box</dt>
-                  <dd className="mt-1 font-medium" style={{ color: TIER_ACCENT[piece.tier] }}>
-                    {TIER_LABEL[piece.tier]}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] uppercase tracking-[0.14em] text-faint">Scale</dt>
-                  <dd className="mt-1 font-mono">{piece.scale}</dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] uppercase tracking-[0.14em] text-faint">In stock</dt>
-                  <dd className="mt-1 font-mono">
-                    {entry.available}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] uppercase tracking-[0.14em] text-faint">Pull rate</dt>
-                  <dd className="mt-1 font-mono">
-                    {entry.available > 0 ? formatOdds(entry.odds) : "—"}
-                  </dd>
-                </div>
-              </dl>
-              <p className="text-xs text-faint">
-                {entry.available > 0
-                  ? `${oddsAsOneIn(entry.odds)} boxes of ${productName}, at today's stock.`
-                  : "Sold out — this piece is out of the pool until it is restocked."}
-              </p>
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-full rounded-xl bg-white/10 py-3 text-sm font-medium text-chalk transition-colors hover:bg-white/16"
-              >
-                Close
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
   );
 }

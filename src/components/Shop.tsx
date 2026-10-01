@@ -18,6 +18,7 @@ import { Price } from "./ui";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { coinPrice, topUpFor } from "@/lib/coins";
 import { BoxCarousel } from "./BoxCarousel";
+import { ChaseRail } from "./ChaseRail";
 import { BuyCoins } from "./BuyCoins";
 import { Coins } from "./Coin";
 
@@ -76,6 +77,17 @@ export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
           <FloatingBox key={product.id} product={product} width={boxWidth} />
         ))}
       </BoxCarousel>
+
+      {/*
+        Between the dots and the name, which is where it answers the question
+        the dots just raised. Swiping the rail above says there is another box;
+        this says what is in the one you have stopped on.
+      */}
+      <ChaseRail
+        shelf={shelves[showing.id] ?? []}
+        productId={showing.id}
+        productName={showing.name}
+      />
 
       <BoxDetail
         product={showing}
