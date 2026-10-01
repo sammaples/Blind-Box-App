@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { nextSpinAt, SPIN_ODDS, SPIN_SLOTS, untilLabel } from "@/lib/spin";
 import { useAccount } from "./AccountBar";
 import { Coin, Coins } from "./Coin";
@@ -223,6 +224,7 @@ export function SpinWheel() {
   const [now, setNow] = useState(() => Date.now());
   const [burst, setBurst] = useState<Burst[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [oddsOpen, setOddsOpen] = useState(false);
 
   const wheel = useRef<HTMLDivElement>(null);
   const pointer = useRef<HTMLDivElement>(null);
@@ -408,12 +410,25 @@ export function SpinWheel() {
         </Link>
         <span className="text-[12px] font-medium text-faint">Free · once a day</span>
       </div>
-      <h1
-        className="shimmer-text shimmer-slow mt-3 w-fit text-3xl font-semibold tracking-tight"
-        style={{ backgroundImage: "linear-gradient(100deg, #b98a2a 0%, #f5c542 28%, #fff6d6 48%, #f5c542 68%, #b98a2a 100%)" }}
-      >
-        Daily spin
-      </h1>
+      <div className="mt-3 flex items-center gap-2">
+        <h1
+          className="shimmer-text shimmer-slow w-fit text-3xl font-semibold tracking-tight"
+          style={{ backgroundImage: "linear-gradient(100deg, #b98a2a 0%, #f5c542 28%, #fff6d6 48%, #f5c542 68%, #b98a2a 100%)" }}
+        >
+          Daily spin
+        </h1>
+        {/* The odds, one tap away rather than on the screen. */}
+        <button
+          type="button"
+          onClick={() => setOddsOpen(true)}
+          aria-label="Odds"
+          aria-haspopup="dialog"
+          className="grid size-6 place-items-center rounded-full border border-hairline bg-white/[0.06] text-[12px] font-bold italic text-muted transition-colors hover:text-chalk"
+        >
+          i
+        </button>
+      </div>
+      <OddsCard open={oddsOpen} onClose={() => setOddsOpen(false)} />
 
       {/* The wheel. */}
       {/* Sized to the screen's height as well as its width, so the whole
@@ -517,19 +532,65 @@ export function SpinWheel() {
           </>
         ) : (
           <>
-            <div className="flex items-center gap-2">
-              {[...SPIN_ODDS].reverse().map((o) => (
-                <span key={o.coins} className="flex items-center gap-1.5 rounded-full border border-hairline bg-white/[0.04] px-3 py-1.5 text-[12.5px]">
-                  <Coins amount={o.coins} size={13} />
-                  <span className="text-faint">{o.chance}%</span>
-                </span>
-              ))}
-            </div>
-            <p className="mt-3 text-[13px] text-muted">{spinning ? "Good luck…" : "Tap the middle to spin"}</p>
+            <p className="text-[13px] text-muted">{spinning ? "Good luck…" : "Tap the middle to spin"}</p>
           </>
         )}
         {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
       </div>
     </div>
+  );
+}
+
+/**
+ * The odds, behind the ⓘ beside the title.
+ *
+ * Off the main screen to keep it clean, but one tap away — the slots on the
+ * wheel are not drawn to scale (the jackpot is one slot of fourteen, and lands
+ * one spin in a hundred), so the real chances have to be somewhere a person
+ * can find them.
+ */
+function OddsCard({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+  if (!mounted || !open) return null;
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6 backdrop-blur-sm" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Daily spin odds"
+        onClick={(e) => e.stopPropagation()}
+        className="spin-pop relative w-full max-w-xs rounded-3xl border border-hairline bg-ink-raised p-5"
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          autoFocus
+          className="absolute right-3.5 top-3.5 grid size-8 place-items-center rounded-full bg-white/10 text-chalk"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden className="size-4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+            <path d="M6 6l12 12M18 6 6 18" />
+          </svg>
+        </button>
+        <h2 className="text-lg font-semibold tracking-tight">Odds</h2>
+        <ul className="mt-4 grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline">
+          {[...SPIN_ODDS].reverse().map((o) => (
+            <li key={o.coins} className="flex items-center justify-between bg-ink-card px-4 py-3 text-sm">
+              <Coins amount={o.coins} size={15} />
+              <span className="font-mono text-muted">{o.chance}%</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-[12px] text-faint">Every spin wins. Free, once a day.</p>
+      </div>
+    </div>,
+    document.body,
   );
 }
