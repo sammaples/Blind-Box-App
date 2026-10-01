@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PieceImage } from "@/components/PieceImage";
 import { RarityChip } from "@/components/ui";
-import { formatOdds, getProduct, pieceSubtitle, RARITY_ORDER } from "@/lib/catalog";
+import { formatOdds, getProduct, pieceSubtitle } from "@/lib/catalog";
 import { pieceMap } from "@/lib/pieces";
 import { oddsFromSnapshot } from "@/lib/serialize";
 import { currentCollectorId } from "@/lib/auth";
@@ -49,9 +49,6 @@ export default async function CollectionPage() {
 
   const shipments = collectorId ? await listShipments(collectorId) : [];
   const pieceForOrder = new Map(pulls.map(({ order, piece }) => [order.id, piece]));
-  const best = [...pulls].sort(
-    (a, b) => RARITY_ORDER.indexOf(a.piece.rarity) - RARITY_ORDER.indexOf(b.piece.rarity),
-  )[0];
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-14 sm:px-8">
@@ -60,21 +57,12 @@ export default async function CollectionPage() {
         Everything you have opened, and where each physical piece is up to.
       </p>
 
-      {/* No sealed count: a box is opened the moment it is bought, so the
-          number is zero for everyone and a stat that never moves is noise.
-          The unopened list below still catches the buyer who closed the tab
-          mid-open — that order is real, and this is its way back. */}
-      <dl className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-2">
-        <Stat label="Boxes opened" value={String(pulls.length)} />
-        <Stat
-          label="Best pull"
-          value={best ? best.piece.name : "—"}
-          sub={best ? formatOdds(best.odds) : undefined}
-        />
-      </dl>
-
       {/*
-        Directly under the stats, not after the shipping grid.
+        No stats panel. "Boxes opened" and "Best pull" were numbers about the
+        vault rather than anything in it, and they sat between the heading
+        and the two things people come here for: the coins, and the pieces.
+
+        The wallet goes first, not after the shipping grid.
         
         It was below it, which is fine on an account with four pulls and
         useless on one with ninety-seven: the ready-to-ship list is one tile
@@ -168,15 +156,6 @@ export default async function CollectionPage() {
   );
 }
 
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="bg-ink-card p-5">
-      <dt className="text-[11px] uppercase tracking-[0.16em] text-faint">{label}</dt>
-      <dd className="mt-2 truncate text-lg font-semibold">{value}</dd>
-      {sub && <p className="mt-0.5 font-mono text-xs text-muted">{sub}</p>}
-    </div>
-  );
-}
 
 /** A parcel and what is riding in it. */
 function ParcelCard({ shipment, pieces }: { shipment: Shipment; pieces: Piece[] }) {
