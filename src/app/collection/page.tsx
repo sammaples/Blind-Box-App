@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { PieceImage } from "@/components/PieceImage";
-import { RarityChip } from "@/components/ui";
-import { formatOdds, getProduct, pieceSubtitle } from "@/lib/catalog";
+import { getProduct } from "@/lib/catalog";
 import { pieceMap } from "@/lib/pieces";
 import { oddsFromSnapshot } from "@/lib/serialize";
 import { currentCollectorId } from "@/lib/auth";
@@ -50,11 +49,21 @@ export default async function CollectionPage() {
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-14 sm:px-8">
       <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">My vault</h1>
-      <p className="mt-2 text-sm text-muted">
-        Everything you have opened, and where each physical piece is up to.
-      </p>
 
-      {/* Coins live in the Wallet tab; this page is the pieces. */}
+      {/* Coins live in the Wallet tab; this page is the pieces: what is still
+          sealed, what is ready to send, and the parcels on their way. */}
+
+      {orders.length === 0 && (
+        <div className="mt-8 rounded-2xl border border-dashed border-hairline p-12 text-center">
+          <p className="text-sm text-muted">Nothing opened yet.</p>
+          <Link
+            href="/#shop"
+            className="gloss gloss-chalk mt-4 inline-block rounded-full px-6 py-3 text-sm font-semibold text-ink"
+          >
+            Buy your first box
+          </Link>
+        </div>
+      )}
 
       {sealed.length > 0 && (
         <section className="mt-10">
@@ -106,34 +115,6 @@ export default async function CollectionPage() {
         </section>
       )}
 
-      <section className="mt-10">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-faint">
-          Everything opened
-        </h2>
-
-        {pulls.length === 0 ? (
-          <div className="mt-4 rounded-2xl border border-dashed border-hairline p-12 text-center">
-            <p className="text-sm text-muted">Nothing opened yet.</p>
-            <Link
-              href="/#shop"
-              className="gloss gloss-chalk mt-4 inline-block rounded-full px-6 py-3 text-sm font-semibold text-ink"
-            >
-              Buy your first box
-            </Link>
-          </div>
-        ) : (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {pulls.map(({ order, piece, odds }) => (
-              <PullRow
-                key={order.id}
-                piece={piece}
-                odds={odds}
-                status={order.status}
-              />
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   );
 }
@@ -188,39 +169,6 @@ function ParcelCard({ shipment, pieces }: { shipment: Shipment; pieces: Piece[] 
         <br />
         {shipment.address.country}
       </address>
-    </div>
-  );
-}
-
-function PullRow({
-  piece,
-  odds,
-  status,
-}: {
-  piece: Piece;
-  odds: number;
-  status: string;
-}) {
-  return (
-    <div className="flex gap-4 rounded-2xl border border-hairline bg-ink-card p-4">
-      <div
-        className="grid size-24 shrink-0 place-items-center rounded-xl"
-        style={{
-          background: `radial-gradient(120% 90% at 50% 12%, ${piece.palette.wash}, #0b0b10 78%)`,
-        }}
-      >
-        <PieceImage piece={piece} className="h-20 w-auto" thumb />
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{piece.name}</p>
-        <p className="mt-0.5 truncate text-xs text-faint">{pieceSubtitle(piece)}</p>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <RarityChip rarity={piece.rarity} />
-          <span className="font-mono text-[11px] text-muted">{formatOdds(odds)}</span>
-        </div>
-        <p className="mt-2 text-xs text-muted">{STATUS_LABEL[status] ?? status}</p>
-      </div>
     </div>
   );
 }
