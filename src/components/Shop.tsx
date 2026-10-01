@@ -61,7 +61,17 @@ export function Shop({
       className="relative z-10 mx-auto flex min-h-0 w-full max-w-6xl flex-1 scroll-mt-20 flex-col px-5 sm:px-8"
     >
       {/* The page's heading now that there is no headline above it. */}
-      <h1 className="shrink-0 text-3xl font-semibold tracking-tight sm:text-4xl [@media(max-height:720px)]:text-2xl">Pick your box</h1>
+      {/* Silver, with a light running across it: the first thing on the
+          page, and plain white type there read as a form heading. */}
+      <h1
+        className="shimmer-text w-fit shrink-0 text-3xl font-semibold tracking-tight sm:text-4xl [@media(max-height:720px)]:text-2xl"
+        style={{
+          backgroundImage:
+            "linear-gradient(100deg, #9d9dad 0%, #f5f5f7 28%, #ffffff 46%, #ffffff 54%, #f5f5f7 72%, #9d9dad 100%)",
+        }}
+      >
+        Pick your box
+      </h1>
 
       {/*
         The boxes swipe; nothing else does.
@@ -195,7 +205,7 @@ const FloatingBox = memo(function FloatingBox({ product, width }: { product: Pro
       {/* Floating for real, not just uncarded. The same drift the revealed
           piece uses, so the two read as one house style. */}
       <div className="relative float-soft">
-        <ProductBox accent={product.accent} printed={isPrinted(product.id)} width={width} />
+        <ProductBox accent={product.accent} printed={isPrinted(product.id)} width={width} glint />
       </div>
     </div>
   );
@@ -258,22 +268,26 @@ function BoxDetail({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
         >
-          <h3 className="truncate text-xl font-semibold tracking-tight">{product.name}</h3>
+          {/* In the box's own metal — copper, silver, gold, ice — with a
+              light passing over it, so the name reads as the finish of the
+              thing you are about to buy rather than a label under it. */}
+          <h3
+            className="shimmer-text mx-auto w-fit max-w-full truncate text-xl font-bold tracking-tight"
+            style={{
+              backgroundImage: `linear-gradient(100deg, color-mix(in srgb, ${product.accent} 55%, #000) 0%, ${product.accent} 26%, color-mix(in srgb, ${product.accent} 30%, #fff) 45%, #fff 50%, color-mix(in srgb, ${product.accent} 30%, #fff) 55%, ${product.accent} 74%, color-mix(in srgb, ${product.accent} 55%, #000) 100%)`,
+            }}
+          >
+            {product.name}
+          </h3>
         </motion.div>
       </div>
 
       {/* Room for every rarity a shelf can list, whether or not this one lists
-          them. Four rows at 20px with 8px between them, plus the stock line —
-          the number is measured, not guessed, and it is what pins the button. */}
-      <div className="mt-5 min-h-[8.5rem] [@media(max-height:720px)]:mt-3 [@media(max-height:720px)]:min-h-[6.75rem]">
+          them: four rows at 20px with 8px between them. Measured, not guessed,
+          and it is what pins the button. There is no stock line under it —
+          how many pieces and units are left is not something the shop shares. */}
+      <div className="mt-5 min-h-[6.75rem] [@media(max-height:720px)]:mt-3">
         <OddsByRarity shelf={shelf} />
-
-        {inStock.length > 0 && (
-          <p className="mt-3 text-[11px] text-faint [@media(max-height:720px)]:hidden">
-            In stock now: {inStock.length} pieces ·{" "}
-            <span className="font-mono">{unitsLeft.toLocaleString()}</span> units
-          </p>
-        )}
       </div>
 
       {/*

@@ -2,13 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
-import {
-  formatOdds,
-  oddsAsOneIn,
-  pieceSubtitle,
-  RARITY_COLOR,
-  RARITY_LABEL,
-} from "@/lib/catalog";
+import { pieceSubtitle, RARITY_COLOR } from "@/lib/catalog";
 import { boxGeometry } from "@/lib/boxShape";
 import { playOpenSound, preloadOpenSound, type OpenSound } from "@/lib/openSound";
 import { BoxPrint, isPrinted, PRINT_GROUND } from "./BoxPrint";
@@ -198,20 +192,16 @@ export function BoxOpening({
   orderId,
   product,
   initialPiece,
-  initialOdds,
   onRevealed,
 }: {
   orderId: string;
   product: Product;
   initialPiece: Piece | null;
-  /** Pull rate this piece had on the shelf it was drawn from. */
-  initialOdds: number;
   onRevealed?: (piece: Piece) => void;
 }) {
   const reducedMotion = useReducedMotion();
   const [stage, setStage] = useState<Stage>(initialPiece ? "reveal" : "sealed");
   const [piece, setPiece] = useState<Piece | null>(initialPiece);
-  const [pulledOdds, setPulledOdds] = useState(initialOdds);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch and decode the hover while the box is still sitting there sealed.
@@ -247,7 +237,6 @@ export function BoxOpening({
       // glow are all coloured by the tier. The figure stays gated on the
       // reveal stage, so nothing is given away but the fact it is special.
       setPiece(pulled);
-      setPulledOdds(data.order.pulledOdds ?? 0);
 
       const isChase = pulled.rarity === "chase";
       const wind = windFor(isChase, !!reducedMotion);
@@ -686,7 +675,7 @@ export function BoxOpening({
               transition={{ delay: reducedMotion ? 0 : 0.45, duration: 0.5 }}
               className="w-full"
             >
-              <PullSummary piece={piece} odds={pulledOdds} />
+              <PullSummary piece={piece} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -1734,7 +1723,7 @@ function BlindBox({
   );
 }
 
-function PullSummary({ piece, odds }: { piece: Piece; odds: number }) {
+function PullSummary({ piece }: { piece: Piece }) {
   const color = RARITY_COLOR[piece.rarity];
   const isChase = piece.rarity === "chase";
 
@@ -1760,10 +1749,9 @@ function PullSummary({ piece, odds }: { piece: Piece; odds: number }) {
           {piece.scale}
         </span>
       </div>
-      <p className="max-w-sm text-sm leading-relaxed text-muted">{piece.blurb}</p>
-      <p className="text-xs text-faint">
-        {RARITY_LABEL[piece.rarity]} · pulled at {formatOdds(odds)} — {oddsAsOneIn(odds)}
-      </p>
+      {/* No description and no "pulled at 1 in N" line: the rarity and size
+          tags above say what the piece is, and the reveal is about the piece,
+          not a paragraph about it. */}
     </div>
   );
 }

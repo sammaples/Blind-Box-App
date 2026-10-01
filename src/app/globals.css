@@ -112,6 +112,40 @@ body {
   color: transparent;
 }
 
+/*
+ * The glint across the box on sale: a soft band of white that sweeps over
+ * each wall, then rests, like light catching a foil wrap as it turns.
+ *
+ * A plain gradient on a plain transform — no filter and no blend mode — so it
+ * draws the same in Safari's 3D as everywhere else. It rests most of the time
+ * on purpose: a sheen that never stops is a loading state, not a finish.
+ */
+.box-glint {
+  /* Bright enough to read on the pale print, which a faint band of white
+     simply disappears into; a soft halo either side, so it reads as light
+     rather than as a stripe painted on. Three walls wide, so the band starts
+     and ends off the wall. */
+  background-image: linear-gradient(
+    105deg,
+    transparent 44%,
+    rgb(255 255 255 / 0.18) 46.5%,
+    rgb(255 255 255 / 0.65) 49%,
+    rgb(255 255 255 / 0.92) 50%,
+    rgb(255 255 255 / 0.65) 51%,
+    rgb(255 255 255 / 0.18) 53.5%,
+    transparent 56%
+  );
+  background-size: 300% 100%;
+  background-repeat: no-repeat;
+  background-position: 100% 0;
+  animation: box-glint 4.2s ease-in-out infinite;
+}
+
+@keyframes box-glint {
+  0%, 50% { background-position: 100% 0; }
+  80%, 100% { background-position: 0% 0; }
+}
+
 @keyframes float-soft {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }

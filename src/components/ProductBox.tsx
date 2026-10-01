@@ -31,11 +31,15 @@ function ProductBoxImpl({
   width = 63,
   /** Turned off where several sit together and one turning box is enough. */
   spin = true,
+  /** A band of light that sweeps across the walls now and then — for the box
+      on sale, where it should look like foil catching the light. */
+  glint = false,
 }: {
   accent: string;
   printed: boolean;
   width?: number;
   spin?: boolean;
+  glint?: boolean;
 }) {
   const box = boxGeometry(width);
   const reducedMotion = useReducedMotion();
@@ -78,6 +82,30 @@ function ProductBoxImpl({
         </>
       )}
     </div>
+  );
+
+  /*
+   * The glint, as a plane of its own a pixel off each wall — not a layer
+   * inside the wall. An animated child of a wall is composited separately,
+   * lands exactly in the wall's own plane, and loses the depth sort to it, so
+   * all that showed was a sliver at the edges. Lifted off the wall, the same
+   * way the question marks are, it sorts in front cleanly. And the band is
+   * the plane's own background, moved by background-position: a moving child
+   * clipped inside a 3D wall is exactly what the browser could not sort.
+   */
+  const glintPlane = (name: BoxFace) => (
+    <div
+      key={`glint-${name}`}
+      aria-hidden
+      className="box-glint"
+      style={{
+        ...box.face(name),
+        transform: `${box.face(name).transform} translateZ(1px)`,
+        pointerEvents: "none",
+        backfaceVisibility: "hidden",
+        WebkitBackfaceVisibility: "hidden",
+      }}
+    />
   );
 
   /**
@@ -251,6 +279,8 @@ function ProductBoxImpl({
         <Face name="back" lit={18} shade={0.22} />
         <Face name="top" lit={14} shade={0.26} />
 
+        {glint && !reducedMotion &&
+          (["front", "right", "back", "left", "top"] as BoxFace[]).map(glintPlane)}
         {mark("front")}
         {mark("right")}
         {mark("back")}
