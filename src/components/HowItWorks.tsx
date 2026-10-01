@@ -101,9 +101,9 @@ export function HowItWorksButton() {
         onClick={() => setOpen(true)}
         aria-label="How it works"
         aria-haspopup="dialog"
-        className="grid size-10 shrink-0 place-items-center rounded-full border border-hairline bg-white/[0.06] text-chalk/80 transition-colors hover:border-white/25 hover:text-chalk"
+        className="grid size-8 shrink-0 place-items-center rounded-full border border-hairline bg-white/[0.06] text-chalk/80 transition-colors hover:border-white/25 hover:text-chalk"
       >
-        <span aria-hidden className="text-[19px] font-bold leading-none">
+        <span aria-hidden className="text-[16px] font-bold leading-none">
           ?
         </span>
       </button>
