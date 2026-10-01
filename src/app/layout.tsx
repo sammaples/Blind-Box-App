@@ -53,7 +53,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-hairline/70 bg-ink/70 backdrop-blur-xl">
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
         {/* "Blind Box" is two words where "Bricks" was one, and on the
             narrowest phones, signed in with a coin balance showing, it met
             the nav. Below 375px the name steps down a size and the gap

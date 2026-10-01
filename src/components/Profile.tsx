@@ -13,8 +13,8 @@ import { AppleMark } from "./AppleButton";
 import { Coins } from "./Coin";
 import { Monogram } from "./Monogram";
 
-/** The avatar's light: the same blue-into-pink the sign-in screen is lit with. */
-const AVATAR_GRADIENT = "linear-gradient(135deg, #2b3bff 0%, #6d5cff 45%, #f2a7c9 100%)";
+/** The avatar: ice — a pale frost at the top running into a clear cold blue. */
+const AVATAR_GRADIENT = "linear-gradient(145deg, #e3f8ff 0%, #9fdcf7 38%, #4fb1e8 72%, #2a86cf 100%)";
 
 function PersonGlyph({ className }: { className?: string }) {
   return (
@@ -40,12 +40,12 @@ export function ProfileButton() {
       onClick={openProfile}
       aria-label={account ? "Your account" : "Sign in"}
       aria-haspopup="dialog"
-      className={`grid size-9 place-items-center rounded-full text-white shadow-[0_4px_14px_rgba(80,70,255,0.35)] transition-transform hover:scale-[1.05] active:scale-[0.96] ${
+      className={`grid size-9 place-items-center rounded-full text-white shadow-[0_4px_14px_rgba(79,177,232,0.35)] transition-transform hover:scale-[1.05] active:scale-[0.96] ${
         loading ? "opacity-0" : "opacity-100"
       }`}
       style={{ background: AVATAR_GRADIENT }}
     >
-      <PersonGlyph className="size-[18px]" />
+      <PersonGlyph className="size-[18px] drop-shadow-[0_1px_1.5px_rgba(14,70,120,0.45)]" />
     </button>
   );
 }
@@ -200,7 +200,7 @@ function SignedIn({ onClose }: { onClose: () => void }) {
             className="grid size-16 shrink-0 place-items-center rounded-full text-white"
             style={{ background: AVATAR_GRADIENT }}
           >
-            <PersonGlyph className="size-8" />
+            <PersonGlyph className="size-8 drop-shadow-[0_1px_2px_rgba(14,70,120,0.45)]" />
           </span>
           <div className="min-w-0">
             <p className="truncate text-[20px] font-semibold tracking-tight">

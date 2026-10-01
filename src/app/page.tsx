@@ -27,7 +27,7 @@ export default async function HomePage() {
       {/*
         No headline above the shop, and no scrolling: this page is exactly one
         screen — "Pick your box", the boxes, and the Buy button — between the
-        header and the tab bar. The height is the screen less those two (57px
+        header and the tab bar. The height is the screen less those two (65px
         of header including its border, the bar and the home-indicator inset
         under it). `svh` so it is sized for the browser's toolbars showing,
         which is the most room it can ever have, and so it never grows past
@@ -35,7 +35,7 @@ export default async function HomePage() {
       */}
       {/* Short screens — an iPhone SE is 667 tall — take the spacing in
           everywhere so the box, which is what gives, keeps a sensible size. */}
-      <div className="flex h-[calc(100svh-57px-4.25rem-env(safe-area-inset-bottom))] flex-col pt-2 sm:pt-6 [@media(max-height:720px)]:pt-1.5">
+      <div className="flex h-[calc(100svh-65px-4.25rem-env(safe-area-inset-bottom))] flex-col pt-2 sm:pt-6 [@media(max-height:720px)]:pt-1.5">
         <Shop shelves={shelves} pulls={pulls} />
       </div>
 
