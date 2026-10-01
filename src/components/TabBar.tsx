@@ -54,13 +54,14 @@ const TABS: { href: string; label: string; icon: ReactNode; match: (path: string
     ),
   },
   {
-    href: "/how-it-works",
-    label: "How it works",
-    match: (p) => p.startsWith("/how-it-works"),
+    href: "/wallet",
+    label: "Wallet",
+    match: (p) => p.startsWith("/wallet"),
     icon: (
       <>
-        <circle cx="12" cy="12" r="8.5" />
-        <path d="M9.7 9.6a2.4 2.4 0 1 1 3.4 2.2c-.7.3-1.1.9-1.1 1.6v.4M12 16.6v.1" />
+        <path d="M5.5 7.5 15.8 4.6a1.5 1.5 0 0 1 1.9 1.4v1.5" />
+        <rect x="3.5" y="7.5" width="17" height="12" rx="2.5" />
+        <path d="M20.5 11.5h-3.2a2 2 0 0 0 0 4h3.2" />
       </>
     ),
   },

@@ -19,6 +19,7 @@ import { useScrollLock } from "@/lib/useScrollLock";
 import { useLivePulls } from "@/lib/useLivePulls";
 import { coinPrice, topUpFor } from "@/lib/coins";
 import { BoxCarousel } from "./BoxCarousel";
+import { HowItWorksButton } from "./HowItWorks";
 import { RecentPulls } from "./RecentPulls";
 import { BuyCoins } from "./BuyCoins";
 import { Coins } from "./Coin";
@@ -66,15 +67,20 @@ export function Shop({
       {/* The page's heading now that there is no headline above it. */}
       {/* Silver, with a light running across it: the first thing on the
           page, and plain white type there read as a form heading. */}
-      <h1
-        className="shimmer-text w-fit shrink-0 text-3xl font-semibold tracking-tight sm:text-4xl [@media(max-height:720px)]:text-2xl"
-        style={{
-          backgroundImage:
-            "linear-gradient(100deg, #9d9dad 0%, #f5f5f7 28%, #ffffff 46%, #ffffff 54%, #f5f5f7 72%, #9d9dad 100%)",
-        }}
-      >
-        Pick your box
-      </h1>
+      {/* The "?" sits at the far end of the heading's row: where the eye
+          goes after reading it, and clear of the boxes below. */}
+      <div className="flex shrink-0 items-center justify-between gap-3">
+        <h1
+          className="shimmer-text w-fit shrink-0 text-3xl font-semibold tracking-tight sm:text-4xl [@media(max-height:720px)]:text-2xl"
+          style={{
+            backgroundImage:
+              "linear-gradient(100deg, #9d9dad 0%, #f5f5f7 28%, #ffffff 46%, #ffffff 54%, #f5f5f7 72%, #9d9dad 100%)",
+          }}
+        >
+          Pick your box
+        </h1>
+        <HowItWorksButton />
+      </div>
 
       {/*
         The boxes swipe; nothing else does.
