@@ -584,10 +584,12 @@ export function SpinWheel() {
         <div
           ref={pointer}
           aria-hidden
-          className="absolute left-1/2 top-[-4%] z-10 h-[15%] w-[11%] -translate-x-1/2"
-          style={{ transformOrigin: "50% 18%" }}
+          className="absolute left-1/2 top-[-5.61%] z-10 h-[16.61%] w-[11%] -translate-x-1/2"
+          style={{ transformOrigin: "50% 25.9%" }}
         >
-          <svg viewBox="0 0 40 56" className="size-full drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)]">
+          {/* The viewBox starts above zero: the round cap rises to y ≈ -4.7, and a
+              box starting at 0 sliced its top off flat. */}
+          <svg viewBox="0 -6 40 62" className="size-full drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)]">
             <defs>
               <linearGradient id="spin-ptr" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0" stopColor="#ffffff" />
