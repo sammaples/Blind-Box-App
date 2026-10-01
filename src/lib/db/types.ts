@@ -130,6 +130,8 @@ export interface Backend {
    */
   createLoginToken(input: {
     tokenHash: string;
+    /** The same sign-in as a short code to type, stored alongside the link. */
+    codeHash?: string;
     email: string;
     expiresAt: string;
   }): Promise<void>;

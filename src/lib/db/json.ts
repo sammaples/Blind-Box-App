@@ -245,20 +245,22 @@ export function createJsonBackend(): Backend {
         .slice(0, Math.max(1, Math.min(limit, 200)));
     },
 
-    async createLoginToken({ tokenHash, email, expiresAt }) {
+    async createLoginToken({ tokenHash, codeHash, email, expiresAt }) {
       const key = email.trim().toLowerCase();
       await transact((db) => {
-        // One live token per address: requesting a new link retires the old.
+        // One live sign-in per address: requesting a new one retires the old.
         db.loginTokens = (db.loginTokens ?? []).filter(
           (t) => t.email !== key || t.consumedAt !== null,
         );
-        db.loginTokens.push({
-          tokenHash,
-          email: key,
-          createdAt: new Date().toISOString(),
-          expiresAt,
-          consumedAt: null,
-        });
+        for (const hash of codeHash ? [tokenHash, codeHash] : [tokenHash]) {
+          db.loginTokens.push({
+            tokenHash: hash,
+            email: key,
+            createdAt: new Date().toISOString(),
+            expiresAt,
+            consumedAt: null,
+          });
+        }
       });
     },
 
@@ -270,6 +272,8 @@ export function createJsonBackend(): Backend {
           return null;
         }
         token.consumedAt = now;
+        // The link and the code are one sign-in: using either retires the other.
+        db.loginTokens = tokens.filter((t) => t === token || t.email !== token.email || t.consumedAt !== null);
         return token.email;
       });
     },

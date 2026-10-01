@@ -383,18 +383,20 @@ export function createPostgresBackend(connectionString: string): Backend {
       return rows.map(toCoinEntry);
     },
 
-    async createLoginToken({ tokenHash, email, expiresAt }) {
+    async createLoginToken({ tokenHash, codeHash, email, expiresAt }) {
       const key = email.trim().toLowerCase();
       await withTx(async (client) => {
-        // One live token per address: requesting a new link retires the old.
+        // One live sign-in per address: requesting a new one retires the old.
         await client.query(
           "delete from login_tokens where lower(email) = $1 and consumed_at is null",
           [key],
         );
-        await client.query(
-          "insert into login_tokens (token_hash, email, expires_at) values ($1, $2, $3)",
-          [tokenHash, key, expiresAt],
-        );
+        for (const hash of codeHash ? [tokenHash, codeHash] : [tokenHash]) {
+          await client.query(
+            "insert into login_tokens (token_hash, email, expires_at) values ($1, $2, $3)",
+            [hash, key, expiresAt],
+          );
+        }
       });
     },
 
@@ -410,7 +412,14 @@ export function createPostgresBackend(connectionString: string): Backend {
       returning email`,
         [tokenHash, now],
       );
-      return rows[0] ? (rows[0].email as string) : null;
+      if (!rows[0]) return null;
+      const emailUsed = rows[0].email as string;
+      // The link and the code are one sign-in: using either retires the other.
+      await query(
+        "delete from login_tokens where lower(email) = lower($1) and consumed_at is null",
+        [emailUsed],
+      );
+      return emailUsed;
     },
 
     async claimOrders(fromCollectorId, toCollectorId) {

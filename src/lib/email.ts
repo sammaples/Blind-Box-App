@@ -11,14 +11,19 @@ import "server-only";
 export interface EmailProvider {
   readonly name: string;
   readonly isLive: boolean;
-  sendLoginLink(input: { to: string; url: string }): Promise<void>;
+  sendLoginLink(input: { to: string; url: string; code: string }): Promise<void>;
 }
 
 /* ------------------------------------------------------------------ *
  * The message
  * ------------------------------------------------------------------ */
 
-const SUBJECT = "Your Blind Box sign-in link";
+const SUBJECT = "Your Blind Box sign-in code";
+
+/** "K7QM2XPD" as "K7QM-2XPD", which is easier to read and to type. */
+function displayCode(code: string): string {
+  return `${code.slice(0, 4)}-${code.slice(4)}`;
+}
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (c) =>
@@ -27,10 +32,11 @@ function escapeHtml(value: string): string {
 }
 
 /** Plain text matters: some clients show it, and some people prefer it. */
-function textBody(url: string): string {
+function textBody(url: string, code: string): string {
   return [
-    "Here is your sign-in link for Blind Box:",
+    `Your Blind Box sign-in code: ${displayCode(code)}`,
     "",
+    "Type it into the app, or open this link:",
     url,
     "",
     "It works once and expires in fifteen minutes.",
@@ -38,8 +44,9 @@ function textBody(url: string): string {
   ].join("\n");
 }
 
-function htmlBody(url: string): string {
+function htmlBody(url: string, code: string): string {
   const safe = escapeHtml(url);
+  const shown = escapeHtml(displayCode(code));
   // Inline styles and a table: email clients are not browsers.
   return `<!doctype html>
 <html><body style="margin:0;padding:0;background:#f5f5f7;">
@@ -55,8 +62,13 @@ function htmlBody(url: string): string {
           <h1 style="margin:0 0 16px;font-size:22px;line-height:1.25;color:#17171c;">
             Sign in to collect
           </h1>
-          <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#4a4a55;">
-            Tap the button to sign in. It works once, and expires in fifteen minutes.
+          <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#4a4a55;">
+            Type this code into the app to sign in:
+          </p>
+          <p style="margin:0 0 24px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+                    font-size:30px;font-weight:700;letter-spacing:0.12em;color:#17171c;">${shown}</p>
+          <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#4a4a55;">
+            Or tap the button. Either works once, and expires in fifteen minutes.
           </p>
           <a href="${safe}"
              style="display:inline-block;background:#17171c;color:#ffffff;
@@ -84,8 +96,8 @@ function htmlBody(url: string): string {
 const consoleProvider: EmailProvider = {
   name: "console",
   isLive: false,
-  async sendLoginLink({ to, url }) {
-    console.info(`[email:mock] sign-in link for ${to}\n  ${url}`);
+  async sendLoginLink({ to, url, code }) {
+    console.info(`[email:mock] sign-in for ${to}: code ${displayCode(code)}\n  ${url}`);
   },
 };
 
@@ -96,7 +108,7 @@ function createResendProvider(apiKey: string, from: string): EmailProvider {
   return {
     name: "resend",
     isLive: true,
-    async sendLoginLink({ to, url }) {
+    async sendLoginLink({ to, url, code }) {
       const res = await fetch(RESEND_URL, {
         method: "POST",
         headers: {
@@ -107,8 +119,8 @@ function createResendProvider(apiKey: string, from: string): EmailProvider {
           from,
           to,
           subject: SUBJECT,
-          html: htmlBody(url),
-          text: textBody(url),
+          html: htmlBody(url, code),
+          text: textBody(url, code),
         }),
       });
 

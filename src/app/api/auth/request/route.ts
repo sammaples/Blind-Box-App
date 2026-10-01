@@ -23,9 +23,9 @@ export async function POST(request: Request) {
   if (!canSendLoginLinks()) {
     return NextResponse.json(
       {
-        error:
-          "Sign-in is unavailable: no email provider is configured. " +
-          "Implement EmailProvider in src/lib/email.ts.",
+        // Shown on the sign-in screen as is, so it is written for a collector.
+        // The fix is RESEND_API_KEY and EMAIL_FROM; see src/lib/email.ts.
+        error: "Email sign-in isn’t available right now.",
       },
       { status: 503 },
     );
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const token = await issueLoginToken(address);
+  const { token, code } = await issueLoginToken(address);
   // Where to land afterwards, so a link opened to reach the inventory console
   // does not drop the admin on the shop's front page.
   const link = new URL("/auth/callback", request.url);
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   const url = link.toString();
 
   try {
-    await sender.sendLoginLink({ to: address, url });
+    await sender.sendLoginLink({ to: address, url, code });
   } catch (err) {
     // Never answer "check your email" for a message that failed to send. The
     // token simply expires unused; asking again issues a fresh one.
@@ -64,5 +64,6 @@ export async function POST(request: Request) {
     // Only when there is no real sender and this is not production. A live
     // sign-in link in an API response would let anyone sign in as anyone.
     devLink: canRevealLinkInResponse() ? url : undefined,
+    devCode: canRevealLinkInResponse() ? code : undefined,
   });
 }

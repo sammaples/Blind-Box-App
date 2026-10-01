@@ -441,21 +441,53 @@ export function SignInScreen({
     if (open) setNext(window.location.pathname + window.location.search + window.location.hash);
   }, [open]);
 
+  // Email sign-in, two steps: the address, then the code that was sent to
+  // it. A code rather than only the link, because the link opens in the
+  // browser, and an app added to the home screen keeps its own sign-in.
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const testSignIn = async () => {
+  useEffect(() => {
+    if (!open) {
+      setSentTo(null);
+      setCode("");
+      setError(null);
+    }
+  }, [open]);
+
+  const post = async (url: string, body: object) => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error ?? "Something went wrong");
+    return data;
+  };
+
+  const sendCode = async () => {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/auth/request", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email: "you@example.com", next }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Could not start a session");
-      if (data.devLink) window.location.href = data.devLink;
-      else onSignedIn();
+      const data = await post("/api/auth/request", { email, next });
+      setSentTo(email.trim());
+      setCode(typeof data.devCode === "string" ? data.devCode : "");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const redeem = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await post("/api/auth/code", { email: sentTo, code });
+      onSignedIn();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -508,28 +540,97 @@ export function SignInScreen({
                 <AppleMark className="size-[22px] -translate-y-px" />
                 Continue with Apple
               </a>
-            ) : process.env.NODE_ENV === "production" ? (
-              // A live site with no Apple keys has no way in, and says so,
-              // rather than offering the development door to the public.
-              <p className="rounded-2xl bg-white/70 px-4 py-4 text-center text-[14px] text-[#1a1640]">
-                Sign-in isn’t available right now. Please try again shortly.
-              </p>
             ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => void testSignIn()}
-                  disabled={busy}
-                  className={`${pill} bg-white text-black disabled:opacity-60`}
-                >
-                  <AppleMark className="size-[22px] -translate-y-px" />
-                  {busy ? "Signing in…" : "Continue as a test collector"}
-                </button>
-                <p className="mt-2 text-center text-[12px] text-[#1a1640]/70">
-                  Sign in with Apple is not configured on this deployment.
-                </p>
-              </>
+              <div className="flex h-14 w-full cursor-default items-center justify-center gap-2 rounded-full bg-white/15 px-5 text-center text-[14px] font-medium leading-snug text-white/75" aria-disabled="true">
+                <AppleMark className="size-[18px] shrink-0 -translate-y-px" />
+                Apple sign in isn’t available right now
+              </div>
             )}
+
+            <div className="my-4 flex items-center gap-3 text-[12px] font-medium uppercase tracking-[0.14em] text-white/60">
+              <span className="h-px flex-1 bg-white/25" />
+              or
+              <span className="h-px flex-1 bg-white/25" />
+            </div>
+
+            {sentTo === null ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void sendCode();
+                }}
+              >
+                <input
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  aria-label="Email address"
+                  className="h-14 w-full rounded-full bg-white/85 px-6 text-[17px] text-[#0e0b2a] outline-none placeholder:text-[#1a1640]/40 focus:bg-white"
+                />
+                <button
+                  type="submit"
+                  disabled={busy || email.trim() === ""}
+                  className={`${pill} mt-3 bg-[#0e0b2a] text-white disabled:opacity-50`}
+                >
+                  {busy ? "Sending…" : "Email me a sign-in code"}
+                </button>
+              </form>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void redeem();
+                }}
+              >
+                <p className="mb-3 text-center text-[14px] leading-relaxed text-white/80">
+                  We sent a code to <span className="font-semibold text-white">{sentTo}</span>
+                </p>
+                <input
+                  type="text"
+                  autoComplete="one-time-code"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  maxLength={9}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  placeholder="XXXX-XXXX"
+                  aria-label="Sign-in code"
+                  className="h-14 w-full rounded-full bg-white/85 px-6 text-center font-mono text-[20px] tracking-[0.2em] text-[#0e0b2a] outline-none placeholder:text-[#1a1640]/30 focus:bg-white"
+                />
+                <button
+                  type="submit"
+                  disabled={busy || code.replace(/[^a-z0-9]/gi, "").length !== 8}
+                  className={`${pill} mt-3 bg-[#0e0b2a] text-white disabled:opacity-50`}
+                >
+                  {busy ? "Signing in…" : "Sign in"}
+                </button>
+                <p className="mt-3 flex justify-center gap-5 text-[13px] text-[#1a1640]/75">
+                  <button type="button" disabled={busy} onClick={() => void sendCode()} className="underline underline-offset-4">
+                    Send a new code
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSentTo(null);
+                      setCode("");
+                      setError(null);
+                    }}
+                    className="underline underline-offset-4"
+                  >
+                    Use a different email
+                  </button>
+                </p>
+              </form>
+            )}
+
+            {error && <p className="mt-3 text-center text-xs text-rose-700">{error}</p>}
+
             <button
               type="button"
               onClick={onClose}
@@ -537,7 +638,6 @@ export function SignInScreen({
             >
               Browse as guest
             </button>
-            {error && <p className="mt-3 text-center text-xs text-rose-700">{error}</p>}
             <p className="mt-6 flex justify-center gap-6 text-[15px] text-[#1a1640]/80">
               <Link href="/terms" onClick={onClose} className="underline underline-offset-4">
                 Terms of Service

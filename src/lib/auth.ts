@@ -1,5 +1,5 @@
 import "server-only";
-import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { syncAdmin } from "./admin";
 import { HANDSHAKE_TTL_MS, type AppleIdentity, type Handshake } from "./apple";
@@ -77,15 +77,51 @@ export function normaliseEmail(input: unknown): string | null {
   return value;
 }
 
-/** Issues a single-use sign-in token and returns the raw value for the link. */
-export async function issueLoginToken(email: string): Promise<string> {
+/**
+ * The code's alphabet: no 0/O or 1/I, so it reads back off an email without
+ * guessing. Eight of these is about a trillion codes, and each is bound to one
+ * address and lives fifteen minutes, which is what lets it go without an
+ * attempt counter.
+ */
+const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+function codeHashFor(email: string, code: string): string {
+  return hashToken(`code:${email.trim().toLowerCase()}:${code}`);
+}
+
+/** Tidies a typed code: case, spaces and the dash are not part of it. */
+export function normaliseCode(input: unknown): string | null {
+  if (typeof input !== "string") return null;
+  const code = input.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return code.length === 8 ? code : null;
+}
+
+/**
+ * Issues a single-use sign-in, as a link token and as a short code.
+ *
+ * The code exists for the app on a home screen: a link in an email opens in
+ * the browser, which keeps its own sign-in, separate from the app's — so the
+ * app needs a way in that is typed rather than tapped. Either one signs in;
+ * using one retires the other.
+ */
+export async function issueLoginToken(email: string): Promise<{ token: string; code: string }> {
   const token = randomBytes(32).toString("base64url");
+  const code = Array.from({ length: 8 }, () => CODE_ALPHABET[randomInt(0, CODE_ALPHABET.length)]).join("");
   await backend().createLoginToken({
     tokenHash: hashToken(token),
+    codeHash: codeHashFor(email, code),
     email,
     expiresAt: new Date(Date.now() + TOKEN_TTL_MS).toISOString(),
   });
-  return token;
+  return { token, code };
+}
+
+/** Redeems a typed code for the address it was sent to. */
+export async function redeemLoginCode(email: string, code: string): Promise<Collector | null> {
+  const used = await backend().consumeLoginToken(codeHashFor(email, code), new Date().toISOString());
+  if (!used) return null;
+  const account = await backend().accountForEmail(used);
+  return syncAdmin(account);
 }
 
 /** Redeems a token and returns the account it signs in, or null. */
