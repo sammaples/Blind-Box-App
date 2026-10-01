@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   formatOdds,
-  oddsAsOneIn,
   pieceSubtitle,
   TIER_ACCENT,
   TIER_LABEL,
@@ -108,11 +107,11 @@ export function PieceDetail({
                   </dd>
                 </div>
               </dl>
-              <p className="text-xs text-faint">
-                {entry.available > 0
-                  ? `${oddsAsOneIn(entry.odds)} boxes of ${productName}, at today's stock.`
-                  : "Sold out — this piece is out of the pool until it is restocked."}
-              </p>
+              {entry.available === 0 && (
+                <p className="text-xs text-faint">
+                  Sold out — this piece is out of the pool until it is restocked.
+                </p>
+              )}
               <button
                 type="button"
                 onClick={onClose}
