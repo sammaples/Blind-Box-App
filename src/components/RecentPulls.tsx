@@ -255,7 +255,10 @@ function PullCard({
       transition={{
         opacity: { duration: 0.3 },
         scale: { type: "spring", stiffness: 420, damping: 24 },
-        boxShadow: { duration: 1.6, ease: "easeOut", delay: 0.35 },
+        // Held lit for a second after the card has landed, so it is seen
+        // standing still and not only while the row glides — then an even
+        // fade, not an ease-out that drops most of it in the first instant.
+        boxShadow: { duration: 1.3, ease: "easeInOut", delay: 1.1 },
       }}
       onClick={onSelect}
       aria-label={`${piece.name}, ${RARITY_LABEL[piece.rarity]}`}
