@@ -50,12 +50,9 @@ export function CoinWallet() {
   return (
     <section id="coins" className="mt-8 scroll-mt-24">
       <div className="rounded-2xl border border-hairline bg-ink-card p-5">
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <p className="text-3xl font-semibold">
-            <Coins amount={coins} size={26} />
-          </p>
-          <p className="text-xs text-faint">Earned by opening boxes.</p>
-        </div>
+        <p className="text-3xl font-semibold">
+          <Coins amount={coins} size={26} />
+        </p>
 
         {history.length > 0 && (
           <div className="mt-5 border-t border-hairline pt-4">
@@ -64,7 +61,7 @@ export function CoinWallet() {
               onClick={() => setOpen((v) => !v)}
               className="text-xs text-muted transition-colors hover:text-chalk"
             >
-              {open ? "Hide history" : `History · ${history.length} entries`}
+              {open ? "Hide history" : "History"}
             </button>
 
             {open && (
