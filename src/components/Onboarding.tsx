@@ -333,8 +333,10 @@ function ShippingBox() {
       <polygon points="112,94 184,66 184,156 112,184" fill="#B98150" />
       <rect x="19" y="75" width="7" height="44" rx="3.5" fill="#DEAB77" />
       <ellipse cx="22.5" cy="130" rx="3.6" ry="4.4" fill="#DEAB77" />
-      <polygon points="44.7,70.2 116.7,42.2 135,48.7 63,76.7" fill="#F3DEB3" />
-      <polygon points="44.7,70.2 63,76.7 63,128.7 61.2,122.1 59.4,127.4 57.5,120.8 55.7,126.1 53.9,119.5 52,124.8 50.2,118.2 48.4,123.5 46.5,116.9 44.7,122.2" fill="#DDB78E" />
+      {/* The tape runs the long way, down the seam where the flaps meet, and
+          over the end onto the short face — the way a carton is taped. */}
+      <polygon points="37.4,47.4 54.6,40.6 156.6,76.6 139.4,83.4" fill="#F3DEB3" />
+      <polygon points="139.4,83.4 156.6,76.6 156.6,126.6 154.9,121.3 153.2,128 151.5,122.7 149.7,129.3 148,124 146.3,130.7 144.5,125.3 142.8,132 141.1,126.7 139.4,133.4" fill="#D2AA7E" />
       <polyline points="10,58 112,94 184,66" fill="none" stroke="#EDC596" strokeWidth="1.2" strokeLinejoin="round" />
     </svg>
   );
