@@ -433,7 +433,9 @@ export function SpinWheel() {
       {/* The wheel. */}
       {/* Sized to the screen's height as well as its width, so the whole
           page — wheel, prize and countdown — fits a small phone unscrolled. */}
-      <div className="relative mt-5 aspect-square w-full max-w-[min(22rem,calc(100svh-65px-4.25rem-env(safe-area-inset-bottom)-16.5rem))]">
+      {/* The top margin leaves room for the pointer, which stands proud of
+          the rim and would otherwise run into the title. */}
+      <div className="relative mt-10 aspect-square w-full max-w-[min(22rem,calc(100svh-65px-4.25rem-env(safe-area-inset-bottom)-17.75rem))]">
         {/* Light behind it, warmer once it has paid out. */}
         <div
           aria-hidden
