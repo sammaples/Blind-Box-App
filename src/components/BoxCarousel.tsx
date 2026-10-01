@@ -385,10 +385,41 @@ export function BoxCarousel({
       });
     };
 
-    // A hand on the rail cancels whatever we had asked it to do, the same way
-    // it cancels the browser's own smooth scroll.
+    /*
+     * A hand on the rail cancels whatever we had asked it to do, the same way
+     * it cancels the browser's own smooth scroll — and, if the rail is resting
+     * on a padding copy, puts it back on the real run before the finger moves.
+     *
+     * This is what lets a fast swiper go round and round. Waiting for the rail
+     * to sit still first is right in general, but somebody swiping box after
+     * box never lets it: each swipe lands just as the next one starts, so the
+     * rail never rested, never wrapped, and one lap in it ran out of padding —
+     * stuck on the last copy (silver, with four boxes) until it was left alone
+     * long enough to wrap. The arrows never had this, because a tap on one
+     * puts the rail back first; this does the same for a finger.
+     *
+     * Only when it is resting exactly on a box. A finger landing mid-glide
+     * stops the rail between two boxes, and a jump from there lands between
+     * two boxes too, where the browser's snapping is free to pull it to one
+     * side under the finger. Resting on a box, the jump lands exactly on the
+     * same box a copy away, and there is nothing to see.
+     */
     const onTakeOver = () => {
       glide.current = null;
+      if (!looping) return;
+      measure();
+      const card = cardsOf(el)[rendered.current];
+      if (!card) return;
+      const centred = card.offsetLeft + card.offsetWidth / 2 - el.clientWidth / 2;
+      if (Math.abs(el.scrollLeft - centred) <= 1) recentre();
+    };
+
+    // Where the browser can say a scroll has finished — snap included — it is
+    // believed straight away rather than waited out. The timer stays for the
+    // browsers that cannot.
+    const onScrollEnd = () => {
+      window.clearTimeout(settle);
+      check();
     };
 
     const onResize = () => {
@@ -397,6 +428,7 @@ export function BoxCarousel({
     };
 
     el.addEventListener("scroll", onScroll, { passive: true });
+    el.addEventListener("scrollend", onScrollEnd);
     el.addEventListener("pointerdown", onTakeOver, { passive: true });
     el.addEventListener("touchstart", onTakeOver, { passive: true });
     el.addEventListener("wheel", onTakeOver, { passive: true });
@@ -405,12 +437,13 @@ export function BoxCarousel({
       if (frame) cancelAnimationFrame(frame);
       window.clearTimeout(settle);
       el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("scrollend", onScrollEnd);
       el.removeEventListener("pointerdown", onTakeOver);
       el.removeEventListener("touchstart", onTakeOver);
       el.removeEventListener("wheel", onTakeOver);
       window.removeEventListener("resize", onResize);
     };
-  }, [measure, recentre]);
+  }, [cardsOf, looping, measure, recentre]);
 
   /**
    * One box along, in the direction given.

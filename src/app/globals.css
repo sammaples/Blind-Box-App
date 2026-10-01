@@ -112,6 +112,13 @@ body {
   color: transparent;
 }
 
+/* The shop's two headings — "Pick your box" and the box's name — are the
+   largest shimmering type in the app, and at the shared pace the light
+   raced across them. Same sweep, taken more slowly. */
+.shimmer-text.shimmer-slow {
+  animation-duration: 5s;
+}
+
 /*
  * The glint across the box on sale: a soft band of white that sweeps over
  * each wall, then rests, like light catching a foil wrap as it turns.
