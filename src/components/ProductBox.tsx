@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
+import { useId } from "react";
 import { boxGeometry, type BoxFace } from "@/lib/boxShape";
 import { BoxPrint } from "./BoxPrint";
 
@@ -94,17 +95,22 @@ export function ProductBox({
    * own have no such trouble: the hook and the dot are separate objects, and
    * the space between them is a number rather than a leftover.
    *
-   * The volume is real rather than drawn on. The shape's own alpha is blurred
-   * into a height map and lit from the upper left, so the surface rounds off
-   * smoothly at the edges the way an inflated sticker does — stacking offset
-   * copies gives thickness too, but it gives it in visible steps, which is
-   * what makes those look like stacked copies rather than one solid object.
+   * The volume is built from gradients and plain shapes, never a filter —
+   * see the note inside Mark for why Safari makes that a rule.
    */
   const MARK_LIFT = 2;
   /** The mark is sized off the wall it is stuck to, not off a fixed number. */
   const markSize = Math.round(width * 0.5);
 
   const markFace = printed ? "#fff" : accent;
+  // Unique to this box on the page, and safe inside url(#…) — React's own ids
+  // carry colons, which Safari has been known to stumble on there.
+  const instance = `mk${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+
+  /** The hook, the gloss that runs along its lit side, and the dot. */
+  const MARK_HOOK = "M 13.4 15.2 C 13.4 8.9 26.6 8.9 26.6 15.2 C 26.6 19.8 20 20.2 20 23.4";
+  const MARK_GLOSS = "M 15.2 14.2 C 15.6 10.9 19.0 9.7 22.0 10.1";
+  const MARK_DOT = { cx: 20, cy: 33, r: 3.5 };
 
   const Mark = ({ face }: { face: "front" | "right" | "back" | "left" }) => {
     // Each mark is turned to face out of its own wall, or it would read in
@@ -116,9 +122,19 @@ export function ProductBox({
       left: "rotateY(-90deg) ",
     }[face];
 
-    // The filter and gradient live in the document, so every mark on every
-    // card needs its own ids or they collide and share one another's lighting.
-    const uid = `mk-${accent.replace(/[^a-z0-9]/gi, "")}-${face}`;
+    // The gradient lives in the document, so every mark on every box needs
+    // its own id. Per instance, not per colour: the looping rail draws the
+    // same box more than once, and Safari resolves a duplicated id to
+    // whichever copy it meets first — when that copy is on a wall turned
+    // away, the gradient paints nothing.
+    const uid = `${instance}-${face}`;
+
+    const stroke = {
+      fill: "none" as const,
+      strokeWidth: 6.6,
+      strokeLinecap: "round" as const,
+      strokeLinejoin: "round" as const,
+    };
 
     return (
       <div
@@ -126,9 +142,26 @@ export function ProductBox({
         className="absolute inset-x-0 top-1/2 flex justify-center"
         style={{
           backfaceVisibility: "hidden",
+          WebkitBackfaceVisibility: "hidden",
           transform: `${turn}translateZ(${box.width / 2 + MARK_LIFT}px) translateY(-50%)`,
         }}
       >
+        {/*
+          Four passes over one shape, and not a filter among them.
+
+          The puff used to come from an SVG lighting filter: the glyph's alpha
+          blurred into a height map, lit, composited back. It renders
+          beautifully in Chrome. Safari on a phone does not — it draws a
+          filtered layer in a 3D scene as a separate flat layer and sorts it
+          against the walls wrongly, so on a turning box the marks on two of
+          the four walls vanished behind the walls they sit on.
+
+          Gradients and plain shapes have no such trouble, so the volume is
+          built from those: a shadow dropped underneath, the body in its
+          colour, a wash across it light at the top left and deep blue at the
+          bottom right, and a gloss along the lit side. The body is a plain
+          fill, so even if the wash ever failed the mark would still be there.
+        */}
         <svg
           width={markSize}
           height={markSize}
@@ -137,84 +170,46 @@ export function ProductBox({
           style={{ overflow: "visible" }}
         >
           <defs>
-            {/* Across the face: lit at the top, falling into its own shade at
-                the bottom. Painted over the mark's colour rather than mixed
-                into it, so one pair of stops covers white and any accent. */}
-            <linearGradient id={`${uid}-face`} x1="0" y1="0" x2="0.25" y2="1">
-              <stop offset="0" stopColor="#fff" stopOpacity="0.5" />
-              <stop offset="0.45" stopColor="#fff" stopOpacity="0.04" />
-              <stop offset="1" stopColor="#000" stopOpacity="0.22" />
-            </linearGradient>
-
-            <filter
-              id={`${uid}-puff`}
-              x="-40%"
-              y="-40%"
-              width="180%"
-              height="190%"
-              colorInterpolationFilters="sRGB"
+            {/* One light across the whole mark rather than one per shape, so
+                the dot is lit from the same side as the hook above it. */}
+            <linearGradient
+              id={`${uid}-dome`}
+              gradientUnits="userSpaceOnUse"
+              x1="8"
+              y1="5"
+              x2="32"
+              y2="36"
             >
-              {/* The shape's alpha, blurred, is the height map — the blur is
-                  what rounds the edges off instead of cutting them square, and
-                  every unit of it also softens the mark. At this size it buys
-                  the roundness at about one unit and nothing after. */}
-              <feGaussianBlur in="SourceAlpha" stdDeviation="1.1" result="height" />
-              <feSpecularLighting
-                in="height"
-                surfaceScale="2.6"
-                specularConstant="0.75"
-                specularExponent="26"
-                lightingColor="#fff"
-                result="gloss"
-              >
-                <fePointLight x="9" y="3" z="24" />
-              </feSpecularLighting>
-              {/* Light that fell outside the shape is light on nothing. */}
-              <feComposite in="gloss" in2="SourceAlpha" operator="in" result="gloss" />
-              <feComposite
-                in="SourceGraphic"
-                in2="gloss"
-                operator="arithmetic"
-                k1="0"
-                k2="1"
-                k3="1"
-                k4="0"
-              />
-              <feDropShadow
-                dx="0"
-                dy="1.1"
-                stdDeviation="0.8"
-                floodColor="#000"
-                floodOpacity="0.45"
-              />
-            </filter>
-
-            {/* The hook and the dot, as one reusable pair. Three units of air
-                between the end of the stem and the top of the dot: at a stroke
-                this thick, anything less and the two close up into a smudge at
-                card size, which is the whole reason the mark is drawn. */}
-            <g id={`${uid}-glyph`}>
-              <path
-                d="M 13.4 15.2 C 13.4 8.9 26.6 8.9 26.6 15.2 C 26.6 19.8 20 20.2 20 23.4"
-                fill="none"
-                strokeWidth="6.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <circle cx="20" cy="33" r="3.5" />
-            </g>
+              <stop offset="0" stopColor="#fff" stopOpacity="0.62" />
+              <stop offset="0.42" stopColor="#fff" stopOpacity="0.05" />
+              <stop offset="1" stopColor="#0b2236" stopOpacity="0.34" />
+            </linearGradient>
           </defs>
 
-          <g filter={`url(#${uid}-puff)`}>
-            {/* The mark twice over on the same geometry: its colour, then the
-                light across it. */}
-            <use href={`#${uid}-glyph`} fill={markFace} stroke={markFace} />
-            <use
-              href={`#${uid}-glyph`}
-              fill={`url(#${uid}-face)`}
-              stroke={`url(#${uid}-face)`}
-            />
+          {/* What it casts on the wall. Offset rather than blurred: a blur is
+              a filter, and filters are the thing this is avoiding. */}
+          <g transform="translate(0 1.9)" opacity="0.42">
+            <path d={MARK_HOOK} stroke="#08192a" {...stroke} />
+            <circle {...MARK_DOT} fill="#08192a" />
           </g>
+
+          {/* The body, then the light across it. */}
+          <path d={MARK_HOOK} stroke={markFace} {...stroke} />
+          <circle {...MARK_DOT} fill={markFace} />
+          <path d={MARK_HOOK} stroke={`url(#${uid}-dome)`} {...stroke} />
+          <circle {...MARK_DOT} fill={`url(#${uid}-dome)`} />
+
+          {/* The gloss: a short highlight riding the top of the tube, which is
+              what a lit round surface has and a flat one does not. */}
+          <path
+            d={MARK_GLOSS}
+            fill="none"
+            stroke="#fff"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            opacity="0.8"
+          />
+          <circle cx="18.7" cy="31.7" r="1.15" fill="#fff" opacity="0.7" />
         </svg>
       </div>
     );
