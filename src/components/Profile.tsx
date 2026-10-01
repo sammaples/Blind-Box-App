@@ -225,8 +225,8 @@ function SignedIn({ onClose }: { onClose: () => void }) {
 
       <Group label="Account">
         <Row href="/collection" onClose={onClose} icon={<VaultIcon />}>My vault</Row>
-        <Row href="/wallet" onClose={onClose} icon={<CoinIcon />}>Coins</Row>
         <Row href="/rewards" onClose={onClose} icon={<GiftIcon />}>Rewards</Row>
+        <Row href="/wallet" onClose={onClose} icon={<CoinIcon />}>Coins</Row>
         {account.isAdmin && (
           <Row href="/admin" onClose={onClose} icon={<BoxIcon />}>Inventory console</Row>
         )}
