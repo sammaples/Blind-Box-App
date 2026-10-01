@@ -175,6 +175,13 @@ export interface Backend {
     note?: string | null;
   }): Promise<{ ok: boolean; balance: number; applied: boolean }>;
 
+  /**
+   * Frees a ledger key so the same cause can pay again, by renaming the entry
+   * that holds it. The entry, and the coins it moved, stay in the history.
+   * Returns how many entries were renamed.
+   */
+  retireCoinRef(input: { collectorId: string; reason: CoinReason; ref: string; to: string }): Promise<number>;
+
   /** The most recent movements, newest first. */
   coinHistory(collectorId: string, limit: number): Promise<CoinEntry[]>;
 

@@ -190,8 +190,9 @@ function Lights({ spinning }: { spinning: boolean }) {
         return (
           <circle
             key={k}
-            cx={x}
-            cy={y}
+            // Rounded so the server and the browser print the same number.
+            cx={x.toFixed(2)}
+            cy={y.toFixed(2)}
             r="3.6"
             className={spinning ? "spin-bulb-chase" : "spin-bulb"}
             style={{ animationDelay: `${spinning ? (k % 4) * 90 : (k % 2) * 700}ms` }}
@@ -266,6 +267,20 @@ export function SpinWheel() {
     }, 1000);
     return () => clearInterval(t);
   }, [phase, nextAt]);
+
+  // Admins only, for trying the wheel again today; the server checks too.
+  const resetSpin = async () => {
+    setError(null);
+    const res = await fetch("/api/rewards/spin", { method: "DELETE" });
+    if (!res.ok) {
+      setError("Couldn’t reset the spin");
+      return;
+    }
+    setWon(null);
+    setLit(null);
+    setShown(0);
+    setPhase("ready");
+  };
 
   const kick = () => {
     pointer.current?.animate(
@@ -530,6 +545,15 @@ export function SpinWheel() {
               {phase === "won" ? "Added to your coins · " : won !== null ? "Today’s spin · " : ""}
               Next spin in {untilLabel(nextAt - now)}
             </p>
+            {account?.isAdmin && (phase === "done" || phase === "won") && (
+              <button
+                type="button"
+                onClick={() => void resetSpin()}
+                className="mt-3 rounded-full border border-hairline px-3.5 py-1.5 text-[12px] font-medium text-muted transition-colors hover:text-chalk"
+              >
+                Reset my daily spin
+              </button>
+            )}
           </>
         ) : (
           <>

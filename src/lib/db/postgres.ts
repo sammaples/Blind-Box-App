@@ -387,6 +387,15 @@ export function createPostgresBackend(connectionString: string): Backend {
       });
     },
 
+    async retireCoinRef({ collectorId, reason, ref, to }) {
+      const { rowCount } = await query(
+        `update coin_ledger set ref = $4
+          where collector_id = $1 and reason = $2 and ref = $3`,
+        [collectorId, reason, ref, to],
+      );
+      return rowCount ?? 0;
+    },
+
     async coinHistory(collectorId, limit) {
       const { rows } = await query(
         `select * from coin_ledger

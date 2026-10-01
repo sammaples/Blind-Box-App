@@ -252,6 +252,19 @@ export function createJsonBackend(): Backend {
       });
     },
 
+    async retireCoinRef({ collectorId, reason, ref, to }) {
+      return transact((db) => {
+        let renamed = 0;
+        for (const e of db.coinLedger ?? []) {
+          if (e.collectorId === collectorId && e.reason === reason && e.ref === ref) {
+            e.ref = to;
+            renamed += 1;
+          }
+        }
+        return renamed;
+      });
+    },
+
     async coinHistory(collectorId, limit) {
       const db = await read();
       return (db.coinLedger ?? [])

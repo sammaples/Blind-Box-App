@@ -1,5 +1,6 @@
 import { randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
+import { isAdmin } from "@/lib/admin";
 import { currentAccountId } from "@/lib/auth";
 import { backend } from "@/lib/db";
 import { nextSpinAt, prizeFor, SPIN_SLOTS, spinDay } from "@/lib/spin";
@@ -77,4 +78,24 @@ export async function POST() {
     balance: credit.balance,
     nextAt: nextSpinAt().toISOString(),
   });
+}
+
+/**
+ * Gives an admin today's spin back, for trying the wheel more than once a
+ * day. Today's entry is renamed rather than removed, so the coins it paid and
+ * its line in the history both stay; only the once-a-day lock is lifted.
+ */
+export async function DELETE() {
+  const collectorId = await currentAccountId();
+  if (!collectorId || !(await isAdmin())) {
+    return NextResponse.json({ error: "Not authorised" }, { status: 401 });
+  }
+  const ref = spinRef(collectorId, spinDay());
+  const reset = await backend().retireCoinRef({
+    collectorId,
+    reason: "spin",
+    ref,
+    to: `${ref}:reset:${Date.now()}`,
+  });
+  return NextResponse.json({ ok: true, reset });
 }
