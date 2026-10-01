@@ -70,7 +70,7 @@ export function Shop({
           goes after reading it, and clear of the boxes below. */}
       <div className="flex shrink-0 items-center justify-between gap-3">
         <h1
-          className="shimmer-text w-fit shrink-0 text-3xl font-semibold tracking-tight sm:text-4xl [@media(max-height:720px)]:text-2xl"
+          className="shimmer-text shimmer-slow w-fit shrink-0 text-3xl font-semibold tracking-tight sm:text-4xl [@media(max-height:720px)]:text-2xl"
           style={{
             backgroundImage:
               "linear-gradient(100deg, #9d9dad 0%, #f5f5f7 28%, #ffffff 46%, #ffffff 54%, #f5f5f7 72%, #9d9dad 100%)",
@@ -288,7 +288,7 @@ function BoxDetail({
               light passing over it, so the name reads as the finish of the
               thing you are about to buy rather than a label under it. */}
           <h3
-            className="shimmer-text mx-auto w-fit max-w-full truncate text-xl font-bold tracking-tight"
+            className="shimmer-text shimmer-slow mx-auto w-fit max-w-full truncate text-xl font-bold tracking-tight"
             style={{
               backgroundImage: `linear-gradient(100deg, color-mix(in srgb, ${product.accent} 55%, #000) 0%, ${product.accent} 26%, color-mix(in srgb, ${product.accent} 30%, #fff) 45%, #fff 50%, color-mix(in srgb, ${product.accent} 30%, #fff) 55%, ${product.accent} 74%, color-mix(in srgb, ${product.accent} 55%, #000) 100%)`,
             }}
