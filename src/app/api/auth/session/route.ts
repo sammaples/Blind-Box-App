@@ -31,6 +31,7 @@ export async function GET() {
     account: {
       id: account.id,
       email: account.email,
+      phone: account.phone ?? null,
       displayName: account.displayName,
       isAdmin: admin.ok,
       /** Coins in hand, so the header can show them without a second call. */

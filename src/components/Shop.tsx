@@ -18,6 +18,7 @@ import { Price } from "./ui";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { useLivePulls } from "@/lib/useLivePulls";
 import { redeemCost } from "@/lib/coins";
+import { formatPhone } from "@/lib/phone";
 import { BoxCarousel } from "./BoxCarousel";
 import { HowItWorksButton } from "./HowItWorks";
 import { RecentPulls } from "./RecentPulls";
@@ -486,7 +487,7 @@ function CheckoutSheet({
               <span className="text-[11px] uppercase tracking-[0.16em] text-faint">
                 Buying as
               </span>
-              <span className="truncate text-sm text-chalk">{account?.email}</span>
+              <span className="truncate text-sm text-chalk">{account?.email ?? formatPhone(account?.phone)}</span>
             </div>
 
             <button

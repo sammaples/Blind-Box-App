@@ -62,6 +62,7 @@ function toCollector(r: Row): Collector {
     id: r.id as string,
     email: (r.email as string | null) ?? null,
     appleSub: (r.apple_sub as string | null) ?? null,
+    phone: (r.phone as string | null) ?? null,
     displayName: (r.display_name as string | null) ?? null,
     createdAt: (r.created_at as Date).toISOString(),
     coins: Number(r.coins ?? 0),
@@ -273,7 +274,7 @@ export function createPostgresBackend(connectionString: string): Backend {
     async deleteAccount(id) {
       await query(
         `update collectors
-            set email = null, display_name = null, apple_sub = null,
+            set email = null, display_name = null, apple_sub = null, phone = null,
                 coins = 0, is_admin = false, deleted_at = now()
           where id = $1`,
         [id],
@@ -291,6 +292,20 @@ export function createPostgresBackend(connectionString: string): Backend {
            do update set last_login_at = now()
          returning *`,
         [`acc_${randomUUID().replace(/-/g, "").slice(0, 24)}`, key],
+      );
+      return toCollector(rows[0]);
+    },
+
+    async accountForPhone(phone) {
+      // The partial unique index on phone makes this one account even if
+      // two codes are checked at the same moment.
+      const { rows } = await query(
+        `insert into collectors (id, phone, last_login_at)
+         values ($1, $2, now())
+         on conflict (phone) where phone is not null
+           do update set last_login_at = now()
+         returning *`,
+        [`acc_${randomUUID().replace(/-/g, "").slice(0, 24)}`, phone],
       );
       return toCollector(rows[0]);
     },

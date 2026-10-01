@@ -101,6 +101,9 @@ export interface Backend {
   /** The account for an email, created on first sign-in. */
   accountForEmail(email: string): Promise<Collector>;
 
+  /** The account for a proved phone number (E.164), created on first sign-in. */
+  accountForPhone(phone: string): Promise<Collector>;
+
   /**
    * Deletes an account: empties everything that identifies the person, zeroes
    * the coins and stamps it deleted. Orders and parcels stay, unnamed.

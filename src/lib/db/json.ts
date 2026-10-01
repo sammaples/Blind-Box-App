@@ -67,6 +67,7 @@ function blankCollector(id: string): Collector {
     id,
     email: null,
     appleSub: null,
+    phone: null,
     coins: 0,
     displayName: null,
     createdAt: new Date().toISOString(),
@@ -161,6 +162,7 @@ export function createJsonBackend(): Backend {
         account.email = null;
         account.displayName = null;
         account.appleSub = null;
+        account.phone = null;
         account.coins = 0;
         account.isAdmin = false;
         account.deletedAt = new Date().toISOString();
@@ -176,6 +178,19 @@ export function createJsonBackend(): Backend {
         if (!account) {
           account = blankCollector(`acc_${randomUUID().replace(/-/g, "").slice(0, 24)}`);
           account.email = key;
+          db.collectors.push(account);
+        }
+        account.lastLoginAt = new Date().toISOString();
+        return account;
+      });
+    },
+
+    async accountForPhone(phone) {
+      return transact((db) => {
+        let account = db.collectors.find((c) => c.phone === phone);
+        if (!account) {
+          account = blankCollector(`acc_${randomUUID().replace(/-/g, "").slice(0, 24)}`);
+          account.phone = phone;
           db.collectors.push(account);
         }
         account.lastLoginAt = new Date().toISOString();

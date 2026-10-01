@@ -116,6 +116,29 @@ export async function issueLoginToken(email: string): Promise<{ token: string; c
   return { token, code };
 }
 
+/**
+ * A phone number in E.164 form ("+15551234567"), or null.
+ *
+ * Ten digits are taken as a US number, since that is where the shop ships
+ * from; anything else has to be written with its country code, "+44 …".
+ */
+export function normalisePhone(input: unknown): string | null {
+  if (typeof input !== "string") return null;
+  const trimmed = input.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  if (trimmed.startsWith("+")) {
+    return digits.length >= 8 && digits.length <= 15 && digits[0] !== "0" ? `+${digits}` : null;
+  }
+  if (digits.length === 11 && digits.startsWith("1")) return normalisePhone(`+${digits}`);
+  if (digits.length === 10 && /^[2-9]\d{2}[2-9]/.test(digits)) return `+1${digits}`;
+  return null;
+}
+
+/** Signs in a number the SMS provider has just proved. */
+export async function signInWithPhone(phone: string): Promise<Collector> {
+  return syncAdmin(await backend().accountForPhone(phone));
+}
+
 /** Redeems a typed code for the address it was sent to. */
 export async function redeemLoginCode(email: string, code: string): Promise<Collector | null> {
   const used = await backend().consumeLoginToken(codeHashFor(email, code), new Date().toISOString());

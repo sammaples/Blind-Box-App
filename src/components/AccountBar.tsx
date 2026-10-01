@@ -11,6 +11,8 @@ import { ProfileScreen, SignInScreen } from "./Profile";
 export interface Account {
   id: string;
   email: string | null;
+  /** E.164, when they signed in with a phone number. */
+  phone: string | null;
   displayName: string | null;
   /** Coins in hand. */
   coins: number;

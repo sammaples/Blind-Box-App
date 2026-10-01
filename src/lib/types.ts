@@ -278,6 +278,8 @@ export interface Collector {
   email: string | null;
   /** Apple's stable id for this person, when they signed in that way. */
   appleSub?: string | null;
+  /** A proved phone number in E.164 form, when they signed in that way. */
+  phone?: string | null;
   /** Coins in hand. The ledger is the history; this is the running total. */
   coins: number;
   displayName: string | null;

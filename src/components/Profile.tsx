@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { wordmark } from "@/lib/fonts";
+import { formatPhone } from "@/lib/phone";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { useAccount } from "./AccountBar";
 import { AppleMark } from "./AppleButton";
@@ -206,7 +207,9 @@ function SignedIn({ onClose }: { onClose: () => void }) {
             <p className="truncate text-[20px] font-semibold tracking-tight">
               {account.displayName || "Collector"}
             </p>
-            {account.email && <p className="mt-0.5 truncate text-sm text-muted">{account.email}</p>}
+            {(account.email || account.phone) && (
+              <p className="mt-0.5 truncate text-sm text-muted">{account.email ?? formatPhone(account.phone)}</p>
+            )}
           </div>
         </div>
         <div className="grid grid-cols-2 border-t border-white/10 bg-black/40">
@@ -441,59 +444,11 @@ export function SignInScreen({
     if (open) setNext(window.location.pathname + window.location.search + window.location.hash);
   }, [open]);
 
-  // Email sign-in, two steps: the address, then the code that was sent to
-  // it. A code rather than only the link, because the link opens in the
-  // browser, and an app added to the home screen keeps its own sign-in.
-  const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Each way in is one button here; the typing happens in a sheet of its own.
+  const [method, setMethod] = useState<CodeMethod | null>(null);
   useEffect(() => {
-    if (!open) {
-      setSentTo(null);
-      setCode("");
-      setError(null);
-    }
+    if (!open) setMethod(null);
   }, [open]);
-
-  const post = async (url: string, body: object) => {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data?.error ?? "Something went wrong");
-    return data;
-  };
-
-  const sendCode = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const data = await post("/api/auth/request", { email, next });
-      setSentTo(email.trim());
-      setCode(typeof data.devCode === "string" ? data.devCode : "");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const redeem = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      await post("/api/auth/code", { email: sentTo, code });
-      onSignedIn();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const pill =
     "flex h-14 w-full items-center justify-center gap-2.5 rounded-full text-[17px] font-semibold transition-transform active:scale-[0.98]";
@@ -533,7 +488,7 @@ export function SignInScreen({
 
           <div className="mx-auto w-full max-w-md">
             {reason && (
-              <p className="mb-4 text-center text-[14px] leading-relaxed text-[#1a1640]/80">{reason}</p>
+              <p className="mb-4 text-center text-[14px] leading-relaxed text-white/85">{reason}</p>
             )}
             {apple ? (
               <a href={`/auth/apple?next=${encodeURIComponent(next)}`} className={`${pill} bg-white text-black`}>
@@ -546,91 +501,14 @@ export function SignInScreen({
                 Apple sign in isn’t available right now
               </div>
             )}
-
-            <div className="my-4 flex items-center gap-3 text-[12px] font-medium uppercase tracking-[0.14em] text-white/60">
-              <span className="h-px flex-1 bg-white/25" />
-              or
-              <span className="h-px flex-1 bg-white/25" />
-            </div>
-
-            {sentTo === null ? (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void sendCode();
-                }}
-              >
-                <input
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  aria-label="Email address"
-                  className="h-14 w-full rounded-full bg-white/85 px-6 text-[17px] text-[#0e0b2a] outline-none placeholder:text-[#1a1640]/40 focus:bg-white"
-                />
-                <button
-                  type="submit"
-                  disabled={busy || email.trim() === ""}
-                  className={`${pill} mt-3 bg-[#0e0b2a] text-white disabled:opacity-50`}
-                >
-                  {busy ? "Sending…" : "Email me a sign-in code"}
-                </button>
-              </form>
-            ) : (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void redeem();
-                }}
-              >
-                <p className="mb-3 text-center text-[14px] leading-relaxed text-white/80">
-                  We sent a code to <span className="font-semibold text-white">{sentTo}</span>
-                </p>
-                <input
-                  type="text"
-                  autoComplete="one-time-code"
-                  autoCapitalize="characters"
-                  spellCheck={false}
-                  maxLength={9}
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  placeholder="XXXX-XXXX"
-                  aria-label="Sign-in code"
-                  className="h-14 w-full rounded-full bg-white/85 px-6 text-center font-mono text-[20px] tracking-[0.2em] text-[#0e0b2a] outline-none placeholder:text-[#1a1640]/30 focus:bg-white"
-                />
-                <button
-                  type="submit"
-                  disabled={busy || code.replace(/[^a-z0-9]/gi, "").length !== 8}
-                  className={`${pill} mt-3 bg-[#0e0b2a] text-white disabled:opacity-50`}
-                >
-                  {busy ? "Signing in…" : "Sign in"}
-                </button>
-                <p className="mt-3 flex justify-center gap-5 text-[13px] text-[#1a1640]/75">
-                  <button type="button" disabled={busy} onClick={() => void sendCode()} className="underline underline-offset-4">
-                    Send a new code
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSentTo(null);
-                      setCode("");
-                      setError(null);
-                    }}
-                    className="underline underline-offset-4"
-                  >
-                    Use a different email
-                  </button>
-                </p>
-              </form>
-            )}
-
-            {error && <p className="mt-3 text-center text-xs text-rose-700">{error}</p>}
-
+            <button type="button" onClick={() => setMethod("email")} className={`${pill} mt-3 bg-white text-black`}>
+              <MailGlyph className="size-[21px]" />
+              Continue with email
+            </button>
+            <button type="button" onClick={() => setMethod("phone")} className={`${pill} mt-3 bg-white text-black`}>
+              <PhoneGlyph className="size-[21px]" />
+              Continue with phone
+            </button>
             <button
               type="button"
               onClick={onClose}
@@ -652,5 +530,316 @@ export function SignInScreen({
     </AnimatePresence>
   );
 
-  return mounted ? createPortal(screen, document.body) : null;
+  return mounted
+    ? createPortal(
+        <>
+          {screen}
+          <CodeSheet method={open ? method : null} next={next} onClose={() => setMethod(null)} onSignedIn={onSignedIn} />
+        </>,
+        document.body,
+      )
+    : null;
+}
+
+type CodeMethod = "email" | "phone";
+
+const METHOD = {
+  email: {
+    title: "Sign in with email",
+    hint: "We’ll email you a code.",
+    send: "/api/auth/request",
+    verify: "/api/auth/code",
+    change: "Use a different email",
+    codeLength: 8,
+  },
+  phone: {
+    title: "Sign in with phone",
+    hint: "We’ll text you a code.",
+    send: "/api/auth/phone/send",
+    verify: "/api/auth/phone/verify",
+    change: "Use a different number",
+    codeLength: 6,
+  },
+} as const;
+
+/** "5551234567" as "(555) 123-4567" while it is typed; "+44…" left alone. */
+function typedPhone(value: string, previous: string): string {
+  if (value.trim().startsWith("+")) return value;
+  let digits = value.replace(/\D/g, "");
+  // A backspace over a bracket or dash removes nothing but the formatting,
+  // which would put straight back — so take the digit before it instead.
+  if (value.length < previous.length && digits === previous.replace(/\D/g, "")) digits = digits.slice(0, -1);
+  if (digits.length > 10) return digits;
+  if (digits.length < 4) return digits;
+  if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+/** How far the on-screen keyboard covers the bottom, so a sheet can sit on it. */
+function useKeyboardInset(active: boolean): number {
+  const [inset, setInset] = useState(0);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!active || !vv) return;
+    const update = () => setInset(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      setInset(0);
+    };
+  }, [active]);
+  return inset;
+}
+
+/**
+ * The typing half of signing in by email or phone, in a sheet over the
+ * sign-in screen: the address or number, then the code that was sent to it.
+ *
+ * A code rather than only a link, because a link opens in the browser, and an
+ * app added to the home screen keeps its own sign-in, separate from Safari's.
+ */
+function CodeSheet({
+  method,
+  next,
+  onClose,
+  onSignedIn,
+}: {
+  method: CodeMethod | null;
+  next: string;
+  onClose: () => void;
+  onSignedIn: () => void;
+}) {
+  const [kind, setKind] = useState<CodeMethod>("email");
+  const [value, setValue] = useState("");
+  const [code, setCode] = useState("");
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inset = useKeyboardInset(method !== null);
+
+  // A fresh sheet each time one is opened.
+  useEffect(() => {
+    if (!method) return;
+    setKind(method);
+    setValue("");
+    setCode("");
+    setSentTo(null);
+    setError(null);
+  }, [method]);
+
+  const m = METHOD[kind];
+
+  const post = async (url: string, body: object) => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error ?? "Something went wrong");
+    return data;
+  };
+
+  const send = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const data = await post(m.send, kind === "email" ? { email: value, next } : { phone: value });
+      setSentTo(kind === "phone" && typeof data.phone === "string" ? data.phone : value.trim());
+      setCode(typeof data.devCode === "string" ? data.devCode : "");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verify = async (typed = code) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await post(m.verify, kind === "email" ? { email: sentTo, code: typed } : { phone: sentTo, code: typed });
+      onSignedIn();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const codeReady = code.replace(/[^a-z0-9]/gi, "").length === m.codeLength;
+  const field =
+    "h-14 w-full rounded-2xl bg-[#f1f0f7] px-5 text-[17px] text-[#0e0b2a] outline-none ring-[#4b48d8]/50 placeholder:text-[#1a1640]/35 focus:ring-2";
+  const primary =
+    "mt-3 flex h-14 w-full items-center justify-center rounded-full bg-[#0e0b2a] text-[17px] font-semibold text-white transition-transform active:scale-[0.98] disabled:opacity-40";
+
+  return (
+    <AnimatePresence>
+      {method && (
+        <motion.div
+          key="code-sheet"
+          className="fixed inset-0 z-[75]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/40" />
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label={m.title}
+            className="absolute inset-x-0 mx-auto w-full max-w-md rounded-t-[28px] bg-white px-6 pt-3 text-[#0e0b2a] shadow-[0_-12px_40px_rgba(10,10,40,0.3)]"
+            style={{
+              bottom: inset,
+              paddingBottom: inset > 0 ? "1.25rem" : "calc(1.5rem + env(safe-area-inset-bottom))",
+            }}
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", stiffness: 420, damping: 40 }}
+          >
+            <span className="mx-auto block h-1.5 w-10 rounded-full bg-[#0e0b2a]/15" />
+            <div className="mt-3 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-[22px] font-semibold tracking-tight">{sentTo ? "Enter the code" : m.title}</h2>
+                <p className="mt-1 text-[14px] text-[#1a1640]/60">
+                  {sentTo ? (
+                    <>
+                      Sent to <span className="font-medium text-[#0e0b2a]">{kind === "phone" ? formatPhone(sentTo) : sentTo}</span>
+                    </>
+                  ) : (
+                    m.hint
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close"
+                className="-mr-1 grid size-9 shrink-0 place-items-center rounded-full bg-[#0e0b2a]/[0.06]"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                  <path d="M6 6l12 12M18 6 6 18" />
+                </svg>
+              </button>
+            </div>
+
+            {sentTo === null ? (
+              <form
+                className="mt-5"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void send();
+                }}
+              >
+                {kind === "email" ? (
+                  <input
+                    key="email"
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    autoFocus
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    placeholder="you@example.com"
+                    aria-label="Email address"
+                    className={field}
+                  />
+                ) : (
+                  <input
+                    key="phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    autoFocus
+                    value={value}
+                    onChange={(e) => setValue(typedPhone(e.target.value, value))}
+                    placeholder="(555) 123-4567"
+                    aria-label="Phone number"
+                    className={field}
+                  />
+                )}
+                <button type="submit" disabled={busy || value.trim() === ""} className={primary}>
+                  {busy ? "Sending…" : "Send code"}
+                </button>
+              </form>
+            ) : (
+              <form
+                className="mt-5"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void verify();
+                }}
+              >
+                <input
+                  key="code"
+                  type="text"
+                  inputMode={kind === "phone" ? "numeric" : "text"}
+                  autoComplete="one-time-code"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  autoFocus
+                  maxLength={kind === "phone" ? 10 : 9}
+                  value={code}
+                  onChange={(e) => {
+                    const typed = kind === "phone" ? e.target.value.replace(/\D/g, "") : e.target.value.toUpperCase();
+                    setCode(typed);
+                    // A whole code, typed or filled in from the text, signs in
+                    // without another tap.
+                    if (!busy && typed.replace(/[^a-z0-9]/gi, "").length === m.codeLength) void verify(typed);
+                  }}
+                  placeholder={kind === "phone" ? "123456" : "XXXX-XXXX"}
+                  aria-label="Sign-in code"
+                  className={`${field} text-center font-mono text-[22px] tracking-[0.25em]`}
+                />
+                <button type="submit" disabled={busy || !codeReady} className={primary}>
+                  {busy ? "Signing in…" : "Sign in"}
+                </button>
+                <p className="mt-4 flex justify-center gap-6 text-[14px] text-[#1a1640]/60">
+                  <button type="button" disabled={busy} onClick={() => void send()} className="underline underline-offset-4">
+                    Send a new code
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSentTo(null);
+                      setCode("");
+                      setError(null);
+                    }}
+                    className="underline underline-offset-4"
+                  >
+                    {m.change}
+                  </button>
+                </p>
+              </form>
+            )}
+            {error && <p className="mt-3 text-center text-[13px] text-rose-600">{error}</p>}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function MailGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className={className} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <path d="m4 7 8 6 8-6" />
+    </svg>
+  );
+}
+
+function PhoneGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className={className} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="6.5" y="2.5" width="11" height="19" rx="2.5" />
+      <path d="M10.5 18.5h3" />
+    </svg>
+  );
 }
