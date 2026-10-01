@@ -38,11 +38,11 @@ function ago(iso: string, now: number): string {
 const ROTATE_MS = 5550;
 
 /**
- * How long a new pull stays lit, start to finish: about four and a half
- * seconds held with a slow pulse, then a fade. Long enough to be noticed by
+ * How long a new pull stays lit, start to finish: six and a half seconds,
+ * most of it held with a slow pulse, then a fade. Long enough to be noticed by
  * somebody who was looking at the box rather than the row when it landed.
  */
-const GLOW_S = 6;
+const GLOW_S = 6.5;
 
 export function RecentPulls({
   pulls,
@@ -107,7 +107,7 @@ export function RecentPulls({
     };
     // A pull that has just landed holds the row until its glow has run out,
     // so the card is not carried off while it is still lit.
-    const first = landed.current ? Math.max(ROTATE_MS, GLOW_S * 1000 + 600) : ROTATE_MS;
+    const first = landed.current ? Math.max(ROTATE_MS, GLOW_S * 1000) : ROTATE_MS;
     landed.current = false;
     let id = 0;
     const lead = window.setTimeout(() => {
