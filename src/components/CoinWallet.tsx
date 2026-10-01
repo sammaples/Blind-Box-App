@@ -7,6 +7,7 @@ import { Coins } from "./Coin";
 
 const REASON_LABEL: Record<string, string> = {
   earn: "Opened a box",
+  spin: "Daily spin",
   trade_in: "Traded in",
   purchase: "Bought coins",
   spend: "Redeemed a box",

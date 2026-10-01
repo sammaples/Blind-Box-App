@@ -34,6 +34,18 @@ export default function WalletPage() {
             icon={<path d="M12 3 4 7v10l8 4 8-4V7l-8-4Zm0 0v18M4 7l8 4 8-4" />}
           />
           <Way
+            href="/rewards/spin"
+            title="Daily spin"
+            detail="Up to 1,500 coins, free"
+            icon={
+              <>
+                <circle cx="12" cy="12" r="8.5" />
+                <path d="M12 3.5v17M3.5 12h17M6 6l12 12M18 6 6 18" />
+                <circle cx="12" cy="12" r="2.2" fill="currentColor" />
+              </>
+            }
+          />
+          <Way
             href="/rewards"
             title="Challenges"
             detail="Daily & weekly"

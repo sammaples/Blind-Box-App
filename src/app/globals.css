@@ -310,3 +310,67 @@ body {
 ::selection {
   background: rgb(249 115 22 / 0.3);
 }
+
+/* ------------------------------ daily spin ------------------------------ */
+
+/* The ring of lights: a slow alternate twinkle at rest, a fast chase while
+   the wheel turns. */
+.spin-bulb {
+  fill: #fff4cf;
+  filter: drop-shadow(0 0 3px rgb(255 214 120 / 0.9));
+  animation: spin-twinkle 1.4s ease-in-out infinite;
+}
+.spin-bulb-chase {
+  fill: #fff4cf;
+  filter: drop-shadow(0 0 4px rgb(255 214 120 / 1));
+  animation: spin-twinkle 0.36s steps(2, jump-none) infinite;
+}
+@keyframes spin-twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+/* The landed slot breathes, so the eye goes straight to it. */
+.spin-lit { animation: spin-lit 0.9s ease-in-out infinite alternate; }
+@keyframes spin-lit {
+  from { fill-opacity: 0.08; stroke-opacity: 0.6; }
+  to { fill-opacity: 0.32; stroke-opacity: 1; }
+}
+
+.spin-sparkle { transform-box: fill-box; transform-origin: center; animation: spin-sparkle 1.8s ease-in-out infinite; }
+@keyframes spin-sparkle {
+  0%, 100% { transform: scale(0.6) rotate(0deg); opacity: 0.6; }
+  50% { transform: scale(1.15) rotate(45deg); opacity: 1; }
+}
+
+/* The hub asks to be pressed while there is a spin to take. */
+.spin-hub-ready { animation: spin-hub 1.8s ease-in-out infinite; }
+@keyframes spin-hub {
+  0%, 100% { box-shadow: 0 6px 18px rgb(0 0 0 / 0.55), 0 0 0 0 rgb(255 255 255 / 0.45), inset 0 -3px 6px rgb(0 0 0 / 0.18); }
+  50% { box-shadow: 0 6px 18px rgb(0 0 0 / 0.55), 0 0 0 12px rgb(255 255 255 / 0), inset 0 -3px 6px rgb(0 0 0 / 0.18); }
+}
+
+/* Coins thrown out of the middle: up and out, then falling, spinning. */
+.spin-coin {
+  opacity: 0;
+  animation: spin-coin 1.6s cubic-bezier(0.15, 0.7, 0.4, 1) both;
+}
+@keyframes spin-coin {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.4) rotate(0deg); }
+  10% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 140px)) scale(1) rotate(var(--rot)); }
+}
+
+.spin-pop { animation: spin-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+@keyframes spin-pop { from { transform: scale(0.5); opacity: 0; } }
+
+.spin-jackpot { animation: spin-jackpot 0.8s ease-in-out infinite alternate; }
+@keyframes spin-jackpot {
+  from { opacity: 0.7; text-shadow: 0 0 0 rgb(252 211 77 / 0); }
+  to { opacity: 1; text-shadow: 0 0 18px rgb(252 211 77 / 0.9); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin-bulb, .spin-bulb-chase, .spin-lit, .spin-sparkle, .spin-hub-ready, .spin-jackpot { animation: none; }
+}

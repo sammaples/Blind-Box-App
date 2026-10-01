@@ -298,6 +298,7 @@ export interface Collector {
  */
 export type CoinReason =
   | "earn"
+  | "spin"
   | "trade_in"
   | "purchase"
   | "spend"
