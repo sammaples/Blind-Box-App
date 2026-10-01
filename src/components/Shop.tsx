@@ -488,7 +488,10 @@ function CheckoutSheet({
               >
                 {withCoins ? "Paying with coins" : "Pay with coins"}
                 <span className="text-faint">·</span>
-                <Coins amount={coins} size={13} />
+                {/* What the box costs in coins, not what you hold: this is a
+                    price on a button, and your balance is already in the
+                    header. */}
+                <Coins amount={price} size={13} />
                 {coins < price && (
                   <span className="text-faint">— {price - coins} short</span>
                 )}
