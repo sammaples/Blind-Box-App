@@ -56,12 +56,22 @@ export function ChaseRail({
      */
     <div className="mx-auto w-full max-w-md shrink-0">
       <div className="px-0.5">
-        <h2 className="flex items-center gap-2 text-[13px] font-semibold tracking-tight">
-          <span
-            aria-hidden
-            className="size-1.5 rounded-full"
-            style={{ background: RARITY_COLOR.chase }}
-          />
+        {/*
+          Gold, and lit. The dot that used to sit beside it said "chase" in the
+          same colour the word now says it in, so it was the label twice.
+
+          The gradient runs dark gold through the chase colour to near-white
+          and back, and `shimmer-text` — the app's own, already used elsewhere —
+          walks it across the glyphs. The light has to pass through a colour
+          lighter than the metal to read as a highlight rather than a flicker,
+          which is what the pale stop in the middle is for.
+        */}
+        <h2
+          className="shimmer-text w-fit text-[13px] font-bold tracking-tight"
+          style={{
+            backgroundImage: `linear-gradient(100deg, #8a5a12 0%, ${RARITY_COLOR.chase} 30%, #fff4d2 48%, ${RARITY_COLOR.chase} 66%, #8a5a12 100%)`,
+          }}
+        >
           Chases
         </h2>
       </div>
