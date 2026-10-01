@@ -6,6 +6,7 @@ import {
   formatOdds,
   oddsAsOneIn,
   PRODUCTS,
+  RARITY_COLOR,
   RARITY_LABEL,
   RARITY_ORDER,
   pieceSubtitle,
@@ -15,6 +16,7 @@ import {
 import type { Piece, Rarity, StockEntry } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
 import { PieceCard } from "./PieceCard";
+import { PieceDetail } from "./PieceDetail";
 import { RarityChip } from "./ui";
 import { useScrollLock } from "@/lib/useScrollLock";
 
@@ -38,9 +40,19 @@ function byRarity(a: StockEntry, b: StockEntry): number {
  * What is on the shelf right now. Every tile carries the piece's current pull
  * rate, which is simply its share of the units left — so the listing and the
  * draw cannot disagree, and a piece leaves the grid when the last one sells.
+ *
+ * `initialProductId` opens it on one box, which is how "Box details" arrives
+ * here from the shop. It is only the starting tab: the tabs still work, because
+ * somebody comparing boxes is exactly who ends up on this page.
  */
-export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> }) {
-  const [productId, setProductId] = useState(PRODUCTS[0].id);
+export function SetBrowser({
+  shelves,
+  initialProductId,
+}: {
+  shelves: Record<string, StockEntry[]>;
+  initialProductId?: string;
+}) {
+  const [productId, setProductId] = useState(initialProductId ?? PRODUCTS[0].id);
   const [rarity, setRarity] = useState<Rarity | "all">("all");
   const [selected, setSelected] = useState<StockEntry | null>(null);
 
@@ -57,6 +69,26 @@ export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> 
     const list = rarity === "all" ? available : available.filter((e) => e.piece.rarity === rarity);
     return [...list].sort(byRarity);
   }, [available, rarity]);
+
+  /**
+   * The same pieces, under their tier.
+   *
+   * This page is what "Box details" promises — everything you can win, broken
+   * down by rarity — and a single grid sorted by rarity only implies the
+   * breakdown. Headed sections state it, and each heading carries the tier's
+   * combined rate, so the question "what are my chances of a chase at all" is
+   * answered once at the top of the section rather than inferred from four
+   * tiles. A filtered view is one section, not a bare grid: the heading is
+   * where the tier's own odds live either way.
+   */
+  const groups = useMemo(() => {
+    const total = available.reduce((sum, e) => sum + e.available, 0);
+    return RARITY_ORDER.map((r) => {
+      const rows = entries.filter((e) => e.piece.rarity === r);
+      const units = rows.reduce((sum, e) => sum + e.available, 0);
+      return { rarity: r, entries: rows, share: total > 0 ? units / total : 0 };
+    }).filter((g) => g.entries.length > 0);
+  }, [entries, available]);
 
   const rarities = useMemo(() => {
     const present = new Set(available.map((e) => e.piece.rarity));
@@ -143,22 +175,43 @@ export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> 
             : "Nothing in stock matches that. Try another filter."}
         </p>
       ) : (
-        <motion.div
-          layout
-          className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
-        >
-          <AnimatePresence mode="popLayout">
-            {entries.map((entry) => (
-              <PieceCard
-                key={entry.piece.id}
-                piece={entry.piece}
-                odds={entry.odds}
-                available={entry.available}
-                onSelect={() => setSelected(entry)}
-              />
-            ))}
-          </AnimatePresence>
-        </motion.div>
+        <div className="mt-6 space-y-8">
+          {groups.map((group) => (
+            <section key={group.rarity}>
+              <div className="flex items-baseline justify-between gap-3 border-b border-hairline pb-2">
+                <h3
+                  className="text-[12px] font-bold uppercase tracking-[0.16em]"
+                  style={{ color: RARITY_COLOR[group.rarity] }}
+                >
+                  {RARITY_LABEL[group.rarity]}
+                </h3>
+                {/* The tier's rate, not the piece's: what share of this box's
+                    remaining units sits in this section. */}
+                <p className="shrink-0 font-mono text-[11px] text-muted" title={oddsAsOneIn(group.share)}>
+                  {group.entries.length} {group.entries.length === 1 ? "piece" : "pieces"} ·{" "}
+                  {formatOdds(group.share)}
+                </p>
+              </div>
+
+              <motion.div
+                layout
+                className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
+              >
+                <AnimatePresence mode="popLayout">
+                  {group.entries.map((entry) => (
+                    <PieceCard
+                      key={entry.piece.id}
+                      piece={entry.piece}
+                      odds={entry.odds}
+                      available={entry.available}
+                      onSelect={() => setSelected(entry)}
+                    />
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            </section>
+          ))}
+        </div>
       )}
 
       <PieceDetail
@@ -167,103 +220,5 @@ export function SetBrowser({ shelves }: { shelves: Record<string, StockEntry[]> 
         onClose={() => setSelected(null)}
       />
     </section>
-  );
-}
-
-function PieceDetail({
-  entry,
-  productName,
-  onClose,
-}: {
-  entry: StockEntry | null;
-  productName: string;
-  onClose: () => void;
-}) {
-  const piece: Piece | undefined = entry?.piece;
-  useScrollLock(entry !== null);
-
-  return (
-    <AnimatePresence>
-      {entry && piece && (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-        >
-          <motion.div
-            role="dialog"
-            aria-label={piece.name}
-            initial={{ y: 40, opacity: 0, scale: 0.98 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 24, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 320, damping: 32 }}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg overflow-hidden rounded-t-3xl border border-hairline bg-ink-raised sm:rounded-3xl"
-          >
-            <div
-              className="flex h-64 items-center justify-center"
-              style={{
-                background: `radial-gradient(120% 90% at 50% 10%, ${piece.palette.wash}, #0b0b10 76%)`,
-              }}
-            >
-              <PieceImage
-                piece={piece}
-                className="h-56 w-auto drop-shadow-[0_18px_30px_rgba(0,0,0,0.6)]"
-              />
-            </div>
-            <div className="space-y-4 p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-xl font-semibold tracking-tight">{piece.name}</h3>
-                  <p className="mt-1 text-sm text-muted">{pieceSubtitle(piece)}</p>
-                </div>
-                <RarityChip rarity={piece.rarity} />
-              </div>
-              <p className="text-sm leading-relaxed text-muted">{piece.blurb}</p>
-              <dl className="grid grid-cols-4 gap-3 border-t border-hairline pt-4 text-center text-sm">
-                {/* Which box to buy if you want this piece. It is the first
-                    thing anyone reading a piece page actually needs. */}
-                <div>
-                  <dt className="text-[11px] uppercase tracking-[0.14em] text-faint">Box</dt>
-                  <dd className="mt-1 font-medium" style={{ color: TIER_ACCENT[piece.tier] }}>
-                    {TIER_LABEL[piece.tier]}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] uppercase tracking-[0.14em] text-faint">Scale</dt>
-                  <dd className="mt-1 font-mono">{piece.scale}</dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] uppercase tracking-[0.14em] text-faint">In stock</dt>
-                  <dd className="mt-1 font-mono">
-                    {entry.available}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] uppercase tracking-[0.14em] text-faint">Pull rate</dt>
-                  <dd className="mt-1 font-mono">
-                    {entry.available > 0 ? formatOdds(entry.odds) : "—"}
-                  </dd>
-                </div>
-              </dl>
-              <p className="text-xs text-faint">
-                {entry.available > 0
-                  ? `${oddsAsOneIn(entry.odds)} boxes of ${productName}, at today's stock.`
-                  : "Sold out — this piece is out of the pool until it is restocked."}
-              </p>
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-full rounded-xl bg-white/10 py-3 text-sm font-medium text-chalk transition-colors hover:bg-white/16"
-              >
-                Close
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
   );
 }

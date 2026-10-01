@@ -1,18 +1,22 @@
 import { ScrollToHash } from "@/components/ScrollToHash";
 import { Shop } from "@/components/Shop";
 import { PRODUCTS } from "@/lib/catalog";
+import { recentPullsByProduct } from "@/lib/pulls";
 import { shelfFor } from "@/lib/stock";
 import type { StockEntry } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  // Loaded per request: stock moves every time a box sells.
-  const shelves: Record<string, StockEntry[]> = Object.fromEntries(
-    await Promise.all(
-      PRODUCTS.map(async (p) => [p.id, await shelfFor(p.id)] as const),
-    ),
-  );
+  // Loaded per request: stock moves every time a box sells, and a feed of what
+  // people have pulled is only worth showing if it is current. The two go out
+  // together — the feed does not depend on the shelves, so making it wait for
+  // them would add its round trip to the page's time to first byte for nothing.
+  const [shelfRows, pulls] = await Promise.all([
+    Promise.all(PRODUCTS.map(async (p) => [p.id, await shelfFor(p.id)] as const)),
+    recentPullsByProduct(),
+  ]);
+  const shelves: Record<string, StockEntry[]> = Object.fromEntries(shelfRows);
 
   return (
     <>
@@ -32,7 +36,7 @@ export default async function HomePage() {
       {/* Short screens — an iPhone SE is 667 tall — take the spacing in
           everywhere so the box, which is what gives, keeps a sensible size. */}
       <div className="flex h-[calc(100svh-57px-4.25rem-env(safe-area-inset-bottom))] flex-col pt-5 sm:pt-10 [@media(max-height:720px)]:pt-3">
-        <Shop shelves={shelves} />
+        <Shop shelves={shelves} pulls={pulls} />
       </div>
 
     </>

@@ -416,6 +416,25 @@ export function createPostgresBackend(connectionString: string): Backend {
       return rows[0] ? toOrder(rows[0]) : null;
     },
 
+    async recentPulls(limit) {
+      // Only the four columns the feed shows. `select *` here would pull the
+      // roll seed and the buyer's email out of the database for a public list.
+      const { rows } = await query(
+        `select id, product_id, piece_id, revealed_at
+           from orders
+          where revealed_at is not null
+          order by revealed_at desc
+          limit $1`,
+        [limit],
+      );
+      return rows.map((r) => ({
+        orderId: r.id as string,
+        productId: r.product_id as string,
+        pieceId: r.piece_id as string,
+        at: (r.revealed_at as Date).toISOString(),
+      }));
+    },
+
     async listOrders(collectorId) {
       const { rows } = await query(
         "select * from orders where collector_id = $1 order by created_at desc",

@@ -280,6 +280,20 @@ export function createJsonBackend(): Backend {
       return db.orders.find((o) => o.id === id) ?? null;
     },
 
+    async recentPulls(limit) {
+      const db = await read();
+      return db.orders
+        .filter((o) => o.revealedAt !== null)
+        .sort((a, b) => (b.revealedAt ?? "").localeCompare(a.revealedAt ?? ""))
+        .slice(0, limit)
+        .map((o) => ({
+          orderId: o.id,
+          productId: o.productId,
+          pieceId: o.pieceId,
+          at: o.revealedAt as string,
+        }));
+    },
+
     async listOrders(collectorId) {
       const db = await read();
       return db.orders
