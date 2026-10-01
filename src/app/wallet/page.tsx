@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Coins } from "@/components/Coin";
 import { CoinWallet } from "@/components/CoinWallet";
 import { PRODUCTS } from "@/lib/catalog";
-import { boxReward, redeemCost } from "@/lib/coins";
+import { boxReward, COINS_EARNED_PER_DOLLAR, redeemCost } from "@/lib/coins";
 
 export const metadata: Metadata = {
   title: "Wallet — Blind Box",
@@ -23,10 +23,26 @@ export default function WalletPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-5 pb-10 pt-10 sm:px-8 sm:pt-16">
       <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Wallet</h1>
-      <p className="mt-2 text-sm leading-relaxed text-muted">
-        Every box you open earns 10 coins for each dollar it cost. Save them up and redeem them for
-        a box of your own, at 100 coins a dollar.
-      </p>
+      {/* The rate, drawn rather than explained: nobody reads a paragraph
+          to learn a ratio. */}
+      <div
+        aria-label={`$1 spent earns ${COINS_EARNED_PER_DOLLAR} coins`}
+        className="mt-4 inline-flex items-center gap-4 rounded-2xl border border-hairline bg-ink-card px-5 py-3"
+      >
+        <span className="flex flex-col items-center leading-none">
+          <span className="text-2xl font-semibold">$1</span>
+          <span className="mt-1.5 text-[10.5px] uppercase tracking-[0.16em] text-faint">spent</span>
+        </span>
+        <svg viewBox="0 0 24 24" aria-hidden className="size-5 text-muted" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 12h15m0 0-5-5m5 5-5 5" />
+        </svg>
+        <span className="flex flex-col items-center leading-none">
+          <span className="text-2xl font-semibold">
+            <Coins amount={COINS_EARNED_PER_DOLLAR} size={22} />
+          </span>
+          <span className="mt-1.5 text-[10.5px] uppercase tracking-[0.16em] text-faint">coins</span>
+        </span>
+      </div>
 
       <CoinWallet />
 
@@ -47,8 +63,7 @@ export default function WalletPage() {
           rows={PRODUCTS.map((p) => ({ id: p.id, name: p.name, accent: p.accent, coins: redeemCost(p.priceCents), plus: false }))}
         />
         <p className="mt-3 text-[12px] leading-relaxed text-faint">
-          Pick a box, tap Buy a box, then choose Pay with coins. A box redeemed with coins does not
-          earn coins itself.
+          Pick a box and choose Pay with coins. A box redeemed with coins does not earn coins itself.
         </p>
       </section>
 
