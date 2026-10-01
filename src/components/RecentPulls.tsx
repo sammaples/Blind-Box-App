@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { RARITY_COLOR, RARITY_LABEL } from "@/lib/catalog";
 import type { Pull, StockEntry } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
@@ -35,7 +35,7 @@ function ago(iso: string, now: number): string {
 }
 
 /** How long a card sits in front of you before the row moves on. */
-const ROTATE_MS = 3400;
+const ROTATE_MS = 5550;
 
 export function RecentPulls({
   pulls,
@@ -87,9 +87,46 @@ export function RecentPulls({
       el.scrollTo({ left: atEnd ? 0 : el.scrollLeft + step, behavior: "smooth" });
     }, ROTATE_MS);
     return () => clearInterval(id);
-    // The box is a dependency so the clock restarts on a new box, rather than
-    // moving its first card on a moment after it appears.
-  }, [paused, selected, pulls.length, productId]);
+    // The box and the newest pull are dependencies so the clock restarts on a
+    // new box or a new pull, rather than moving the card that just came into
+    // view on a moment after it got there.
+  }, [paused, selected, pulls.length, productId, pulls[0]?.orderId]);
+
+  /*
+   * A new pull, live.
+   *
+   * It arrives at the front of the list, which is usually off the left of the
+   * row, since the row has been moving along by itself. Left alone, the cards
+   * in view would jump a place to the right the instant it lands. So first
+   * the row is shifted by exactly the width that was added, before paint,
+   * which leaves what is on screen standing still — and then, unless somebody
+   * has a finger on the row or a sheet open, it glides back to the start so
+   * the new one is the thing in front of you. Someone mid-swipe keeps their
+   * place; the new card waits at the front for them.
+   *
+   * A list that does not contain the old first pull at all is a different
+   * box's list, not news, and is left to the box's own fade.
+   */
+  const firstId = useRef(pulls[0]?.orderId);
+  const holding = useRef(false);
+  holding.current = paused || selected !== null;
+  useLayoutEffect(() => {
+    const before = firstId.current;
+    firstId.current = pulls[0]?.orderId;
+    const el = track.current;
+    if (!el || !before || before === pulls[0]?.orderId) return;
+
+    const added = pulls.findIndex((p) => p.orderId === before);
+    if (added <= 0) return;
+
+    const card = el.firstElementChild as HTMLElement | null;
+    if (!card) return;
+    if (el.scrollLeft > 4) el.scrollLeft += added * (card.offsetWidth + 8);
+
+    if (holding.current) return;
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    el.scrollTo({ left: 0, behavior: reduced ? "auto" : "smooth" });
+  }, [pulls]);
 
   /*
    * A pull opens the same sheet the shelf opens, and that sheet wants the
@@ -165,14 +202,18 @@ export function RecentPulls({
                    line with the heading above it. */
                 className="no-scrollbar -mx-5 flex h-full snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain px-5 scroll-pl-5 sm:-mx-1 sm:px-1 sm:scroll-pl-1"
               >
-                {pulls.map((pull) => (
-                  <PullCard
-                    key={pull.orderId}
-                    pull={pull}
-                    now={now}
-                    onSelect={() => setSelected(entryFor(pull))}
-                  />
-                ))}
+                {/* `initial={false}`: the cards the page loads with are just
+                    there. Only one that arrives afterwards animates in. */}
+                <AnimatePresence initial={false}>
+                  {pulls.map((pull) => (
+                    <PullCard
+                      key={pull.orderId}
+                      pull={pull}
+                      now={now}
+                      onSelect={() => setSelected(entryFor(pull))}
+                    />
+                  ))}
+                </AnimatePresence>
               </div>
             )}
           </motion.div>
@@ -199,8 +240,26 @@ function PullCard({
 }) {
   const { piece } = pull;
   return (
-    <button
+    /* A new pull lands with a small pop in its rarity's colour — a ring that
+       lights and fades — so it reads as something that just happened rather
+       than the row reshuffling. Scale and opacity only: its width is there
+       from the first frame, which is what lets the row above shift by exactly
+       one card without a jump. */
+    <motion.button
       type="button"
+      /* Inset, because the row scrolls sideways and so clips top and bottom:
+         a ring drawn outside the card would be cut off flat. */
+      initial={{ opacity: 0, scale: 0.86, boxShadow: `inset 0 0 0 2px ${RARITY_COLOR[piece.rarity]}` }}
+      animate={{ opacity: 1, scale: 1, boxShadow: `inset 0 0 0 2px ${RARITY_COLOR[piece.rarity]}00` }}
+      exit={{ opacity: 0, transition: { duration: 0.15 } }}
+      transition={{
+        opacity: { duration: 0.3 },
+        scale: { type: "spring", stiffness: 420, damping: 24 },
+        // Held lit for a second after the card has landed, so it is seen
+        // standing still and not only while the row glides — then an even
+        // fade, not an ease-out that drops most of it in the first instant.
+        boxShadow: { duration: 1.3, ease: "easeInOut", delay: 1.1 },
+      }}
       onClick={onSelect}
       aria-label={`${piece.name}, ${RARITY_LABEL[piece.rarity]}`}
       className="group flex h-full w-[13.5rem] shrink-0 snap-start items-center gap-2.5 rounded-2xl border border-hairline bg-white/[0.04] p-2 text-left transition-colors hover:border-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400"
@@ -234,6 +293,6 @@ function PullCard({
           {now === null ? " " : ago(pull.at, now)}
         </span>
       </span>
-    </button>
+    </motion.button>
   );
 }

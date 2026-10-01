@@ -16,6 +16,7 @@ import { ProductBox } from "./ProductBox";
 import { useAccount } from "./AccountBar";
 import { Price } from "./ui";
 import { useScrollLock } from "@/lib/useScrollLock";
+import { useLivePulls } from "@/lib/useLivePulls";
 import { coinPrice, topUpFor } from "@/lib/coins";
 import { BoxCarousel } from "./BoxCarousel";
 import { RecentPulls } from "./RecentPulls";
@@ -30,6 +31,8 @@ export function Shop({
   shelves: Record<string, StockEntry[]>;
   pulls: Record<string, Pull[]>;
 }) {
+  // Everybody's pulls, kept current while the shop is open.
+  const livePulls = useLivePulls(pulls);
   const [checkout, setCheckout] = useState<Product | null>(null);
   // Which box the rail has centred. The panel below reads it; the rail owns
   // it, because the rail is the thing that can be swiped.
@@ -101,7 +104,7 @@ export function Shop({
         and links to the full breakdown, so this screen can stay about buying.
       */}
       <RecentPulls
-        pulls={pulls[showing.id] ?? []}
+        pulls={livePulls[showing.id] ?? []}
         shelf={shelves[showing.id] ?? []}
         productId={showing.id}
         productName={showing.name}
