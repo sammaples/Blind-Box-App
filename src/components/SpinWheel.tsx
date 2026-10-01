@@ -408,7 +408,6 @@ export function SpinWheel() {
         <Link href="/rewards" className="text-[13px] font-medium text-muted transition-colors hover:text-chalk">
           ← Rewards
         </Link>
-        <span className="text-[12px] font-medium text-faint">Free · once a day</span>
       </div>
       <div className="mt-3 flex items-center gap-2">
         <h1
