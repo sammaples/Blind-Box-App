@@ -215,6 +215,37 @@ export interface Order {
   paidCoins: number | null;
 }
 
+/**
+ * One pull, as the shop's feed shows it: what came out of which box, and when.
+ *
+ * Deliberately not the Order. An order carries who bought it, what they paid,
+ * the server seed behind the roll and where it is being shipped — none of
+ * which belongs on a public feed, and all of which would be sitting in the
+ * page source of every visitor if this handed the whole record over.
+ */
+export interface RecentPull {
+  orderId: string;
+  productId: string;
+  pieceId: string;
+  /** When it was opened, not when it was bought. */
+  at: string;
+}
+
+/**
+ * The same pull with its piece attached, which is what the shop renders.
+ *
+ * It lives here rather than beside the query that builds it because the feed
+ * is read by a client component, and a type imported from a `server-only`
+ * module is a stray value import away from dragging the database into the
+ * browser bundle.
+ */
+export interface Pull {
+  orderId: string;
+  piece: Piece;
+  /** When it was opened. */
+  at: string;
+}
+
 /** How far along a bundle is. Orders in it follow whatever it says. */
 export type ShipmentStatus = "packing" | "shipped" | "delivered";
 

@@ -10,7 +10,7 @@ import {
   RARITY_LABEL,
   RARITY_ORDER,
 } from "@/lib/catalog";
-import type { Product, Rarity, StockEntry } from "@/lib/types";
+import type { Product, Pull, Rarity, StockEntry } from "@/lib/types";
 import { isPrinted } from "./BoxPrint";
 import { ProductBox } from "./ProductBox";
 import { useAccount } from "./AccountBar";
@@ -18,12 +18,18 @@ import { Price } from "./ui";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { coinPrice, topUpFor } from "@/lib/coins";
 import { BoxCarousel } from "./BoxCarousel";
-import { ChaseRail } from "./ChaseRail";
+import { RecentPulls } from "./RecentPulls";
 import { BuyCoins } from "./BuyCoins";
 import { Coins } from "./Coin";
 
 /** The boxes on sale, plus the checkout sheet that seals one. */
-export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
+export function Shop({
+  shelves,
+  pulls,
+}: {
+  shelves: Record<string, StockEntry[]>;
+  pulls: Record<string, Pull[]>;
+}) {
   const [checkout, setCheckout] = useState<Product | null>(null);
   // Which box the rail has centred. The panel below reads it; the rail owns
   // it, because the rail is the thing that can be swiped.
@@ -81,9 +87,11 @@ export function Shop({ shelves }: { shelves: Record<string, StockEntry[]> }) {
       {/*
         Between the dots and the name, which is where it answers the question
         the dots just raised. Swiping the rail above says there is another box;
-        this says what is in the one you have stopped on.
+        this says what has been coming out of the one you have stopped on —
+        and links to the full breakdown, so this screen can stay about buying.
       */}
-      <ChaseRail
+      <RecentPulls
+        pulls={pulls[showing.id] ?? []}
         shelf={shelves[showing.id] ?? []}
         productId={showing.id}
         productName={showing.name}

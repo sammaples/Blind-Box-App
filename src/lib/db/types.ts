@@ -4,6 +4,7 @@ import type {
   AuditBatch,
   Collector,
   Order,
+  RecentPull,
   Shipment,
   ShippingAddress,
   Piece,
@@ -170,6 +171,11 @@ export interface Backend {
   setAdmin(accountId: string, isAdmin: boolean): Promise<void>;
 
   /* orders */
+  /**
+   * Revealed pulls across every collector, newest first. The shop's feed, so
+   * it is capped by the caller rather than paged — nobody scrolls this.
+   */
+  recentPulls(limit: number): Promise<RecentPull[]>;
   getOrder(id: string): Promise<Order | null>;
   listOrders(collectorId: string): Promise<Order[]>;
   updateOrder(
