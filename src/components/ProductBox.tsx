@@ -254,20 +254,23 @@ function ProductBoxImpl({
       whileHover={spin ? { scale: 1.05 } : undefined}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
     >
-      <motion.div
-        className="relative"
+      {/*
+        The tilt and the turn are plain CSS, not motion props. As an
+        `initial`, the tilt was skipped wherever a parent says
+        `initial={false}` — the welcome cards do, so their first frame
+        matches the server's — and the box there sat flat-on with no lid,
+        frozen at the end of its turn. A style and a CSS animation cannot be
+        switched off from above.
+      */}
+      <div
+        className={`relative ${reducedMotion || !spin ? "" : "box-turn"}`}
         style={{
           width: box.width,
           height: box.height,
           transformStyle: "preserve-3d",
+          transform: "rotateX(-16deg) rotateY(-24deg)",
+          animationDuration: `${SPIN_SECONDS}s`,
         }}
-        initial={{ rotateX: -16, rotateY: -24 }}
-        animate={reducedMotion || !spin ? undefined : { rotateY: [-24, 336] }}
-        transition={
-          reducedMotion || !spin
-            ? undefined
-            : { duration: SPIN_SECONDS, repeat: Infinity, ease: "linear" }
-        }
       >
         {/* Every side, because the turn brings every side round: a face left
             out is a hole in the box. The light stays fixed to the carton, so
@@ -285,7 +288,7 @@ function ProductBoxImpl({
         {mark("right")}
         {mark("back")}
         {mark("left")}
-      </motion.div>
+      </div>
     </motion.div>
   );
 }

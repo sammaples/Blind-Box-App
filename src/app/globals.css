@@ -374,3 +374,14 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .spin-bulb, .spin-bulb-chase, .spin-lit, .spin-sparkle, .spin-hub-ready, .spin-jackpot { animation: none; }
 }
+
+/* The carton's turn: one full revolution, tilted towards the viewer so the
+   lid shows. The duration is set on the element, from ProductBox. */
+@keyframes box-turn {
+  from { transform: rotateX(-16deg) rotateY(-24deg); }
+  to { transform: rotateX(-16deg) rotateY(336deg); }
+}
+.box-turn { animation: box-turn 44.4s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .box-turn { animation: none; }
+}
