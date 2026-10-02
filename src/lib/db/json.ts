@@ -48,6 +48,8 @@ interface Db {
   shipments: Shipment[];
   stock: Record<string, { tier: Tier; stocked: number; sold: number }>;
   audit: AuditEntry[];
+  invites: { entry: string; addedAt: string }[];
+  settings: Record<string, string>;
 }
 
 const EMPTY: Db = {
@@ -59,6 +61,8 @@ const EMPTY: Db = {
   shipments: [],
   stock: {},
   audit: [],
+  invites: [],
+  settings: {},
 };
 const AUDIT_LIMIT = 1000;
 
@@ -107,6 +111,8 @@ export function createJsonBackend(): Backend {
         shipments: parsed.shipments ?? [],
         stock: parsed.stock ?? {},
         audit: parsed.audit ?? [],
+        invites: parsed.invites ?? [],
+        settings: parsed.settings ?? {},
       };
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") return { ...EMPTY };
@@ -505,6 +511,41 @@ export function createJsonBackend(): Backend {
         if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
         throw err;
       }
+    },
+
+    async listInvites() {
+      const db = await read();
+      return [...db.invites].sort((a, b) => (a.addedAt < b.addedAt ? 1 : -1));
+    },
+
+    async addInvite(entry) {
+      await transact((db) => {
+        if (!db.invites.some((i) => i.entry === entry)) {
+          db.invites.push({ entry, addedAt: new Date().toISOString() });
+        }
+      });
+    },
+
+    async removeInvite(entry) {
+      await transact((db) => {
+        db.invites = db.invites.filter((i) => i.entry !== entry);
+      });
+    },
+
+    async hasInvite(entry) {
+      const db = await read();
+      return db.invites.some((i) => i.entry === entry);
+    },
+
+    async getSetting(key) {
+      const db = await read();
+      return db.settings[key] ?? null;
+    },
+
+    async setSetting(key, value) {
+      await transact((db) => {
+        db.settings[key] = value;
+      });
     },
 
     async setAdmin(accountId, isAdmin) {

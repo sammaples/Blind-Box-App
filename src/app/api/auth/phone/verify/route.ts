@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { normalisePhone, signInWithPhone, startSession } from "@/lib/auth";
 import { SmsError, canTextCodes, normaliseSmsCode, sms } from "@/lib/sms";
+import { maySignIn, NOT_INVITED } from "@/lib/invites";
 
 /** Signs in with the code texted to a phone number. */
 export async function POST(request: Request) {
@@ -19,6 +20,10 @@ export async function POST(request: Request) {
   const code = normaliseSmsCode(body.code);
   if (!phone || !code) {
     return NextResponse.json({ error: "Enter the code from the text" }, { status: 400 });
+  }
+
+  if (!(await maySignIn({ phone }))) {
+    return NextResponse.json({ error: NOT_INVITED }, { status: 403 });
   }
 
   let ok: boolean;

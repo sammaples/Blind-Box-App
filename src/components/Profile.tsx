@@ -231,7 +231,10 @@ function SignedIn({ onClose }: { onClose: () => void }) {
         <Row href="/rewards" onClose={onClose} icon={<GiftIcon />}>Rewards</Row>
         <Row href="/wallet" onClose={onClose} icon={<CoinIcon />}>Coins</Row>
         {account.isAdmin && (
-          <Row href="/admin" onClose={onClose} icon={<BoxIcon />}>Inventory management</Row>
+          <>
+            <Row href="/admin" onClose={onClose} icon={<BoxIcon />}>Inventory management</Row>
+            <Row href="/admin/invites" onClose={onClose} icon={<InviteIcon />}>Invites</Row>
+          </>
         )}
       </Group>
 
@@ -387,6 +390,12 @@ const GiftIcon = () => (
 const BoxIcon = () => (
   <Icon>
     <path d="M12 3 4 7v10l8 4 8-4V7l-8-4Zm0 0v18M4 7l8 4 8-4" />
+  </Icon>
+);
+const InviteIcon = () => (
+  <Icon>
+    <circle cx="9" cy="8.5" r="3.2" />
+    <path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5M17 8v6M14 11h6" />
   </Icon>
 );
 const HelpIcon = () => (

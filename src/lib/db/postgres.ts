@@ -719,6 +719,37 @@ export function createPostgresBackend(connectionString: string): Backend {
       };
     },
 
+    async listInvites() {
+      const { rows } = await query("select entry, added_at from invites order by added_at desc");
+      return rows.map((r) => ({ entry: r.entry as string, addedAt: (r.added_at as Date).toISOString() }));
+    },
+
+    async addInvite(entry) {
+      await query("insert into invites (entry) values ($1) on conflict (entry) do nothing", [entry]);
+    },
+
+    async removeInvite(entry) {
+      await query("delete from invites where entry = $1", [entry]);
+    },
+
+    async hasInvite(entry) {
+      const { rows } = await query("select 1 from invites where entry = $1", [entry]);
+      return rows.length > 0;
+    },
+
+    async getSetting(key) {
+      const { rows } = await query("select value from app_settings where key = $1", [key]);
+      return rows.length > 0 ? (rows[0].value as string) : null;
+    },
+
+    async setSetting(key, value) {
+      await query(
+        `insert into app_settings (key, value) values ($1, $2)
+         on conflict (key) do update set value = excluded.value`,
+        [key, value],
+      );
+    },
+
     async setAdmin(accountId, isAdmin) {
       await query("update collectors set is_admin = $2 where id = $1", [
         accountId,

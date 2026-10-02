@@ -88,6 +88,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       expired: "That sign-in took too long to come back. Try again.",
       failed: "That sign-in did not complete. Please try again.",
       unconfigured: "Sign-in is not set up on this deployment yet.",
+      invite: "Blind Box is invite-only right now. Ask for an invite, then try again.",
       cancelled: null,
       ok: null,
     };

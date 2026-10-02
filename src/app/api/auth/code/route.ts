@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { normaliseCode, normaliseEmail, redeemLoginCode, startSession } from "@/lib/auth";
+import { maySignIn, NOT_INVITED } from "@/lib/invites";
 
 /**
  * Signs in with the code from a sign-in email.
@@ -20,6 +21,12 @@ export async function POST(request: Request) {
   const code = normaliseCode(body.code);
   if (!address || !code) {
     return NextResponse.json({ error: "Enter the 8-character code from the email" }, { status: 400 });
+  }
+
+  // Checked again here, so taking someone off the list stops a code they
+  // were already sent.
+  if (!(await maySignIn({ email: address }))) {
+    return NextResponse.json({ error: NOT_INVITED }, { status: 403 });
   }
 
   const account = await redeemLoginCode(address, code);

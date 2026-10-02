@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { appleConfig, exchangeCode, nameFromCallback } from "@/lib/apple";
 import { safeNext, signInWithApple, startSession, takeHandshake } from "@/lib/auth";
+import { maySignIn } from "@/lib/invites";
 import { redirectUri } from "../route";
 
 /**
@@ -46,6 +47,9 @@ export async function POST(request: Request) {
 
   try {
     const identity = await exchangeCode(config, code, redirectUri(request), handshake.nonce);
+    // Matched on the address Apple shares. Someone who chose Hide My Email
+    // shares a relay address instead, and is invited by that.
+    if (!(await maySignIn({ email: identity.email }))) return back("invite");
     // Offered once, on a first authorisation, and never again — so it is read
     // out of this request or it is lost.
     const account = await signInWithApple(identity, nameFromCallback(form.get("user")));
