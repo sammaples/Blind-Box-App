@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { formatOdds, pieceSubtitle, RARITY_ORDER } from "@/lib/catalog";
+import { formatOdds, RARITY_ORDER, shopSubtitle } from "@/lib/catalog";
 import type { Piece } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
 import { RarityChip } from "./ui";
@@ -139,9 +139,9 @@ export function ShipBundle({ pulls }: { pulls: ShippablePull[] }) {
                 <PieceImage piece={piece} className="h-20 w-auto" thumb />
               </span>
               <span className="mt-2.5 truncate text-sm font-semibold">{piece.name}</span>
-              <span className="mt-0.5 truncate text-xs text-faint">
-                {pieceSubtitle(piece)}
-              </span>
+              {shopSubtitle(piece) && (
+                <span className="mt-0.5 truncate text-xs text-faint">{shopSubtitle(piece)}</span>
+              )}
               <span className="mt-2 flex flex-wrap items-center gap-2">
                 <RarityChip rarity={piece.rarity} />
                 <span className="font-mono text-[11px] text-muted">{formatOdds(odds)}</span>

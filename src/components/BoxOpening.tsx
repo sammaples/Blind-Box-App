@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
-import { pieceSubtitle, RARITY_COLOR } from "@/lib/catalog";
+import { RARITY_COLOR, shopSubtitle } from "@/lib/catalog";
 import { boxGeometry } from "@/lib/boxShape";
 import { playOpenSound, preloadOpenSound, type OpenSound } from "@/lib/openSound";
 import { BoxPrint, isPrinted, PRINT_GROUND } from "./BoxPrint";
@@ -1744,7 +1744,7 @@ function PullSummary({ piece }: { piece: Piece }) {
         </motion.p>
       )}
       <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{piece.name}</h2>
-      <p className="text-sm text-muted">{pieceSubtitle(piece)}</p>
+      {shopSubtitle(piece) && <p className="text-sm text-muted">{shopSubtitle(piece)}</p>}
       <div className="flex items-center gap-2">
         <RarityChip rarity={piece.rarity} />
         <span className="rounded-full bg-white/8 px-2.5 py-1 font-mono text-[11px] text-muted">

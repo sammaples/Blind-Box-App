@@ -672,6 +672,22 @@ export function pieceSubtitle(
   return collection ? `${collection} · ${kind}` : kind;
 }
 
+/**
+ * The same line, for the shop: shown only for a piece that belongs to a
+ * series. A one-off or collaboration gets no line at all rather than one that
+ * says "Non-Series" — what a piece isn't part of is not worth the space. The
+ * console keeps `pieceSubtitle`, where knowing a piece is non-series matters.
+ */
+export function shopSubtitle(piece: {
+  setName?: string | null;
+  series?: number | null;
+  category?: Category | null;
+}): string {
+  const collection = seriesLabel(piece);
+  if (!collection || collection.toLowerCase() === NON_SERIES.toLowerCase()) return "";
+  return pieceSubtitle(piece);
+}
+
 /** Rarest first, which is the order a filter row should read in. */
 /* ------------------------------------------------------------------ *
  * Tiers

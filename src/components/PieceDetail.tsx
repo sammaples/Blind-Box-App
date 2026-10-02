@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   formatOdds,
-  pieceSubtitle,
+  shopSubtitle,
   TIER_ACCENT,
   TIER_LABEL,
 } from "@/lib/catalog";
@@ -82,7 +82,7 @@ export function PieceDetail({
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 className="text-xl font-semibold tracking-tight">{piece.name}</h3>
-                  <p className="mt-1 text-sm text-muted">{pieceSubtitle(piece)}</p>
+                  {shopSubtitle(piece) && <p className="mt-1 text-sm text-muted">{shopSubtitle(piece)}</p>}
                 </div>
                 <RarityChip rarity={piece.rarity} />
               </div>
