@@ -1,0 +1,108 @@
+id,category,tier,price_usd,ev_usd,buyback_ratio,out_of_stock,buckets
+100-ancient-coin-pack,Graded Coins,Master,100,96,0.846,True,base $82.5-90: 10% / common $90-100: 83% / uncommon $100-1600: 7%
+1500-coin-pack,Graded Coins,Diamond,1500,1440,0.846,False,base $1050-1275: 42.9% / common $1275-1500: 38% / uncommon $1500-3000: 17% / rare $3000-6000: 2% / chase $6000-24000: 0.1%
+150-coin-pack,Graded Coins,Master,150,144,0.846,False,base $105-130: 69.8% / common $130-150: 4% / uncommon $150-300: 22% / rare $300-600: 4% / chase $600-2400: 0.2%
+250-ancient-coin-pack,Graded Coins,Master,250,240,0.846,False,base $176-215: 68.9% / common $215-250: 14% / uncommon $250-500: 15% / rare $500-1000: 2% / chase $1000-4000: 0.1%
+500-shipwreck-coin-pack,Graded Coins,Platinum,500,480,0.846,False,base $350-425: 47.6% / common $425-500: 26% / uncommon $500-1000: 24% / rare $1000-2000: 2% / chase $2000-7200: 0.4%
+500-coin-pack,Graded Coins,Platinum,500,480,0.846,True,base $355-430: 67.9% / common $430-500: 13% / uncommon $500-1000: 16% / rare $1000-2000: 3% / chase $2000-8000: 0.1%
+baseball-basic-pack,Baseball,Basic,15,14.4,0.846,True,base $10-13: 50.9% / common $13-15: 32% / uncommon $15-30: 15% / rare $30-60: 2% / chase $60-240: 0.1%
+baseball-diamond-pack,Baseball,Diamond,1000,960,0.846,True,base $715-860: 66.9% / common $860-1000: 16% / uncommon $1000-2000: 15% / rare $2000-4000: 2% / chase $4000-16000: 0.1%
+baseball-legend-pack,Baseball,Legend,2500,2400,0.846,False,base $1758-2130: 57.9% / common $2130-2500: 20% / uncommon $2500-5000: 19% / rare $5000-10000: 3% / chase $10000-40000: 0.1%
+baseball-master-pack,Baseball,Master,100,96,0.846,False,base $70-85: 52.9% / common $85-100: 26% / uncommon $100-200: 19% / rare $200-400: 2% / chase $400-1600: 0.1%
+baseball-mythic-pack,Baseball,Mythic,5000,4800,0.846,True,base $3510-4255: 50.8% / common $4255-5000: 22% / uncommon $5000-10000: 24% / rare $10000-20000: 3% / chase $20000-80000: 0.2%
+baseball-platinum-pack,Baseball,Platinum,500,480,0.846,False,base $350-425: 61.8% / common $425-500: 17% / uncommon $500-1000: 19% / rare $1000-2000: 2% / chase $2000-8000: 0.2%
+baseball-pro-pack,Baseball,Pro,50,48,0.846,False,base $35-45: 62.8% / common $45-50: 14% / uncommon $50-100: 20% / rare $100-200: 3% / chase $200-400: 0.2%
+baseball-starter-pack,Baseball,Starter,25,24,0.846,False,base $17.5-21: 43.9% / common $21-25: 36% / uncommon $25-50: 18% / rare $50-100: 2% / chase $100-399.99: 0.1%
+baseball-ultra-pack,Baseball,Master,250,240,0.846,False,base $175-215: 53.9% / common $215-250: 23% / uncommon $250-500: 20% / rare $500-1000: 3% / chase $1000-4000: 0.1%
+basketball-basic-pack,Basketball,Basic,15,14.4,0.846,True,base $10-13: 59.8% / common $13-15: 20% / uncommon $15-30: 17% / rare $30-60: 3% / chase $60-240: 0.2%
+basketball-diamond-pack,Basketball,Diamond,1000,960,0.846,True,base $700-850: 43.9% / common $850-1000: 37% / uncommon $1000-2000: 17% / rare $2000-4000: 2% / chase $4000-16000: 0.1%
+basketball-legend-pack,Basketball,Legend,2500,2400,0.846,True,base $1775-2140: 60.9% / common $2140-2500: 18% / uncommon $2500-5000: 18% / rare $5000-10000: 3% / chase $10000-40000: 0.1%
+basketball-master-pack,Basketball,Master,100,96,0.846,False,base $70-85: 49.8% / common $85-100: 27% / uncommon $100-200: 20% / rare $200-400: 3% / chase $400-1600: 0.2%
+basketball-mythic-pack,Basketball,Mythic,5000,4800,0.846,True,base $3537.4-4270: 52.9% / common $4270-5000: 24% / uncommon $5000-10000: 21% / rare $10000-20000: 2% / chase $20000-80000: 0.1%
+basketball-platinum-pack,Basketball,Platinum,500,480,0.846,False,base $351-425: 54.8% / common $425-500: 24% / uncommon $500-1000: 18% / rare $1000-2000: 3% / chase $2000-8000: 0.2%
+basketball-pro-pack,Basketball,Pro,50,48,0.846,False,base $35-45: 56.9% / common $45-50: 20% / uncommon $50-100: 20% / rare $100-200: 3% / chase $200-800: 0.1%
+basketball-starter-pack,Basketball,Starter,25,24,0.846,False,base $18.5-22: 32% / common $22-25: 47.9% / uncommon $25-50: 19% / rare $50-100: 1% / chase $100-299.99: 0.1%
+basketball-ultra-pack,Basketball,Master,250,240,0.846,False,base $175-215: 56.9% / common $215-250: 20% / uncommon $250-500: 20% / rare $500-1000: 3% / chase $1000-4000: 0.1%
+classic-watch-box,Watches,Mythic,5000,4800,0.846,True,base $3412.5-4205: 56.8% / common $4205-5000: 24% / uncommon $5000-10000: 17% / rare $10000-20000: 2% / chase $20000-30000: 0.2%
+comic-diamond-pack,Comics,Diamond,1000,960,0.846,False,base $700-850: 59.9% / common $850-1000: 19% / uncommon $1000-2000: 18% / rare $2000-4000: 3% / chase $4000-16000: 0.1%
+comic-legend-pack,Comics,Legend,2500,2400,0.846,True,base $1755-2130: 55.8% / common $2130-2500: 21% / uncommon $2500-5000: 20% / rare $5000-10000: 3% / chase $10000-40000: 0.2%
+comic-master-pack,Comics,Master,100,96,0.846,True,base $70.8-85: 35% / common $85-100: 44.9% / uncommon $100-200: 18% / rare $200-400: 2% / chase $400-1600: 0.1%
+comic-platinum-pack,Comics,Platinum,500,480,0.846,False,base $350-425: 55.8% / common $425-500: 23% / uncommon $500-1000: 19% / rare $1000-2000: 2% / chase $2000-8000: 0.2%
+comic-pro-pack,Comics,Pro,50,48,0.846,True,base $25-40: 62.9% / common $40-50: 8% / uncommon $50-100: 22% / rare $100-200: 6% / chase $200-800: 1.1%
+comic-ultra-pack,Comics,Master,250,240,0.846,False,base $175-215: 50.9% / common $215-250: 28% / uncommon $250-500: 19% / rare $500-1000: 2% / chase $1000-4000: 0.1%
+mens-10-to-10-5-sneakers-pack,Sneakers,Master,275,264,0.846,True,base $189-230: 44.6% / common $230-275: 34% / uncommon $275-550: 18% / rare $550-1100: 3% / chase $1100-4400: 0.4%
+mens-11-to-11-5-sneakers-pack,Sneakers,Master,275,264,0.846,True,base $189-230: 50.8% / common $230-275: 23% / uncommon $275-550: 24% / rare $550-1100: 2% / chase $1100-4400: 0.2%
+mens-12-to-13-sneakers-pack,Sneakers,Master,275,264,0.846,True,base $189-230: 39.8% / common $230-275: 39% / uncommon $275-550: 18% / rare $550-1100: 3% / chase $1100-4400: 0.2%
+mens-8-to-8-5-sneakers-pack,Sneakers,Master,275,264,0.846,True,base $192-235: 35% / common $235-275: 45.9% / uncommon $275-550: 18% / rare $550-1100: 1% / chase $1100-4400: 0.1%
+mens-9-to-9-5-sneakers-pack,Sneakers,Master,275,264,0.846,True,base $190-235: 39% / common $235-275: 44.8% / uncommon $275-550: 12% / rare $550-1100: 4% / chase $1100-4400: 0.2%
+football-basic-pack,Football,Basic,15,14.4,0.846,True,
+football-diamond-pack,Football,Diamond,1000,960,0.846,True,base $705.9-855: 57.9% / common $855-1000: 23% / uncommon $1000-2000: 17% / rare $2000-4000: 2% / chase $4000-16000: 0.1%
+football-legend-pack,Football,Legend,2500,2400,0.846,True,base $1750.5-2125: 56.8% / common $2125-2500: 22% / uncommon $2500-5000: 18% / rare $5000-10000: 3% / chase $10000-40000: 0.2%
+football-master-pack,Football,Master,100,96,0.846,False,base $70-85: 52.9% / common $85-100: 27% / uncommon $100-200: 18% / rare $200-400: 2% / chase $400-1600: 0.1%
+football-mythic-pack,Football,Mythic,5000,4800,0.846,True,base $3534-4265: 44.8% / common $4265-5000: 33% / uncommon $5000-10000: 19% / rare $10000-20000: 3% / chase $20000-80000: 0.2%
+football-platinum-pack,Football,Platinum,500,480,0.846,False,base $350-425: 48.9% / common $425-500: 30% / uncommon $500-1000: 19% / rare $1000-2000: 2% / chase $2000-8000: 0.1%
+football-pro-pack,Football,Pro,50,48,0.846,False,base $35-45: 63.8% / common $45-50: 13% / uncommon $50-100: 20% / rare $100-200: 3% / chase $200-800: 0.2%
+football-starter-pack,Football,Starter,25,24,0.846,False,base $17.5-21: 46.8% / common $21-25: 30% / uncommon $25-50: 20% / rare $50-100: 3% / chase $100-400: 0.2%
+football-ultra-pack,Football,Master,250,240,0.846,False,base $175-215: 53.9% / common $215-250: 25% / uncommon $250-500: 18% / rare $500-1000: 3% / chase $1000-4000: 0.1%
+hockey-master-pack,Hockey,Master,100,96,0.846,True,base $70-85: 54.9% / common $85-100: 24% / uncommon $100-200: 18% / rare $200-400: 3% / chase $400-1600: 0.1%
+hockey-platinum-pack,Hockey,Platinum,500,480,0.846,True,base $351.1-425: 53.8% / common $425-500: 20% / uncommon $500-1000: 22% / rare $1000-2000: 4% / chase $2000-8000: 0.2%
+hockey-pro-pack,Hockey,Pro,50,48,0.846,False,base $35-45: 59.8% / common $45-50: 16% / uncommon $50-100: 21% / rare $100-200: 3% / chase $200-800: 0.2%
+hockey-psa10,Limited,Master,99,95.04,0.846,True,base $51.4-75: 44.5% / common $75-99: 30% / uncommon $99-198: 20% / rare $198-396: 5% / chase $396-3232: 0.5%
+hockey-starter-pack,Hockey,Starter,25,24,0.846,True,base $17.6-21: 53.8% / common $21-25: 21% / uncommon $25-50: 21% / rare $50-100: 4% / chase $100-399.99: 0.2%
+hockey-ultra-pack,Hockey,Master,250,240,0.846,True,base $176.3-215: 52.8% / common $215-250: 25% / uncommon $250-500: 18% / rare $500-1000: 4% / chase $1000-4000: 0.2%
+onepiece-diamond-pack,One Piece,Diamond,1000,960,0.846,True,base $707.6-855: 50.9% / common $855-1000: 28% / uncommon $1000-2000: 18% / rare $2000-4000: 3% / chase $4000-16000: 0.1%
+onepiece-master-pack,One Piece,Master,100,96,0.846,False,base $70-85: 52.9% / common $85-100: 25% / uncommon $100-200: 19% / rare $200-400: 3% / chase $400-1600: 0.1%
+onepiece-platinum-pack,One Piece,Platinum,500,480,0.846,False,base $356.4-430: 49.9% / common $430-500: 30% / uncommon $500-1000: 18% / rare $1000-2000: 2% / chase $2000-8000: 0.1%
+onepiece-pro-pack,One Piece,Pro,50,48,0.846,False,base $35-45: 58.8% / common $45-50: 18% / uncommon $50-100: 20% / rare $100-200: 3% / chase $200-800: 0.2%
+onepiece-starter-pack,One Piece,Starter,25,24,0.846,True,
+onepiece-ultra-pack,One Piece,Master,250,240,0.846,False,base $175.5-215: 54.9% / common $215-250: 23% / uncommon $250-500: 20% / rare $500-1000: 2% / chase $1000-4000: 0.1%
+pkmn-basic-pack,Pokémon,Basic,15,14.4,0.846,False,base $10-13: 58.8% / common $13-15: 20% / uncommon $15-30: 18% / rare $30-60: 3% / chase $60-240: 0.2%
+pkmn-diamond-pack,Pokémon,Diamond,1000,960,0.846,False,base $706.2-855: 56.9% / common $855-1000: 23% / uncommon $1000-2000: 18% / rare $2000-4000: 2% / chase $4000-16000: 0.1%
+pkmn-diamond-pack-spicy,Pokémon,Diamond,999,959.04,0.846,False,base $500-750: 51.5% / common $750-999: 21% / uncommon $999-1998: 22% / rare $1998-3996: 5% / chase $3996-31968: 0.5%
+pkmn-legend-pack,Pokémon,Legend,2500,2400,0.846,True,base $1758.7-2130: 55.7% / common $2130-2500: 22% / uncommon $2500-5000: 19% / rare $5000-10000: 3% / chase $10000-40000: 0.3%
+pkmn-legend-pack-spicy,Pokémon,Legend,2499,2399.04,0.846,False,base $1268.4-1885: 46% / common $1885-2499: 27% / uncommon $2499-4998: 21% / rare $4998-9996: 5% / chase $9996-79968: 1%
+pkmn-master-pack,Pokémon,Master,100,96,0.846,False,base $70-85: 50.8% / common $85-100: 26% / uncommon $100-200: 20% / rare $200-400: 3% / chase $400-1600: 0.2%
+pkmn-mythic-pack,Pokémon,Mythic,5000,4800,0.846,True,base $3719-4360: 68.8% / common $4360-5000: 9% / uncommon $5000-10000: 18% / rare $10000-20000: 4% / chase $20000-80000: 0.2%
+pkmn-platinum-pack,Pokémon,Platinum,500,480,0.846,False,base $350.8-425: 50.9% / common $425-500: 28% / uncommon $500-1000: 19% / rare $1000-2000: 2% / chase $2000-8000: 0.1%
+pkmn-platinum-pack-spicy,Pokémon,Platinum,499,479.04,0.846,False,base $250-375: 53.3% / common $375-499: 20% / uncommon $499-998: 21% / rare $998-1996: 5% / chase $1996-15968: 0.7%
+pkmn-pro-pack,Pokémon,Pro,50,48,0.846,False,base $35-45: 60.9% / common $45-50: 16% / uncommon $50-100: 20% / rare $100-200: 3% / chase $200-800: 0.1%
+pkmn-psa10,Limited,Pro,69,66.24,0.846,False,base $48-60: 57.8% / common $60-69: 19% / uncommon $69-138: 20% / rare $138-276: 3% / chase $276-1104: 0.2%
+pkmn-starter-pack,Pokémon,Starter,25,24,0.846,False,base $17-21: 44.9% / common $21-25: 34% / uncommon $25-50: 19% / rare $50-100: 2% / chase $100-400: 0.1%
+pkmn-ultra-pack,Pokémon,Master,250,240,0.846,True,base $176-215: 64.8% / common $215-250: 12% / uncommon $250-500: 20% / rare $500-1000: 3% / chase $1000-4000: 0.2%
+pkmn-ultra-pack-spicy,Pokémon,Master,249,239.04,0.846,False,base $125-185: 56% / common $185-249: 14% / uncommon $249-498: 23% / rare $498-996: 6% / chase $996-7968: 1%
+premier-watch-box,Watches,Mythic,10000,9600,0.846,False,base $8000-9000: 50% / common $9000-10000: 38% / uncommon $10000-20000: 11% / rare $20000-100000: 1%
+rolex-pp-ap-watch-box,Watches,Mythic,20000,19200,0.846,True,base $16000-18000: 39% / common $18000-20000: 45% / uncommon $20000-100000: 16%
+mtg-sealed-booster-2,Magic The Gathering,Starter,25,24,0.846,True,base $18.9-22: 74.8% / common $22-25: 1% / uncommon $25-50: 21% / rare $50-100: 3% / chase $100-400: 0.2%
+mtg-sealed-booster,Magic The Gathering,Starter,10,9.6,0.846,True,
+mtg-sealed-booster-3,Magic The Gathering,Pro,50,48,0.846,False,base $31-40: 57.4% / common $40-50: 16% / uncommon $50-100: 22% / rare $100-200: 4% / chase $200-800: 0.6%
+pkmn-sealed-booster-2,Sealed Booster,Sealed Booster,25,24,0.846,False,base $15-20: 49.5% / common $20-25: 27% / uncommon $25-50: 19% / rare $50-100: 4% / chase $100-400: 0.5%
+sealed-pkmn-booster,Sealed Booster,Sealed Booster,15,14.4,0.846,False,base $10.6-13: 66.4% / common $13-15: 9% / uncommon $15-30: 21% / rare $30-60: 3% / chase $60-240: 0.6%
+pkmn-sealed-booster-3,Sealed Booster,Sealed Booster,50,48,0.846,False,base $33.6-40: 55.7% / common $40-50: 16% / uncommon $50-100: 23% / rare $100-200: 5% / chase $200-800: 0.3%
+basketball-slam-pack,Basketball,Master,120,115.2,0.846,True,base $65-95: 13% / common $95-120: 59.7% / uncommon $120-240: 24% / rare $240-480: 3% / chase $480-1405: 0.3%
+soccer-master-pack,Soccer,Master,100,96,0.846,False,base $70-85: 47.8% / common $85-100: 29% / uncommon $100-200: 20% / rare $200-400: 3% / chase $400-1600: 0.2%
+soccer-platinum-pack,Soccer,Platinum,500,480,0.846,False,base $350-425: 48.8% / common $425-500: 31% / uncommon $500-1000: 17% / rare $1000-2000: 3% / chase $2000-8000: 0.2%
+soccer-pro-pack,Soccer,Pro,50,48,0.846,False,base $35-45: 56.9% / common $45-50: 20% / uncommon $50-100: 20% / rare $100-200: 3% / chase $200-800: 0.1%
+soccer-starter-pack,Soccer,Starter,25,24,0.846,True,base $18-22: 56.7% / common $22-25: 17% / uncommon $25-50: 22% / rare $50-100: 4% / chase $100-399.99: 0.3%
+sports-basic-pack,Sports,Basic,15,14.4,0.846,False,base $10-13: 54.9% / common $13-15: 27% / uncommon $15-30: 16% / rare $30-60: 2% / chase $60-240: 0.1%
+sports-cosmic-pack,Sports,Mythic,10000,9600,0.846,True,base $7006.9-8505: 54.8% / common $8505-10000: 22% / uncommon $10000-20000: 20% / rare $20000-40000: 3% / chase $40000-160000: 0.2%
+sports-diamond-pack,Sports,Diamond,1000,960,0.846,False,base $700-850: 53.9% / common $850-1000: 27% / uncommon $1000-2000: 17% / rare $2000-4000: 2% / chase $4000-16000: 0.1%
+sports-ghost-gold,Limited,Platinum,749,719.04,0.896,False,base $526.2-640: 51.9% / common $640-749: 27% / uncommon $749-1498: 19% / rare $1498-2996: 2% / chase $2996-12000: 0.1%
+sports-inferno-gold,Limited,Platinum,750,720,0.896,False,base $375-565: 53.2% / common $565-750: 19% / uncommon $750-1500: 22% / rare $1500-3000: 5% / chase $3000-48000: 0.8%
+sports-legend-pack,Sports,Legend,2500,2400,0.846,False,base $1750.5-2125: 56.9% / common $2125-2500: 21% / uncommon $2500-5000: 19% / rare $5000-10000: 3% / chase $10000-40000: 0.1%
+sports-master-pack,Sports,Master,100,96,0.846,False,base $70-85: 47.9% / common $85-100: 32% / uncommon $100-200: 18% / rare $200-400: 2% / chase $400-1600: 0.1%
+sports-mythic-pack,Sports,Mythic,5000,4800,0.846,False,base $3510-4255: 49.8% / common $4255-5000: 26% / uncommon $5000-10000: 21% / rare $10000-20000: 3% / chase $20000-80000: 0.2%
+sports-platinum-pack,Sports,Platinum,500,480,0.846,False,base $350-425: 55.8% / common $425-500: 24% / uncommon $500-1000: 18% / rare $1000-2000: 2% / chase $2000-8000: 0.2%
+sports-pro-pack,Sports,Pro,50,48,0.846,False,base $35-45: 62.8% / common $45-50: 14% / uncommon $50-100: 20% / rare $100-200: 3% / chase $200-800: 0.2%
+sports-reaper-gold,Limited,Platinum,749,719.04,0.896,False,base $375-560: 52.2% / common $560-749: 20% / uncommon $749-1498: 22% / rare $1498-2996: 5% / chase $2996-23968: 0.8%
+sports-starter-pack,Sports,Starter,25,24,0.846,False,base $10-18: 57.2% / common $18-25: 14% / uncommon $25-50: 23% / rare $50-100: 5% / chase $100-400: 0.8%
+sports-ultra-pack,Sports,Master,250,240,0.846,False,base $175-215: 52.9% / common $215-250: 24% / uncommon $250-500: 20% / rare $500-1000: 3% / chase $1000-4000: 0.1%
+sports-vintage-pack-3,Limited,Master,199,191.04,0.846,False,base $100-150: 46.2% / common $150-199: 25% / uncommon $199-398: 22% / rare $398-796: 6% / chase $796-7048.9: 0.8%
+sports-vintage-pack-2,Limited,Master,149,143.04,0.846,False,base $105-125: 49.9% / common $125-149: 27% / uncommon $149-298: 20% / rare $298-596: 3% / chase $596-2400: 0.1%
+sports-vintage-pack,Limited,Pro,49,47.04,0.846,False,base $25-37: 48.2% / common $37-49: 25% / uncommon $49-98: 21% / rare $98-196: 5% / chase $196-800: 0.8%
+wildcard-basic-pack,Wildcard,Basic,15,14.4,0.846,False,base $10.5-13: 50.9% / common $13-15: 30% / uncommon $15-30: 17% / rare $30-60: 2% / chase $60-240: 0.1%
+wildcard-diamond-pack,Wildcard,Diamond,1000,960,0.846,False,base $700-850: 53.9% / common $850-1000: 24% / uncommon $1000-2000: 19% / rare $2000-4000: 3% / chase $4000-16000: 0.1%
+wildcard-master-pack,Wildcard,Master,100,96,0.846,False,base $70-85: 50.9% / common $85-100: 28% / uncommon $100-200: 19% / rare $200-400: 2% / chase $400-1600: 0.1%
+wildcard-platinum-pack,Wildcard,Platinum,500,480,0.846,False,base $350-425: 48.8% / common $425-500: 29% / uncommon $500-1000: 19% / rare $1000-2000: 3% / chase $2000-8000: 0.2%
+wildcard-pro-pack,Wildcard,Pro,50,48,0.846,False,base $35-45: 59.9% / common $45-50: 19% / uncommon $50-100: 19% / rare $100-200: 2% / chase $200-800: 0.1%
+wildcard-starter-pack,Wildcard,Starter,25,24,0.846,False,base $17.5-21: 39% / common $21-25: 41.9% / uncommon $25-50: 17% / rare $50-100: 2% / chase $100-400: 0.1%
+wildcard-ultra-pack,Wildcard,Master,250,240,0.846,False,base $175-215: 53.8% / common $215-250: 24% / uncommon $250-500: 19% / rare $500-1000: 3% / chase $1000-4000: 0.2%

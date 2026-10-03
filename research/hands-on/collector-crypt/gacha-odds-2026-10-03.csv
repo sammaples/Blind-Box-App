@@ -1,0 +1,75 @@
+code,name,price_usd,instant_buyback_pct,big_win_pct,points_multiplier,public,tiers
+pokemon_50,Elite Pokémon Gacha Pack,50,85,20,1,True,common $30-60: 80.0% / uncommon $60-110: 15.0% / rare $110-250: 4.0% / epic $250-5001: 1.0%
+pokemon_5000,Celestial Pokémon Gacha Pack,5000,93,25,100,True,common $2500-5000: 75.0% / uncommon $5000-10000: 20.0% / rare $10000-20000: 4.0% / epic $20000-280001: 1.0%
+pokemon_2500,Mythic Pokémon Gacha Pack,2500,93,25,50,True,common $1250-2500: 75.0% / uncommon $2500-5000: 20.0% / rare $5000-10000: 4.0% / epic $10000-150000: 1.0%
+pokemon_1000,Grail Pokémon Gacha Pack,1000,93,25,20,True,common $600-1000: 75.0% / uncommon $1000-1600: 20.0% / rare $1600-8000: 4.0% / epic $8000-50000: 1.0%
+pokemon_500,Hyper Pokémon Gacha,500,90,25,10,True,common $250-500: 75.0% / uncommon $500-1000: 20.0% / rare $1000-2500: 4.0% / epic $2500-50001: 1.0%
+pokemon_250,Legendary Pokémon Gacha Pack,250,90,25,5,True,common $150-250: 75.0% / uncommon $250-400: 20.0% / rare $400-2000: 4.0% / epic $2000-50000: 1.0%
+pokemon_151,151 & Friends,151,90,25,3.02,False,common $75-150: 75.0% / uncommon $150-300: 20.0% / rare $300-750: 4.0% / epic $750-15001: 1.0%
+pokemon_100,Bronze Pokémon Gacha Pack,100,90,20,2,True,common $50-100: 80.0% / uncommon $100-200: 15.0% / rare $200-500: 4.0% / epic $500-10001: 1.0%
+pokemon_25,Starter Pokémon Gacha Pack,25,85,25,0.5,True,common $13-30: 75.0% / uncommon $30-55: 20.0% / rare $55-125: 4.0% / epic $125-500: 1.0%
+riftbound_250,Riftbound 250,250,93,25,5,True,common $125-250: 75.0% / uncommon $250-500: 20.0% / rare $500-1250: 4.0% / epic $1250-25001: 1.0%
+riftbound_100,Riftbound 100,100,93,25,2,True,common $50-100: 75.0% / uncommon $100-200: 20.0% / rare $200-500: 4.0% / epic $500-10001: 1.0%
+dragonball_50,Dragonball $50,50,93,25,1,True,common $25-50: 75.0% / uncommon $50-100: 20.0% / rare $100-250: 4.0% / epic $250-5001: 1.0%
+dragonball_100,Dragonball $100,100,93,25,2,True,common $50-100: 75.0% / uncommon $100-200: 20.0% / rare $200-500: 4.0% / epic $500-10001: 1.0%
+dragonball_250,Dragonball $250,250,93,25,5,False,common $125-250: 75.0% / uncommon $250-500: 20.0% / rare $500-1250: 4.0% / epic $1250-25001: 1.0%
+ewatch_500,WATCH 500,500,93,25,10,True,common $250-500: 75.0% / uncommon $500-1000: 20.0% / rare $1000-2500: 4.0% / epic $2500-50001: 1.0%
+ewatch_250,WATCH 250,250,90,25,5,True,common $125-250: 75.0% / uncommon $250-500: 20.0% / rare $500-1250: 4.0% / epic $1250-25001: 1.0%
+onepiece_50,One Piece Ocean Blue Pack,50,85,20,1,True,common $30-60: 80.0% / uncommon $60-110: 15.0% / rare $110-250: 4.0% / epic $250-5001: 1.0%
+onepiece_1000,One Piece Emperor Pack,1000,93,25,20,True,common $600-1000: 75.0% / uncommon $1000-1600: 20.0% / rare $1600-8000: 4.0% / epic $8000-50000: 1.0%
+onepiece_250,One Piece Crew Pack,250,90,25,5,True,common $150-250: 75.0% / uncommon $250-400: 20.0% / rare $400-2000: 4.0% / epic $2000-50000: 1.0%
+anime_75,Anime Pop Culture Gacha,75,85,20,1.5,True,common $40-80: 80.0% / uncommon $80-150: 15.0% / rare $150-375: 4.0% / epic $375-7001: 1.0%
+sports_100,Sports Gacha Pack,100,90,25,2,True,common $50-100: 75.0% / uncommon $100-200: 20.0% / rare $200-500: 4.0% / epic $500-10001: 1.0%
+sports_500,All-Star Sports Gacha Pack 500,500,93,25,10,True,common $250-500: 75.0% / uncommon $500-1000: 20.0% / rare $1000-2500: 4.0% / epic $2500-50001: 1.0%
+comic_250,Comic 250,250,90,25,5,False,common $150-250: 75.0% / uncommon $250-400: 20.0% / rare $400-2000: 4.0% / epic $2000-50000: 1.0%
+comic_50,Comic 50,50,85,20,1,False,common $25-60: 80.0% / uncommon $60-110: 15.0% / rare $110-250: 4.0% / epic $250-5001: 1.0%
+comic_25,Comic 25,25,85,25,0.5,False,common $13-30: 75.0% / uncommon $30-55: 20.0% / rare $55-125: 4.0% / epic $125-500: 1.0%
+basketball_50,Basketball Gacha Pack,50,85,20,1,False,common $30-60: 80.0% / uncommon $60-110: 15.0% / rare $110-250: 4.0% / epic $250-5001: 1.0%
+basketball_250,Basketball 250 Pack,250,90,25,5,True,common $150-250: 75.0% / uncommon $250-400: 20.0% / rare $400-2000: 4.0% / epic $2000-50000: 1.0%
+basketball_100,Basketball 100 Gacha Pack,100,90,25,2,True,common $50-100: 75.0% / uncommon $100-200: 20.0% / rare $200-500: 4.0% / epic $500-5001: 1.0%
+baseball_50,Baseball Gacha Pack,50,85,20,1,False,common $30-60: 80.0% / uncommon $60-110: 15.0% / rare $110-250: 4.0% / epic $250-5001: 1.0%
+baseball_250,Baseball 250 Gacha Pack,250,90,25,5,True,common $150-250: 75.0% / uncommon $250-400: 20.0% / rare $400-2000: 4.0% / epic $2000-50000: 1.0%
+baseball_100,Baseball 100 Gacha Pack,100,90,25,2,True,common $50-100: 75.0% / uncommon $100-200: 20.0% / rare $200-500: 4.0% / epic $500-5001: 1.0%
+football_50,Football Gacha Pack,50,85,20,1,False,common $30-60: 80.0% / uncommon $60-110: 15.0% / rare $110-250: 4.0% / epic $250-5001: 1.0%
+football_250,Football 250 Pack,250,90,25,5,True,common $150-250: 75.0% / uncommon $250-400: 20.0% / rare $400-2000: 4.0% / epic $2000-50000: 1.0%
+football_100,Football 100 Gacha Pack,100,90,25,2,True,common $50-100: 75.0% / uncommon $100-200: 20.0% / rare $200-500: 4.0% / epic $500-5001: 1.0%
+soccer_50,Soccer $50 Pack,50,90,25,1,True,common $25-50: 75.0% / uncommon $50-100: 20.0% / rare $100-250: 4.0% / epic $250-5001: 1.0%
+soccer_250,Soccer $250 Pack,250,90,25,5,True,common $125-250: 75.0% / uncommon $250-500: 20.0% / rare $500-1250: 4.0% / epic $1250-25001: 1.0%
+soccer_100,Soccer $100 Pack,100,90,25,2,True,common $50-100: 75.0% / uncommon $100-200: 20.0% / rare $200-500: 4.0% / epic $500-10001: 1.0%
+espider_25,CB Spider-Man 25,25,85,20,0.5,False,common $12.5-25: 80.0% / uncommon $25-50: 15.0% / rare $50-125: 4.0% / epic $125-2501: 1.0%
+espider_50,CB Spider-Man 50,50,85,25,1,False,common $25-50: 75.0% / uncommon $50-100: 20.0% / rare $100-250: 4.0% / epic $250-5001: 1.0%
+eanime_150,exclusive anime 150,150,93,25,3,False,common $75-150: 75.0% / uncommon $150-300: 20.0% / rare $300-750: 4.0% / epic $750-15001: 1.0%
+echarizard_250,echarizard_250,250,90,25,5,False,common $125-250: 75.0% / uncommon $250-500: 20.0% / rare $500-1250: 4.0% / epic $1250-25001: 1.0%
+epinkblue150,Exclusive Pink/Blue (water/ice/poison/psychic),150,90,25,3,False,common $75-150: 75.0% / uncommon $150-300: 20.0% / rare $300-750: 4.0% / epic $750-15001: 1.0%
+efire_420,Exclusive Fire $420,420,90,25,8.4,False,common $210-420: 75.0% / uncommon $420-840: 20.0% / rare $840-2100: 4.0% / epic $2100-42001: 1.0%
+ev90s_500,exclusive vintange 90's 500,500,90,25,10,False,common $250-500: 75.0% / uncommon $500-1000: 20.0% / rare $1000-2500: 4.0% / epic $2500-50001: 1.0%
+esnorlax_2500,exclusive snorlax,2500,90,25,50,False,common $1250-2500: 75.0% / uncommon $2500-5000: 20.0% / rare $5000-12500: 4.0% / epic $12500-250001: 1.0%
+degen_100,"exclusive low ev, high potential win",100,90,25,2,False,common $50-100: 75.0% / uncommon $100-200: 20.0% / rare $200-500: 4.0% / epic $500-10001: 1.0%
+esolana_75,Exclusive Solana $75,75,90,25,1.5,False,common $37.5-75: 75.0% / uncommon $75-150: 20.0% / rare $150-375: 4.0% / epic $375-7501: 1.0%
+epokemon_200,Infinex Pokemon 200,200,90,25,4,False,common $100-200: 75.0% / uncommon $200-400: 20.0% / rare $400-1000: 4.0% / epic $1000-20001: 1.0%
+epokemon_1000,Solflare Pokemon 1000,1000,93,25,20,False,common $500-1000: 75.0% / uncommon $1000-2000: 20.0% / rare $2000-5000: 4.0% / epic $5000-100001: 1.0%
+eopoke_25,eo Poke 25,25,94,25,0.5,False,common $12.5-25: 75.0% / uncommon $25-50: 20.0% / rare $50-125: 4.0% / epic $125-2501: 1.0%
+eopoke_50,eo poke $50,50,94,25,1,False,common $25-50: 75.0% / uncommon $50-100: 20.0% / rare $100-250: 4.0% / epic $250-5001: 1.0%
+evintage_80,exclusive vintage 90,80,90,25,1.6,False,common $40-80: 75.0% / uncommon $80-160: 20.0% / rare $160-400: 4.0% / epic $400-8001: 1.0%
+eopoke_100,eo Poke $100,100,94,25,2,False,common $50-100: 75.0% / uncommon $100-200: 20.0% / rare $200-500: 4.0% / epic $500-10001: 1.0%
+epokemon9699_100,Exclusive 96-99,100,90,25,2,False,common $50-100: 75.0% / uncommon $100-200: 20.0% / rare $200-500: 4.0% / epic $500-10001: 1.0%
+eopoke_250,eo Poke $250,250,94,25,5,False,common $125-250: 75.0% / uncommon $250-500: 20.0% / rare $500-1250: 4.0% / epic $1250-25001: 1.0%
+eopoke_500,eo Poke $500,500,94,25,10,False,common $250-500: 75.0% / uncommon $500-1000: 20.0% / rare $1000-2500: 4.0% / epic $2500-50001: 1.0%
+eopoke_1000,eo Poke $1000,1000,94,25,20,False,common $500-1000: 75.0% / uncommon $1000-2000: 20.0% / rare $2000-5000: 4.0% / epic $5000-100001: 1.0%
+eopoke_2500,eo Poke $2500,2500,94,25,50,False,common $1250-2500: 75.0% / uncommon $2500-5000: 20.0% / rare $5000-12500: 4.0% / epic $12500-250001: 1.0%
+eopoke_5000,eo Poke $5000,5000,94,25,100,False,common $2500-5000: 75.0% / uncommon $5000-10000: 20.0% / rare $10000-25000: 4.0% / epic $25000-500001: 1.0%
+ewatches_500,Watch $500,500,90,25,10,False,common $250-500: 75.0% / uncommon $500-1000: 20.0% / rare $1000-2500: 4.0% / epic $2500-55001: 1.0%
+edc_25,DC $25,25,85,25,0.5,False,common $12.5-25: 75.0% / uncommon $25-50: 20.0% / rare $50-125: 4.0% / epic $125-3001: 1.0%
+fb_poke50_1,fb_poke50_1,50,90,25,1,False,common $25-50: 75.0% / uncommon $50-100: 20.0% / rare $100-250: 4.0% / epic $250-5001: 1.0%
+edc_50,DC $50,50,85,25,1,False,common $25-50: 75.0% / uncommon $50-100: 20.0% / rare $100-250: 4.0% / epic $250-5001: 1.0%
+fb_op100,Fee Builder,100,90,25,2,False,common $50-100: 75.0% / uncommon $100-200: 20.0% / rare $200-500: 4.0% / epic $500-10001: 1.0%
+eelectric_100,Rarible Electric 100,100,90,25,2,False,common $50-100: 75.0% / uncommon $100-200: 20.0% / rare $200-500: 4.0% / epic $500-10001: 1.0%
+fb_baseball_100,fb_baseball100_1,100,90,25,2,False,common $50-100: 75.0% / uncommon $100-200: 20.0% / rare $200-500: 4.0% / epic $500-10001: 1.0%
+fb_poke100_,fb_poke100_,100,90,25,2,False,common $50-100: 75.0% / uncommon $100-200: 20.0% / rare $200-500: 4.0% / epic $500-10001: 1.0%
+fb_op250,Fee Builder fb_op250,250,90,25,5,False,common $125-250: 75.0% / uncommon $250-500: 20.0% / rare $500-1250: 4.0% / epic $1250-25001: 1.0%
+fb_poke250,fb_poke250,250,90,25,5,False,common $125-250: 75.0% / uncommon $250-500: 20.0% / rare $500-1250: 4.0% / epic $1250-25001: 1.0%
+fb_poke1000,fb_poke1000,1000,93,25,20,False,common $500-1000: 75.0% / uncommon $1000-2000: 20.0% / rare $2000-5000: 4.0% / epic $5000-65001: 1.0%
+epokewatch_1000,Pokewatch 1000,1000,93,25,20,False,common $500-1000: 75.0% / uncommon $1000-2000: 20.0% / rare $2000-5000: 4.0% / epic $5000-100001: 1.0%
+epokewatch_1500,Pokewatch $1500,1500,93,25,30,False,common $750-1500: 75.0% / uncommon $1500-3000: 20.0% / rare $3000-7500: 4.0% / epic $7500-150001: 1.0%
+epokewatch_2000,Pokewatch $2000,2000,93,25,40,False,common $1000-2000: 75.0% / uncommon $2000-4000: 20.0% / rare $4000-10000: 4.0% / epic $10000-200001: 1.0%
+esnorlax_5000,Snorlax $5000,5000,93,25,100,False,common $2500-5000: 75.0% / uncommon $5000-10000: 20.0% / rare $10000-25000: 4.0% / epic $25000-750001: 1.0%
