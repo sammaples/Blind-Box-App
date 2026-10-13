@@ -42,24 +42,19 @@ export function CollectionPicker({
       </div>
 
       <ul className={`mt-4 flex flex-col gap-3 [@media(max-height:720px)]:mt-3 [@media(max-height:720px)]:gap-2 ${fill ? "min-h-0 flex-1 pb-3" : ""}`}>
-        {cards.map(({ line, coverUrl, fromCents, units }) => (
+        {cards.map(({ line, coverUrl }) => (
           <li key={line.id} className={fill ? "min-h-[5.75rem] flex-1 basis-0" : "h-32 sm:h-40"}>
             <Link
               href={hrefFor(line.id)}
-              className="group relative flex h-full items-end overflow-hidden rounded-[26px] border border-white/10 bg-ink-card shadow-[0_14px_34px_-18px_rgba(0,0,0,0.8)] transition-transform active:scale-[0.985]"
+              className="group relative flex h-full items-center overflow-hidden rounded-[26px] border border-white/10 bg-ink-card shadow-[0_14px_34px_-18px_rgba(0,0,0,0.8)] transition-transform active:scale-[0.985]"
             >
               <CollectionBanner line={line.id} coverUrl={coverUrl} />
               {/* Shade under the name, so it reads on any cover photo. */}
               <span aria-hidden className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/10 to-transparent" />
-              <span className="relative flex w-full items-end justify-between gap-3 p-4 sm:p-5">
+              <span className="relative flex w-full items-center justify-between gap-3 p-4 sm:p-5">
                 <span className="min-w-0">
                   <span className="block truncate text-[26px] font-bold leading-none tracking-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)] sm:text-3xl">
                     {line.name}
-                  </span>
-                  <span className="mt-2 inline-block rounded-full bg-black/35 px-2.5 py-1 text-[12px] font-medium text-white/90 backdrop-blur-sm">
-                    {units > 0
-                      ? `From $${(fromCents / 100).toLocaleString("en-US", { maximumFractionDigits: 2 })}`
-                      : "Coming soon"}
                   </span>
                 </span>
                 <span
