@@ -1,11 +1,12 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 import { useMemo, useState } from "react";
+import { LINES, type LineId } from "@/lib/lines";
 import {
   formatOdds,
   oddsAsOneIn,
-  PRODUCTS,
   RARITY_COLOR,
   RARITY_LABEL,
   RARITY_ORDER,
@@ -13,7 +14,7 @@ import {
   TIER_ACCENT,
   TIER_LABEL,
 } from "@/lib/catalog";
-import type { Piece, Rarity, StockEntry } from "@/lib/types";
+import type { Piece, Product, Rarity, StockEntry } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
 import { PieceCard } from "./PieceCard";
 import { PieceDetail } from "./PieceDetail";
@@ -46,13 +47,19 @@ function byRarity(a: StockEntry, b: StockEntry): number {
  * somebody comparing boxes is exactly who ends up on this page.
  */
 export function SetBrowser({
+  lineId,
+  products,
   shelves,
   initialProductId,
 }: {
+  /** The collection on show. The switcher at the top moves between them. */
+  lineId: LineId;
+  /** That collection's boxes, cheapest first. */
+  products: readonly Product[];
   shelves: Record<string, StockEntry[]>;
   initialProductId?: string;
 }) {
-  const [productId, setProductId] = useState(initialProductId ?? PRODUCTS[0].id);
+  const [productId, setProductId] = useState(initialProductId ?? products[0].id);
   const [rarity, setRarity] = useState<Rarity | "all">("all");
   const [selected, setSelected] = useState<StockEntry | null>(null);
 
@@ -95,7 +102,7 @@ export function SetBrowser({
     return RARITY_ORDER.filter((r) => present.has(r));
   }, [available]);
 
-  const product = PRODUCTS.find((p) => p.id === productId)!;
+  const product = products.find((p) => p.id === productId) ?? products[0];
 
   return (
     <section
@@ -104,9 +111,29 @@ export function SetBrowser({
     >
       <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Live Stock</h2>
 
+      {/* Which collection. Links rather than tabs: each collection's stock
+          is its own page, so the address says what is on screen. */}
+      <nav aria-label="Collection" className="mt-6 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+        {LINES.map((l) => {
+          const on = l.id === lineId;
+          return (
+            <Link
+              key={l.id}
+              href={`/stock/${l.id}`}
+              aria-current={on ? "page" : undefined}
+              className={`shrink-0 rounded-full border px-4 py-2 text-[13px] font-semibold transition-colors ${
+                on ? "border-white/70 bg-white text-ink" : "border-hairline text-muted hover:text-chalk"
+              }`}
+            >
+              {l.name}
+            </Link>
+          );
+        })}
+      </nav>
+
       {/* product tabs */}
-      <div className="mt-8 flex flex-wrap gap-2">
-        {PRODUCTS.map((p) => {
+      <div className="mt-4 flex flex-wrap gap-2">
+        {products.map((p) => {
           const active = p.id === productId;
           return (
             <button

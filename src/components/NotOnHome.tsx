@@ -14,5 +14,7 @@ import type { ReactNode } from "react";
 const FULL_SCREEN = new Set(["/", "/rewards/spin"]);
 
 export function NotOnHome({ children }: { children: ReactNode }) {
-  return FULL_SCREEN.has(usePathname() ?? "") ? null : <>{children}</>;
+  const path = usePathname() ?? "";
+  // Every collection's shop page is one screen too.
+  return FULL_SCREEN.has(path) || path.startsWith("/shop/") ? null : <>{children}</>;
 }

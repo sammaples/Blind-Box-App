@@ -1,5 +1,5 @@
-name,set,series,scale,rarity,image,quantity,notes
-Sky Blue Bear,Series 47,47,100%,common,https://example.com/sky-blue.jpg,12,Gloss finish
-Camo Pattern,Series 47,47,100%,common,https://example.com/camo.jpg,8,
-Series 47 Chase,Series 47,47,100%,chase,https://example.com/chase.jpg,1,The chase
-Chrome Gold,400% Collection,,400%,chase,https://example.com/chrome-gold.jpg,1,One of one
+collection,name,set,series,tier,scale,rarity,category,image,quantity,notes
+Bearbrick,Sky Blue Bear,Series 47,47,bronze,100%,common,cute,https://example.com/sky.jpg,12,Gloss finish
+Bearbrick,Chrome Grail,400% Collection,,diamond,400%,chase,,https://example.com/chrome.jpg,1,One of one
+Pop Mart,Pink Dreamer,Spring Series,,bronze,,common,,https://example.com/pink.jpg,10,
+Squishy,Mint Mochi Cat,,,silver,,rare,,https://example.com/mochi.jpg,6,Slow rise

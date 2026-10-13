@@ -5,6 +5,7 @@ import type { CSSProperties } from "react";
 import { thumbUrlFor } from "@/lib/imageUrls";
 import type { Piece } from "@/lib/types";
 import { BearbrickArt } from "./BearbrickArt";
+import { CollectionArt } from "./CollectionArt";
 
 /**
  * How a piece is shown.
@@ -26,7 +27,7 @@ export function PieceImage({
   simple,
   thumb,
 }: {
-  piece: Pick<Piece, "id" | "name" | "palette" | "pattern" | "imageUrl">;
+  piece: Pick<Piece, "id" | "name" | "palette" | "pattern" | "imageUrl"> & Partial<Pick<Piece, "line">>;
   className?: string;
   style?: CSSProperties;
   simple?: boolean;
@@ -53,6 +54,21 @@ export function PieceImage({
         onError={() => setFailed(true)}
         className={className}
         style={{ objectFit: "contain", ...style }}
+      />
+    );
+  }
+
+  // A Pop Mart or Squishy piece with no photo is drawn as its own kind of
+  // figure, in its rarity's colours — never as a bear.
+  if (piece.line && piece.line !== "bearbrick") {
+    return (
+      <CollectionArt
+        line={piece.line}
+        palette={piece.palette.base ? piece.palette : undefined}
+        uid={piece.id}
+        className={className}
+        style={style}
+        title={piece.name}
       />
     );
   }

@@ -1,6 +1,7 @@
 import "server-only";
 import { ALL_PIECES as DEMO_PIECES, toCategory } from "./catalog";
 import { backend } from "./db";
+import { DEFAULT_LINE, toLine } from "./lines";
 import type { ResetSummary } from "./db/types";
 import type { Piece, Rarity, Scale, Tier } from "./types";
 
@@ -102,6 +103,8 @@ export async function setPieceArchived(
 
 export interface PieceInput {
   id?: string;
+  /** Which collection. Anything unrecognised, or nothing, is Bearbrick. */
+  line?: unknown;
   name: string;
   setName?: string;
   series?: number | null;
@@ -155,8 +158,14 @@ export function buildPiece(input: PieceInput): Piece {
   // sold, not somewhere that quietly makes it a grail.
   const tier: Tier = input.tier && TIERS.includes(input.tier) ? input.tier : "bronze";
 
+  const line = toLine(input.line) ?? DEFAULT_LINE;
+
   return {
-    id: input.id?.trim() || slugFor(input.name, scale),
+    // Bearbrick ids stay as they were, so a re-import of an old sheet still
+    // updates in place; every other collection's ids carry its name, so a
+    // Pop Mart piece and a Bearbrick of the same name never collide.
+    id: input.id?.trim() || (line === DEFAULT_LINE ? "" : `${line}-`) + slugFor(input.name, scale),
+    line,
     // Undefined and null mean different things to the caller but the same
     // thing here: no opinion, so the ladder decides.
     coinValue: input.coinValue ?? null,

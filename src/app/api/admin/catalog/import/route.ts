@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       errors: result.errors,
       sample: result.rows.slice(0, 8).map((r) => ({
         id: r.piece.id,
+        line: r.piece.line,
         name: r.piece.name,
         scale: r.piece.scale,
         // Which box each row lands in, so the preview answers the question the

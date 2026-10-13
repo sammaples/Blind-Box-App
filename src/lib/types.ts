@@ -1,3 +1,5 @@
+import type { LineId } from "./lines";
+
 /**
  * Three tiers, not six.
  *
@@ -74,6 +76,8 @@ export interface Palette {
 
 export interface Piece {
   id: string;
+  /** Which collection it belongs to — Bearbrick, Pop Mart, Squishy... */
+  line: LineId;
   name: string;
   /** e.g. "Series 12" or "400% Collection". */
   setName: string;
@@ -125,6 +129,8 @@ export interface Product {
   highlights: string[];
   /** Accent colour used for the product's UI treatment. */
   accent: string;
+  /** The collection it belongs to. Its pool is that collection's pieces of its tier. */
+  line: LineId;
   /** The shelf this box draws from. Its pool is every piece of this tier. */
   tier: Tier;
   /**

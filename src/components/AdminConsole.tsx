@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_LINE, LINES, type LineId } from "@/lib/lines";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -23,6 +24,7 @@ import type { AuditBatch, Category, Palette, PatternKind, Rarity, Scale, Tier } 
 /** The slice of a piece the console needs. */
 export interface AdminPiece {
   id: string;
+  line: LineId;
   name: string;
   setName: string;
   series: number | null;
@@ -91,6 +93,12 @@ export function AdminConsole({
 
   const byId = useMemo(() => new Map(pieces.map((p) => [p.id, p])), [pieces]);
 
+  // One collection at a time: Bearbrick, Pop Mart and Squishy each have their
+  // own four shelves, and a list of every collection's pieces at once would
+  // put a Pop Mart figure next to the Bearbrick it never competes with.
+  const [line, setLine] = useState<LineId>(DEFAULT_LINE);
+  const shown = useMemo(() => pieces.filter((p) => p.line === line), [pieces, line]);
+
   const send = async (changes: Change[], message: string) => {
     if (changes.length === 0 || busy) return;
     setBusy(true);
@@ -132,7 +140,7 @@ export function AdminConsole({
   /* ---------------------------- derived views --------------------------- */
 
   const shelf = useMemo(() => {
-    const rows = pieces
+    const rows = shown
       .filter((p) => p.tier === tier && levels[p.id])
       .map((piece) => {
         const { stocked, sold } = levels[piece.id];
@@ -148,7 +156,7 @@ export function AdminConsole({
           RARITY_ORDER.indexOf(a.piece.rarity) - RARITY_ORDER.indexOf(b.piece.rarity) ||
           a.piece.name.localeCompare(b.piece.name),
       );
-  }, [pieces, levels, tier]);
+  }, [shown, levels, tier]);
 
   // A chase target is a share of the shelf, so it can only be worked out from
   // the shelf: how many units are not chases, and how many chases split them.
@@ -165,14 +173,14 @@ export function AdminConsole({
   /* --------------------------- series shortcuts ------------------------- */
 
   const seriesRows = useMemo(() => {
-    // Every tier holds pieces from every series, so the shortcut stocks the
+    // Every tier holds shown from every series, so the shortcut stocks the
     // slice of a series that belongs to the shelf you are looking at — not the
-    // whole series, which would put gold pieces on the bronze shelf.
+    // whole series, which would put gold shown on the bronze shelf.
     const map = new Map<
       number,
       { label: string; total: number; stocked: number; available: number }
     >();
-    for (const piece of pieces) {
+    for (const piece of shown) {
       if (piece.tier !== tier || piece.series === null || piece.archived) continue;
       const row = map.get(piece.series) ?? {
         // Whatever the shop calls this set, not a name invented here.
@@ -192,21 +200,21 @@ export function AdminConsole({
     return [...map.entries()]
       .map(([series, row]) => ({ series, ...row }))
       .sort((a, b) => b.available - a.available || a.series - b.series);
-  }, [pieces, levels, tier]);
+  }, [shown, levels, tier]);
 
   const stockSeries = (series: number) => {
-    const changes = pieces
+    const changes = shown
       .filter((p) => p.series === series && p.tier === tier)
       .map((p) => ({
         pieceId: p.id,
         op: "set" as const,
         units: UNITS_BY_RARITY[p.scale][p.rarity],
       }));
-    void send(changes, `Series ${series} stocked — ${changes.length} pieces`);
+    void send(changes, `Series ${series} stocked — ${changes.length} shown`);
   };
 
   const pullSeries = (series: number) => {
-    const changes = pieces
+    const changes = shown
       .filter((p) => p.series === series && p.tier === tier && levels[p.id])
       .map((p) => ({ pieceId: p.id, op: "pull" as const }));
     void send(changes, `Series ${series} pulled from the shelf`);
@@ -337,8 +345,26 @@ export function AdminConsole({
         </section>
       )}
 
+      {/* which collection the views below are of */}
+      <div className="mt-7 flex gap-2 overflow-x-auto sm:mt-9" role="tablist" aria-label="Collection">
+        {LINES.map((l) => (
+          <button
+            key={l.id}
+            type="button"
+            role="tab"
+            aria-selected={line === l.id}
+            onClick={() => setLine(l.id)}
+            className={`shrink-0 rounded-full border px-4 py-2 text-[13px] font-semibold transition-colors ${
+              line === l.id ? "border-white/70 bg-white text-ink" : "border-hairline text-muted hover:text-chalk"
+            }`}
+          >
+            {l.name} ({pieces.filter((p) => p.line === l.id && !p.archived).length})
+          </button>
+        ))}
+      </div>
+
       {/* shelf / add tabs */}
-      <div className="mt-7 flex gap-1 overflow-x-auto border-b border-hairline sm:mt-9">
+      <div className="mt-4 flex gap-1 overflow-x-auto border-b border-hairline">
         {(["catalogue", "shelf", "add", "log"] as const).map((t) => (
           <button
             key={t}
@@ -355,7 +381,7 @@ export function AdminConsole({
               : t === "add"
                 ? "Stock a piece"
                 : t === "catalogue"
-                  ? `Catalogue (${pieces.length})`
+                  ? `Catalogue (${shown.length})`
                   : `Change log (${log.length})`}
           </button>
         ))}
@@ -384,7 +410,7 @@ export function AdminConsole({
       )}
       {tab === "add" && (
         <AddPieces
-          pieces={pieces.filter((p) => p.tier === tier && !p.archived && !levels[p.id])}
+          pieces={shown.filter((p) => p.tier === tier && !p.archived && !levels[p.id])}
           busy={busy}
           onChange={send}
           byId={byId}
@@ -392,7 +418,7 @@ export function AdminConsole({
         />
       )}
       {tab === "catalogue" && (
-        <Catalogue pieces={pieces} levels={levels} busy={busy} onChange={send} />
+        <Catalogue pieces={shown} totalPieces={pieces.length} line={line} levels={levels} busy={busy} onChange={send} />
       )}
       {tab === "log" && <ChangeLog entries={log} byId={byId} />}
     </div>
@@ -810,11 +836,17 @@ interface ImportPreview {
  */
 function Catalogue({
   pieces,
+  totalPieces,
+  line,
   levels,
   busy,
   onChange,
 }: {
   pieces: AdminPiece[];
+  /** Every piece in every collection, for the "empty the shop" warning. */
+  totalPieces: number;
+  /** The collection on show, which a new piece is added to. */
+  line: LineId;
   levels: Levels;
   busy: boolean;
   onChange: (changes: Change[], message: string) => void;
@@ -988,6 +1020,7 @@ function Catalogue({
     return (
       <AddProduct
         editing={editing}
+        defaultLine={line}
         onCancel={() => {
           setAdding(false);
           setEditing(null);
@@ -1244,6 +1277,7 @@ function Catalogue({
               onEdit={(piece) => {
                 setEditing({
                   id: piece.id,
+                  line: piece.line,
                   name: piece.name,
                   setName: piece.setName,
                   series: piece.series,
@@ -1269,7 +1303,7 @@ function Catalogue({
       </section>
 
       {/* Emptying the shop. Last on the page, folded shut, and typed to confirm. */}
-      {pieces.length > 0 && (
+      {totalPieces > 0 && (
         <section className="rounded-2xl border border-hairline bg-ink-card p-5">
           {!showReset ? (
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1297,7 +1331,7 @@ function Catalogue({
               <p className="mt-1.5 max-w-xl text-xs leading-relaxed text-muted">
                 Removing{" "}
                 <span className="text-chalk">
-                  all {pieces.length} piece{pieces.length === 1 ? "" : "s"}
+                  all {totalPieces} piece{totalPieces === 1 ? "" : "s"}
                 </span>
                 , every stock line, every order placed so far, the change log,
                 and every uploaded photo. Accounts stay — you will still be

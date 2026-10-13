@@ -57,7 +57,7 @@ export default async function CollectionPage() {
         <div className="mt-8 rounded-2xl border border-dashed border-hairline p-12 text-center">
           <p className="text-sm text-muted">Nothing opened yet.</p>
           <Link
-            href="/#shop"
+            href="/"
             className="gloss gloss-chalk mt-4 inline-block rounded-full px-6 py-3 text-sm font-semibold text-ink"
           >
             Buy your first box

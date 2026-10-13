@@ -38,6 +38,7 @@ export default async function AdminPage() {
       // The shop's own catalogue, uploaded and edited here.
       pieces={catalogue.map((p) => ({
         id: p.id,
+        line: p.line,
         name: p.name,
         setName: p.setName,
         category: p.category,

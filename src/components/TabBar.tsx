@@ -16,7 +16,7 @@ const TABS: { href: string; label: string; icon: ReactNode; match: (path: string
   {
     href: "/",
     label: "Boxes",
-    match: (p) => p === "/",
+    match: (p) => p === "/" || p.startsWith("/shop/"),
     icon: (
       <path d="M12 3 4 7v10l8 4 8-4V7l-8-4Zm0 0v18M4 7l8 4 8-4" />
     ),

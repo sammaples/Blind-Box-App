@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { parseCoinValue } from "@/lib/coins";
 import { isAdmin } from "@/lib/admin";
 import { toCategory } from "@/lib/catalog";
+import { DEFAULT_LINE, toLine } from "@/lib/lines";
 import {
   allPieces,
   buildPiece,
@@ -141,7 +142,10 @@ export async function POST(request: Request) {
   // all. Checked here and not only in the form, because the form is not the
   // only way to reach this.
   const category = toCategory(body.category);
-  if (series !== null && category === null) {
+  // Categories are Bearbrick's (flag, cute, jellybean...), so only a
+  // Bearbrick series piece must have one.
+  const line = toLine(body.line) ?? DEFAULT_LINE;
+  if (series !== null && category === null && line === DEFAULT_LINE) {
     return NextResponse.json(
       { error: "A series piece needs a category" },
       { status: 400 },
@@ -181,6 +185,7 @@ export async function POST(request: Request) {
   const editingId = typeof body.id === "string" && body.id.trim() !== "" ? body.id : undefined;
   const draft = buildPiece({
     id: editingId,
+    line,
     name,
     setName: typeof body.setName === "string" ? body.setName : "",
     series,

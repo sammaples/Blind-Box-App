@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_LINE, getLine, LINES, type LineId } from "@/lib/lines";
 import { useRef, useState } from "react";
 import {
   CATEGORY_LABEL,
@@ -94,6 +95,8 @@ function seriesChoiceFor(piece: EditableProduct | null | undefined): string {
 /** An existing piece being corrected, rather than a new one being listed. */
 export interface EditableProduct {
   id: string;
+  /** Which collection. Missing on anything from before collections: Bearbrick. */
+  line?: LineId;
   name: string;
   setName: string;
   series: number | null;
@@ -109,13 +112,19 @@ export interface EditableProduct {
 
 export function AddProduct({
   editing,
+  defaultLine,
   onSaved,
   onCancel,
 }: {
   editing?: EditableProduct | null;
+  /** The collection a new piece starts in: whichever the console is showing. */
+  defaultLine?: LineId;
   onSaved: (product: NewProduct) => void;
   onCancel: () => void;
 }) {
+  const [line, setLine] = useState<LineId>(editing?.line ?? defaultLine ?? DEFAULT_LINE);
+  // Only some collections come in sizes; the rest are stored at the base size.
+  const sized = getLine(line)?.sized ?? true;
   const [scale, setScale] = useState<Scale>(editing?.scale ?? "100%");
   const [tier, setTier] = useState<Tier>(editing?.tier ?? "bronze");
   const [name, setName] = useState(editing?.name ?? "");
@@ -186,8 +195,9 @@ export function AddProduct({
           // Present only when correcting an existing piece; its absence is what
           // makes this a new listing.
           id: editing?.id,
+          line,
           name,
-          scale,
+          scale: sized ? scale : "100%",
           tier,
           rarity,
           setName: setNameToSave(),
@@ -213,7 +223,8 @@ export function AddProduct({
 
   // A numbered series has a lineup of slots, so which one a piece fills is
   // part of listing it. A one-off usually fills none.
-  const categoryRequired = series !== NON_SERIES_CHOICE;
+  // Categories are Bearbrick's, so it is only required there.
+  const categoryRequired = series !== NON_SERIES_CHOICE && line === DEFAULT_LINE;
   const ready =
     name.trim() !== "" && !uploading && !saving && (!categoryRequired || category !== "");
 
@@ -241,6 +252,31 @@ export function AddProduct({
           Cancel
         </button>
       </div>
+
+      {/* which collection — decides which shop and which shelves it is on */}
+      <fieldset className="mt-6">
+        <legend className="text-[11px] font-medium uppercase tracking-wider text-faint">
+          Collection
+        </legend>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          {LINES.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => setLine(l.id)}
+              aria-pressed={line === l.id}
+              className={`rounded-xl border p-3 text-left transition-colors ${
+                line === l.id ? "border-white/35 bg-white/[0.07]" : "border-hairline hover:border-white/20"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <span className="size-2 rounded-full" style={{ background: l.accent }} />
+                <span className="text-[13px] font-medium">{l.name}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </fieldset>
 
       {/* which box */}
       <fieldset className="mt-6">
@@ -273,7 +309,9 @@ export function AddProduct({
         </div>
       </fieldset>
 
-      {/* how big the figure is — a separate fact from which box sells it */}
+      {/* how big the figure is — a separate fact from which box sells it.
+          Bearbrick only: the other collections do not come in sizes. */}
+      {sized && (
       <fieldset className="mt-6">
         <legend className="text-[11px] font-medium uppercase tracking-wider text-faint">
           Figure size
@@ -301,6 +339,7 @@ export function AddProduct({
           a shelf of its own any more.
         </p>
       </fieldset>
+      )}
 
       <div className="mt-6 grid gap-6 sm:grid-cols-[minmax(0,180px)_1fr]">
         {/* photo */}

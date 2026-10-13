@@ -1,5 +1,6 @@
 "use client";
 
+import type { LineId } from "@/lib/lines";
 import { useEffect, useState } from "react";
 import { PieceImage } from "@/components/PieceImage";
 import {
@@ -29,6 +30,7 @@ import type { Category, Rarity, Scale, Tier } from "@/lib/types";
 
 export interface GridPiece {
   id: string;
+  line: LineId;
   name: string;
   setName: string;
   category: Category | null;
@@ -83,9 +85,9 @@ export function CatalogueGrid({
   // Everything left in the pool for this piece's shelf, which is what turns a
   // unit count into a pull rate. The shelf is the tier: a piece competes for
   // the draw against the others in its own box, whatever size any of them are.
-  const poolFor = (tier: Tier) =>
+  const poolFor = (piece: GridPiece) =>
     pieces
-      .filter((p) => p.tier === tier && !p.archived)
+      .filter((p) => p.line === piece.line && p.tier === piece.tier && !p.archived)
       .reduce((sum, p) => sum + available(levels[p.id]), 0);
 
   return (
@@ -105,7 +107,7 @@ export function CatalogueGrid({
         <StockSheet
           piece={open}
           level={levels[open.id] ?? null}
-          pool={poolFor(open.tier)}
+          pool={poolFor(open)}
           busy={busy}
           onClose={() => setOpenId(null)}
           onChange={onChange}

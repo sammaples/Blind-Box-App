@@ -194,7 +194,7 @@ export function Onboarding() {
                         and a signed-in collector wants the door held open,
                         not a login. */}
                     {apple && !account ? (
-                      <AppleButton next="/#shop" label="Continue with Apple" />
+                      <AppleButton next="/" label="Continue with Apple" />
                     ) : (
                       <button
                         type="button"

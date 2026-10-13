@@ -1,7 +1,8 @@
 import { CATEGORY_ORDER, LEGACY_RARITY, toCategory } from "./catalog";
 import type { Rarity, Scale, Tier } from "./types";
 import { parseCoinValue } from "./coins";
-import { buildPiece, RARITIES, SCALES, slugFor, TIERS } from "./pieces";
+import { DEFAULT_LINE, getLine, LINES, toLine } from "./lines";
+import { buildPiece, RARITIES, SCALES, TIERS } from "./pieces";
 import type { Piece } from "./types";
 
 /**
@@ -76,7 +77,14 @@ const HEADER_ALIASES: Record<string, string> = {
   piece: "name",
   set: "set",
   setname: "set",
-  collection: "set",
+  // "Collection" is the kind of collectible now — Bearbrick, Pop Mart,
+  // Squishy — because that is what the shop calls it everywhere. It used to
+  // be a second word for the set; a sheet that means the set says "set".
+  collection: "line",
+  line: "line",
+  brand: "line",
+  collectible: "line",
+  producttype: "line",
   series: "series",
   category: "category",
   kind: "category",
@@ -165,9 +173,11 @@ export const CSV_TEMPLATE =
   // without one — a template that fails its own import is worse than none.
   // No coins column: pieces are not traded in for coins any more. A sheet
   // that still has one imports fine; the column is read and kept, not used.
-  "name,set,series,tier,scale,rarity,category,image,quantity,notes\n" +
-  "Sky Blue Bear,Series 47,47,bronze,100%,common,cute,https://example.com/sky.jpg,12,Gloss finish\n" +
-  "Chrome Grail,400% Collection,,diamond,400%,chase,,https://example.com/chrome.jpg,1,One of one\n";
+  "collection,name,set,series,tier,scale,rarity,category,image,quantity,notes\n" +
+  "Bearbrick,Sky Blue Bear,Series 47,47,bronze,100%,common,cute,https://example.com/sky.jpg,12,Gloss finish\n" +
+  "Bearbrick,Chrome Grail,400% Collection,,diamond,400%,chase,,https://example.com/chrome.jpg,1,One of one\n" +
+  "Pop Mart,Pink Dreamer,Spring Series,,bronze,,common,,https://example.com/pink.jpg,10,\n" +
+  "Squishy,Mint Mochi Cat,,,silver,,rare,,https://example.com/mochi.jpg,6,Slow rise\n";
 
 /**
  * Reads a catalogue spreadsheet. Every row is validated independently: a bad
@@ -186,15 +196,8 @@ export function importCatalogue(text: string): ImportResult {
     return {
       rows: [],
       errors: [
-        "No 'name' column found. The first row must be a header — name, tier and scale are required.",
+        "No 'name' column found. The first row must be a header — name and tier are required (and scale for Bearbrick).",
       ],
-      columns,
-    };
-  }
-  if (!columns.includes("scale")) {
-    return {
-      rows: [],
-      errors: ["No 'scale' column found. Each piece needs 100%, 400% or 400%/100%."],
       columns,
     };
   }
@@ -228,7 +231,21 @@ export function importCatalogue(text: string): ImportResult {
       continue;
     }
 
-    const scale = normaliseScale(get("scale"));
+    // Which collection. A blank cell, or no column at all, is Bearbrick —
+    // every sheet written before collections existed is a Bearbrick sheet.
+    const lineRaw = get("line");
+    const lineId = lineRaw === "" ? DEFAULT_LINE : toLine(lineRaw);
+    if (!lineId) {
+      errors.push(
+        `Line ${line}: "${lineRaw}" is not a collection — use ${LINES.map((l) => l.name).join(", ")}.`,
+      );
+      continue;
+    }
+    const sized = getLine(lineId)?.sized ?? true;
+
+    // Sizes are a Bearbrick thing. A Pop Mart or Squishy row can leave the
+    // column out; it is stored as the base size and never shown.
+    const scale = normaliseScale(get("scale")) ?? (sized ? null : "100%");
     if (!scale) {
       errors.push(
         `Line ${line}: "${get("scale")}" is not a scale — use 100%, 400% or 400%/100%.`,
@@ -290,13 +307,18 @@ export function importCatalogue(text: string): ImportResult {
       continue;
     }
 
-    if (series !== null && category === null) {
+    // Categories (flag, cute, jellybean...) are Bearbrick's, so only a
+    // Bearbrick series piece has to have one.
+    if (series !== null && category === null && lineId === DEFAULT_LINE) {
       errors.push(`Line ${line}: "${name}" is a series piece, so it needs a category.`);
       continue;
     }
 
     const piece = buildPiece({
-      id: get("id") || slugFor(name, scale),
+      // Left to buildPiece when blank, which names it after its collection
+      // too, so a Pop Mart and a Bearbrick piece of the same name never meet.
+      id: get("id") || undefined,
+      line: lineId,
       name,
       setName: get("set"),
       series,

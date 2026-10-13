@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
+import { DEFAULT_LINE, toLine } from "../lines";
 import { toCategory } from "../catalog";
 import type {
   CoinEntry,
@@ -156,6 +157,7 @@ function toPiece(r: Row): Piece {
 
   return {
     id: r.id as string,
+    line: toLine(r.line) ?? DEFAULT_LINE,
     name: r.name as string,
     setName: (r.set_name as string) || "",
     series: r.series === null || r.series === undefined ? null : Number(r.series),
@@ -587,9 +589,10 @@ export function createPostgresBackend(connectionString: string): Backend {
         for (const p of pieces) {
           await client.query(
             `insert into catalog_pieces
-               (id, name, set_name, series, scale, tier, rarity, image_url, notes, archived_at, category, coin_value)
-             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+               (id, name, set_name, series, scale, tier, rarity, image_url, notes, archived_at, category, coin_value, line)
+             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
              on conflict (id) do update set
+               line       = excluded.line,
                name       = excluded.name,
                set_name   = excluded.set_name,
                series     = excluded.series,
@@ -614,6 +617,7 @@ export function createPostgresBackend(connectionString: string): Backend {
               p.archived ? new Date().toISOString() : null,
               p.category,
               p.coinValue,
+              p.line,
             ],
           );
         }
@@ -625,8 +629,8 @@ export function createPostgresBackend(connectionString: string): Backend {
       // product already answers to it, and the caller wants a new row.
       const { rowCount } = await query(
         `insert into catalog_pieces
-           (id, name, set_name, series, scale, tier, rarity, image_url, notes, archived_at, category)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+           (id, name, set_name, series, scale, tier, rarity, image_url, notes, archived_at, category, line)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
          on conflict (id) do nothing`,
         [
           piece.id,
@@ -640,6 +644,7 @@ export function createPostgresBackend(connectionString: string): Backend {
           piece.blurb,
           piece.archived ? new Date().toISOString() : null,
           piece.category,
+          piece.line,
         ],
       );
       return (rowCount ?? 0) > 0;
@@ -767,7 +772,7 @@ export function createPostgresBackend(connectionString: string): Backend {
       }));
     },
 
-    async reserve(tier, draw: Draw, build: BuildOrder): Promise<Reservation | null> {
+    async reserve({ line, tier }, draw: Draw, build: BuildOrder): Promise<Reservation | null> {
       return withTx(async (client) => {
         // The draw depends on the whole shelf, so the whole shelf is locked for
         // the length of the transaction. Buyers of one shelf serialise; buyers
@@ -780,10 +785,10 @@ export function createPostgresBackend(connectionString: string): Backend {
              from stock s
              join catalog_pieces c
                on c.id = s.piece_id and c.archived_at is null
-            where s.tier = $1 and s.stocked > s.sold
+            where s.tier = $1 and c.line = $2 and s.stocked > s.sold
             order by s.piece_id
               for update of s`,
-          [tier],
+          [tier, line],
         );
         if (rows.length === 0) return null;
 

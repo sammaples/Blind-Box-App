@@ -1,6 +1,9 @@
-import type { CSSProperties } from "react";
+"use client";
+
+import { createContext, useContext, type CSSProperties } from "react";
 import type { BoxFace } from "@/lib/boxShape";
 import { PRODUCTS } from "@/lib/catalog";
+import type { LineId } from "@/lib/lines";
 
 /**
  * A printed box wrap: the app's own figures scattered across a pale blue
@@ -44,7 +47,27 @@ const INK = [
  * is folding away from rather than approximating it.
  */
 export const PRINT_GROUND = "#a3d0f2";
-const GROUND = PRINT_GROUND;
+
+/**
+ * Which collection's wrap to print. Each collection's box carries its own
+ * kind of figure on its own ground — bears on blue, vinyl figures on pink,
+ * soft buns on mint — so a box says what is inside before it is opened.
+ *
+ * Read from context rather than threaded through every carton component: the
+ * page that knows the collection sets it once around the box.
+ */
+export const PrintLine = createContext<LineId>("bearbrick");
+
+const GROUNDS: Record<LineId, string> = {
+  bearbrick: PRINT_GROUND,
+  popmart: "#f7c3d8",
+  squishy: "#b6eadf",
+};
+
+/** The ground a collection's box is printed on, which its folded edges match. */
+export function groundFor(line: LineId): string {
+  return GROUNDS[line] ?? PRINT_GROUND;
+}
 
 /**
  * Deterministic scatter.
@@ -115,9 +138,51 @@ const WINDOW: Record<BoxFace, [number, number, number, number]> = {
   bottom: [FACE_W * 1.6, 80, FACE_W, FACE_W],
 };
 
+/** Each collection's figure, in the same 200 × 320 box the bear is drawn in. */
+function Figure({ line }: { line: LineId }) {
+  if (line === "popmart") {
+    return (
+      <>
+        <ellipse cx={62} cy={64} rx={18} ry={42} transform="rotate(-14 62 64)" />
+        <ellipse cx={138} cy={64} rx={18} ry={42} transform="rotate(14 138 64)" />
+        <ellipse cx={100} cy={146} rx={78} ry={66} />
+        <path d="M64 212c0-14 16-22 36-22s36 8 36 22v40c0 12-10 20-22 20H86c-12 0-22-8-22-20z" />
+        <rect x={70} y={262} width={26} height={30} rx={12} />
+        <rect x={104} y={262} width={26} height={30} rx={12} />
+      </>
+    );
+  }
+  if (line === "squishy") {
+    return (
+      <>
+        <path d="M30 150 42 92 82 130z" />
+        <path d="M170 150 158 92 118 130z" />
+        <path d="M100 112c58 0 92 42 92 106 0 56-32 84-92 84S8 274 8 218c0-64 34-106 92-106z" />
+      </>
+    );
+  }
+  return (
+    <>
+      <circle cx={70} cy={46} r={17} />
+      <circle cx={130} cy={46} r={17} />
+      <path d="M56 118V70a44 44 0 0 1 88 0v48z" />
+      <rect x={86} y={112} width={28} height={16} rx={4} />
+      <circle cx={48} cy={142} r={13} />
+      <circle cx={152} cy={142} r={13} />
+      <rect x={62} y={126} width={76} height={80} rx={9} />
+      <rect x={35} y={134} width={26} height={74} rx={13} />
+      <rect x={139} y={134} width={26} height={74} rx={13} />
+      <rect x={62} y={200} width={76} height={26} rx={7} />
+      <rect x={65} y={220} width={33} height={72} rx={10} />
+      <rect x={102} y={220} width={33} height={72} rx={10} />
+    </>
+  );
+}
+
 export function BoxPrint({ face, style }: { face: BoxFace; style?: CSSProperties }) {
+  const line = useContext(PrintLine);
   const [x, y, w, h] = WINDOW[face];
-  const gid = `bbfig-${face}`;
+  const gid = `bbfig-${line}-${face}`;
 
   return (
     <svg
@@ -128,25 +193,14 @@ export function BoxPrint({ face, style }: { face: BoxFace; style?: CSSProperties
     >
       <defs>
         <g id={gid}>
-          <circle cx={70} cy={46} r={17} />
-          <circle cx={130} cy={46} r={17} />
-          <path d="M56 118V70a44 44 0 0 1 88 0v48z" />
-          <rect x={86} y={112} width={28} height={16} rx={4} />
-          <circle cx={48} cy={142} r={13} />
-          <circle cx={152} cy={142} r={13} />
-          <rect x={62} y={126} width={76} height={80} rx={9} />
-          <rect x={35} y={134} width={26} height={74} rx={13} />
-          <rect x={139} y={134} width={26} height={74} rx={13} />
-          <rect x={62} y={200} width={76} height={26} rx={7} />
-          <rect x={65} y={220} width={33} height={72} rx={10} />
-          <rect x={102} y={220} width={33} height={72} rx={10} />
+          <Figure line={line} />
         </g>
       </defs>
 
       {/* The ground is drawn oversize: `preserveAspectRatio: none` stretches the
           window to the face, and a rect sized to the window alone can leave a
           hairline of the face's own colour along an edge after rounding. */}
-      <rect x={x - 20} y={y - 20} width={w + 40} height={h + 40} fill={GROUND} />
+      <rect x={x - 20} y={y - 20} width={w + 40} height={h + 40} fill={groundFor(line)} />
 
       {FIGURES.map((f, i) => (
         <use
@@ -168,6 +222,7 @@ export function BoxPrint({ face, style }: { face: BoxFace; style?: CSSProperties
  * would have quietly left every box opening plain — the kind of thing no
  * typechecker catches, because a product id is only ever a string.
  */
+// Every box, each in its own collection's print (see PrintLine).
 const PRINTED = new Set<string>(PRODUCTS.map((p) => p.id));
 
 export function isPrinted(productId: string): boolean {

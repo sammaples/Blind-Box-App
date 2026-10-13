@@ -12,9 +12,22 @@ Next.js 16 app router + Tailwind + framer-motion, Postgres (Neon) via
 node-pg-migrate, with a JSON-file backend for local use. Installable to the
 iPhone Home Screen as a PWA.
 
-- **Boxes:** four tiers — Bronze ($25), Silver, Gold, Diamond ($250) — in
-  100%, 400% and a 400%/100% combo size. All four are buyable (Diamond's
-  "coming soon" flag was removed; the flag still exists for future boxes).
+- **Collections:** the front page (`/`) is "Pick a collection" — a row of
+  cards: **Bearbrick, Pop Mart, Squishy** (three across; more wrap to a second
+  row). Each opens `/shop/<collection>`, the box shop below, over that
+  collection's own pieces and stock. Defined in `src/lib/lines.ts` (code calls
+  a collection a "line"); adding one is an entry there plus its drawing in
+  `CollectionArt` and its box print in `BoxPrint`. Every piece belongs to one
+  collection; draws filter on collection + tier. Bearbrick's box ids stay
+  `bronze`…`diamond`; others are `<collection>-<tier>`.
+- **Boxes:** four tiers per collection — Bronze ($25), Silver, Gold, Diamond
+  ($250). Bearbrick pieces come in 100%, 400% and a 400%/100% combo; the
+  other collections have no sizes (hidden everywhere). All tiers are buyable
+  (Diamond's "coming soon" flag was removed; the flag still exists).
+- **Box prints:** each collection's carton has its own print — bears on blue,
+  vinyl figures on pink (Pop Mart), soft buns on mint (Squishy).
+- **Current stock** (`/stock`) starts on the same collection cards; each
+  collection's stock is `/stock/<collection>`, with a switcher at the top.
 - **The draw:** one real piece per box, drawn server-side at purchase from a
   live stock shelf. Pull rates are published per piece and move as stock
   sells. Each order stores its seed and a snapshot of the shelf.
@@ -40,6 +53,10 @@ iPhone Home Screen as a PWA.
 - **Shop pages hide "Non-Series"** under a piece's name; only series pieces
   show a series line. The console still shows it.
 - **No stock counts** are shown to shoppers anywhere.
+- **Inventory management** has a collection switcher at the top; the
+  catalogue, shelves and Add product follow it. The spreadsheet import takes a
+  `collection` column (Bearbrick if blank; "set" is the set name), and scale is
+  only required for Bearbrick rows. Template: `public/catalogue-template.csv`.
 
 ## Sam's preferences (the owner)
 

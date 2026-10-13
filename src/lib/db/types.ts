@@ -1,3 +1,4 @@
+import type { LineId } from "../lines";
 import type {
   CoinEntry,
   CoinReason,
@@ -292,7 +293,8 @@ export interface Backend {
    * one transaction, so the last unit of a piece can never be sold twice.
    * Returns null when the shelf has nothing left.
    */
-  reserve(tier: Tier, draw: Draw, build: BuildOrder): Promise<Reservation | null>;
+  /** Draws from one collection's shelf of one tier. */
+  reserve(shelf: { line: LineId; tier: Tier }, draw: Draw, build: BuildOrder): Promise<Reservation | null>;
 
   /** Applies stock edits and records them in the change log, atomically. */
   applyStockChanges(changes: readonly StockChange[]): Promise<StockChangeResult[]>;

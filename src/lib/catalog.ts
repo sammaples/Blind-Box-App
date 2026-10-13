@@ -1,4 +1,5 @@
 import type { Category, Palette, PatternKind, Piece, Product, Rarity, Tier } from "./types";
+import { LINES, type LineId } from "./lines";
 
 /**
  * The reference catalogue: every piece that exists, generated deterministically
@@ -352,6 +353,7 @@ function buildPiece(seriesNo: number, spec: TypeSpec, index: number): Piece {
 
   return {
     id: `s${seriesNo}-${spec.type.toLowerCase()}-${index}`,
+    line: "bearbrick",
     // The demo catalogue states no opinion, so every generated piece falls
     // back to the rarity ladder. It is the console's job to disagree.
     coinValue: null,
@@ -484,6 +486,7 @@ export const BIG_PIECES: readonly Piece[] = BIG_SPECS.map((spec, i) => ({
   blurb: spec.blurb,
   imageUrl: null,
   archived: false,
+  line: "bearbrick" as const,
 }));
 
 /* ------------------------------------------------------------------ *
@@ -502,7 +505,7 @@ export const BIG_PIECES: readonly Piece[] = BIG_SPECS.map((spec, i) => ({
  * Prices are four numbers in one place on purpose. They are the thing most
  * likely to move once the shop has sold anything, and nothing else reads them.
  */
-export const PRODUCTS: readonly Product[] = [
+const BEARBRICK_PRODUCTS: readonly Product[] = [
   {
     id: "bronze",
     name: "Bronze Box",
@@ -516,6 +519,7 @@ export const PRODUCTS: readonly Product[] = [
       "400% chase in the pool while stock lasts",
     ],
     accent: "#c2795a",
+    line: "bearbrick",
     tier: "bronze",
   },
   {
@@ -531,6 +535,7 @@ export const PRODUCTS: readonly Product[] = [
       "A scarcer 400% chase than bronze",
     ],
     accent: "#b6bcc8",
+    line: "bearbrick",
     tier: "silver",
   },
   {
@@ -546,6 +551,7 @@ export const PRODUCTS: readonly Product[] = [
       "Short-run 400% chases",
     ],
     accent: "#e0b64e",
+    line: "bearbrick",
     tier: "gold",
   },
   {
@@ -561,9 +567,64 @@ export const PRODUCTS: readonly Product[] = [
       "The smallest pool we sell",
     ],
     accent: "#7fd7e8",
+    line: "bearbrick",
     tier: "diamond",
   },
 ];
+
+/**
+ * The same four boxes for every other collection: the same tiers, prices and
+ * colours, over that collection's own shelf. The copy is general because the
+ * shelves are whatever gets stocked; Bearbrick's own copy talks about sizes
+ * because its pieces have them.
+ */
+const TEMPLATE: Record<Tier, Pick<Product, "tagline" | "description" | "highlights">> = {
+  bronze: {
+    tagline: "The everyday box. A chase hiding in the run.",
+    description:
+      "One piece drawn from the bronze shelf as it stands today — mostly the standard pieces, with a rare in the mix and a chase at the bottom of the run. Every rate is that piece's share of what is left.",
+    highlights: ["One guaranteed piece", "A rare in the mix", "A chase in the pool while stock lasts"],
+  },
+  silver: {
+    tagline: "A better shelf. Rares and an ultra join the pool.",
+    description:
+      "The step up. The same live-stock draw, over a shelf that trades the plainest pieces for an ultra rare and a scarcer chase.",
+    highlights: ["One guaranteed piece", "Ultra rares in the pool", "A scarcer chase than bronze"],
+  },
+  gold: {
+    tagline: "No commons. Rares and ultras only.",
+    description:
+      "Every piece in this pool is a rare or an ultra, with short-run chases behind them. A small pool by design.",
+    highlights: ["No common pieces at all", "Rares and ultras only", "Short-run chases"],
+  },
+  diamond: {
+    tagline: "The secrets, and the grails behind them.",
+    description:
+      "The hidden pieces, sold on purpose: secrets and the scarcest chases. The smallest pool in the shop.",
+    highlights: ["Secret pieces only", "The scarcest chases", "The smallest pool we sell"],
+  },
+};
+
+function boxesFor(line: LineId): Product[] {
+  return BEARBRICK_PRODUCTS.map((box) => ({
+    ...box,
+    ...TEMPLATE[box.tier],
+    // Bearbrick's keep their plain ids — every order before collections
+    // names one — and every other collection's are prefixed with its own.
+    id: `${line}-${box.tier}`,
+    line,
+  }));
+}
+
+/** Every box on sale, collection by collection. */
+export const PRODUCTS: readonly Product[] = LINES.flatMap((line) =>
+  line.id === "bearbrick" ? BEARBRICK_PRODUCTS : boxesFor(line.id),
+);
+
+/** One collection's boxes, cheapest first. */
+export function productsFor(line: LineId): Product[] {
+  return PRODUCTS.filter((p) => p.line === line);
+}
 
 export function getProduct(id: string): Product | undefined {
   return PRODUCTS.find((p) => p.id === id);

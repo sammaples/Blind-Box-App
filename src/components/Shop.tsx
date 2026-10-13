@@ -3,9 +3,9 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { memo, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   formatOdds,
-  PRODUCTS,
   RARITY_COLOR,
   RARITY_LABEL,
   RARITY_ORDER,
@@ -26,9 +26,12 @@ import { Coins } from "./Coin";
 
 /** The boxes on sale, plus the checkout sheet that seals one. */
 export function Shop({
+  products,
   shelves,
   pulls,
 }: {
+  /** One collection's boxes, cheapest first. */
+  products: readonly Product[];
   shelves: Record<string, StockEntry[]>;
   pulls: Record<string, Pull[]>;
 }) {
@@ -38,7 +41,7 @@ export function Shop({
   // Which box the rail has centred. The panel below reads it; the rail owns
   // it, because the rail is the thing that can be swiped.
   const [active, setActive] = useState(0);
-  const showing = PRODUCTS[Math.min(active, PRODUCTS.length - 1)];
+  const showing = products[Math.min(active, products.length - 1)];
   // The box is as big as the rail has room for. This page is laid out to fit
   // the screen exactly, and the rail is the part that gives: a tall phone gets
   // a bigger box, a short one a smaller box, and neither one scrolls.
@@ -70,6 +73,16 @@ export function Shop({
       {/* The "?" sits at the far end of the heading's row: where the eye
           goes after reading it, and clear of the boxes below. */}
       <div className="flex shrink-0 items-center justify-between gap-3">
+        {/* Back to the collections, the page before this one. */}
+        <Link
+          href="/"
+          aria-label="All collections"
+          className="-ml-2 grid size-9 shrink-0 place-items-center rounded-full text-muted transition-colors hover:text-chalk"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden className="size-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </Link>
         <h1
           className="shimmer-text shimmer-slow w-fit shrink-0 text-3xl font-semibold tracking-tight sm:text-4xl [@media(max-height:720px)]:text-2xl"
           style={{
@@ -79,6 +92,7 @@ export function Shop({
         >
           Pick your box
         </h1>
+        <span className="flex-1" />
         <HowItWorksButton />
       </div>
 
@@ -96,9 +110,9 @@ export function Shop({
         loop
         fill
         onTrackHeight={setTrackHeight}
-        backdrop={<BoxAura showing={showing.id} />}
+        backdrop={<BoxAura products={products} showing={showing.id} />}
       >
-        {PRODUCTS.map((product) => (
+        {products.map((product) => (
           <FloatingBox key={product.id} product={product} width={boxWidth} />
         ))}
       </BoxCarousel>
@@ -145,10 +159,10 @@ export function Shop({
  * colour carries up into the heading and down past the dots instead of
  * stopping at a hard line.
  */
-function BoxAura({ showing }: { showing: string }) {
+function BoxAura({ products, showing }: { products: readonly Product[]; showing: string }) {
   return (
     <>
-      {PRODUCTS.map((product) => (
+      {products.map((product) => (
         <div
           key={product.id}
           className="absolute inset-0"
@@ -221,7 +235,7 @@ const FloatingBox = memo(function FloatingBox({ product, width }: { product: Pro
           under it; the smallest box is already level and is left alone. */}
       <div style={{ transform: `translateY(${-Math.round(Math.min(7, Math.max(0, (width - 56) * 0.12)))}px)` }}>
         <div className="relative float-soft">
-          <ProductBox accent={product.accent} printed={isPrinted(product.id)} width={width} glint />
+          <ProductBox accent={product.accent} printed={isPrinted(product.id)} line={product.line} width={width} glint />
         </div>
       </div>
     </div>

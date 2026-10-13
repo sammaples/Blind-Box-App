@@ -77,7 +77,7 @@ export function OpenExperience({
             */}
             <div className="flex flex-col gap-2">
               <Link
-                href="/#shop"
+                href={`/shop/${product.line}#shop`}
                 className="gloss gloss-chalk gloss-loud rounded-2xl px-6 py-3.5 text-center text-2xl font-bold tracking-tight text-ink transition-transform hover:scale-[1.02] active:scale-[0.99]"
               >
                 {/* The label rides above the sweep and the cap, both of which

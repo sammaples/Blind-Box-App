@@ -1,11 +1,12 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useCallback, useEffect, useState } from "react";
+import { getLine } from "@/lib/lines";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { RARITY_COLOR, shopSubtitle } from "@/lib/catalog";
 import { boxGeometry } from "@/lib/boxShape";
 import { playOpenSound, preloadOpenSound, type OpenSound } from "@/lib/openSound";
-import { BoxPrint, isPrinted, PRINT_GROUND } from "./BoxPrint";
+import { BoxPrint, groundFor, isPrinted, PrintLine } from "./BoxPrint";
 import type { Piece, Product } from "@/lib/types";
 import { PieceImage } from "./PieceImage";
 import { RarityChip } from "./ui";
@@ -445,6 +446,7 @@ export function BoxOpening({
 
         <AnimatePresence>
           {stage !== "reveal" && (
+            <PrintLine.Provider key="box" value={product.line}>
             <BlindBox
               key="box"
               accent={product.accent}
@@ -458,6 +460,7 @@ export function BoxOpening({
               reducedMotion={!!reducedMotion}
               onOpen={open}
             />
+            </PrintLine.Provider>
           )}
         </AnimatePresence>
 
@@ -1462,6 +1465,8 @@ function BlindBox({
   onOpen: () => void;
 }) {
   const box = boxGeometry(140);
+  // The folded edges match the collection's printed ground.
+  const ground = groundFor(useContext(PrintLine));
   const opening = stage === "opening";
   const W = box.width;
   // Same throw either way; the chase curve is simply longer.
@@ -1606,7 +1611,7 @@ function BlindBox({
             transform: "rotateY(180deg)",
             backfaceVisibility: "hidden",
             background: printed
-              ? PRINT_GROUND
+              ? ground
               : `color-mix(in srgb, ${accent} 40%, #17171d)`,
           }}
         />
@@ -1747,9 +1752,11 @@ function PullSummary({ piece }: { piece: Piece }) {
       {shopSubtitle(piece) && <p className="text-sm text-muted">{shopSubtitle(piece)}</p>}
       <div className="flex items-center gap-2">
         <RarityChip rarity={piece.rarity} />
-        <span className="rounded-full bg-white/8 px-2.5 py-1 font-mono text-[11px] text-muted">
-          {piece.scale}
-        </span>
+        {getLine(piece.line)?.sized && (
+          <span className="rounded-full bg-white/8 px-2.5 py-1 font-mono text-[11px] text-muted">
+            {piece.scale}
+          </span>
+        )}
       </div>
       {/* No description and no "pulled at 1 in N" line: the rarity and size
           tags above say what the piece is, and the reveal is about the piece,

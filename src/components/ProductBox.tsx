@@ -3,7 +3,8 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { memo, useId } from "react";
 import { boxGeometry, type BoxFace } from "@/lib/boxShape";
-import { BoxPrint } from "./BoxPrint";
+import { BoxPrint, PrintLine } from "./BoxPrint";
+import type { LineId } from "@/lib/lines";
 
 /**
  * The carton, as a picture.
@@ -34,9 +35,12 @@ function ProductBoxImpl({
   /** A band of light that sweeps across the walls now and then — for the box
       on sale, where it should look like foil catching the light. */
   glint = false,
+  /** Whose print the walls carry. Bearbrick's unless said otherwise. */
+  line = "bearbrick",
 }: {
   accent: string;
   printed: boolean;
+  line?: LineId;
   width?: number;
   spin?: boolean;
   glint?: boolean;
@@ -248,6 +252,7 @@ function ProductBoxImpl({
   };
 
   return (
+    <PrintLine.Provider value={line}>
     <motion.div
       className="relative"
       style={{ perspective: `${width * 11}px` }}
@@ -290,6 +295,7 @@ function ProductBoxImpl({
         {mark("left")}
       </div>
     </motion.div>
+    </PrintLine.Provider>
   );
 }
 

@@ -50,7 +50,9 @@ export async function shelfFor(productId: string): Promise<StockEntry[]> {
   const product = getProduct(productId);
   if (!product) return [];
 
-  const rows = (await warehouse()).filter((r) => r.piece.tier === product.tier);
+  const rows = (await warehouse()).filter(
+    (r) => r.piece.line === product.line && r.piece.tier === product.tier,
+  );
   const remaining = rows.reduce((sum, r) => sum + r.available, 0);
 
   return rows.map((row) => ({
@@ -75,7 +77,7 @@ export async function unitsLeft(productId: string): Promise<number> {
 export async function reserve(productId: string, draw: Draw, build: BuildOrder) {
   const product = getProduct(productId);
   if (!product) return null;
-  return backend().reserve(product.tier, draw, build);
+  return backend().reserve({ line: product.line, tier: product.tier }, draw, build);
 }
 
 /* ------------------------------------------------------------------ *

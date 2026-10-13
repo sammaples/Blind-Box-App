@@ -43,7 +43,7 @@ export default function HowItWorksPage() {
 
       <div className="mt-10">
         <Link
-          href="/#shop"
+          href="/"
           className="gloss gloss-chalk inline-block rounded-full px-7 py-3.5 text-sm font-semibold text-ink transition-transform hover:scale-[1.03] active:scale-[0.98]"
         >
           Pick a box

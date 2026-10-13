@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
+import { DEFAULT_LINE } from "../lines";
 import path from "node:path";
 import type {
   CoinEntry,
@@ -410,6 +411,8 @@ export function createJsonBackend(): Backend {
       // it is mapped on the way out.
       return db.pieces.map((piece) => ({
         ...piece,
+        // And one written before collections has none: it is Bearbrick.
+        line: piece.line ?? DEFAULT_LINE,
         rarity: LEGACY_RARITY[piece.rarity] ?? "common",
         category: toCategory(piece.category),
       }));
@@ -565,15 +568,21 @@ export function createJsonBackend(): Backend {
       }));
     },
 
-    async reserve(tier, draw: Draw, build: BuildOrder): Promise<Reservation | null> {
+    async reserve({ line, tier }, draw: Draw, build: BuildOrder): Promise<Reservation | null> {
       return transact((db) => {
         const archived = new Set(
           db.pieces.filter((p) => p.archived).map((p) => p.id),
         );
+        const inLine = new Set(
+          db.pieces.filter((p) => (p.line ?? DEFAULT_LINE) === line).map((p) => p.id),
+        );
         const available = Object.entries(db.stock)
           .filter(
             ([pieceId, row]) =>
-              row.tier === tier && row.stocked > row.sold && !archived.has(pieceId),
+              row.tier === tier &&
+              inLine.has(pieceId) &&
+              row.stocked > row.sold &&
+              !archived.has(pieceId),
           )
           .map(([pieceId, row]) => [pieceId, row.stocked - row.sold] as const)
           .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
