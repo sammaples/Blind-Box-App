@@ -591,16 +591,30 @@ p.sub { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 8px 0 0;
 @media (prefers-reduced-motion: reduce) { .shimmer { animation: none; } }
 /* The "?" at the end of the heading's row: How it works, in a card. */
 .headrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-/* Collections: the front page's row of cards (CollectionPicker). */
-.colgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 20px; }
-.colcard { display: block; padding: 0; border: 1px solid var(--hairline); border-radius: 18px; overflow: hidden;
-  background: var(--card, #121218); color: inherit; font: inherit; text-align: left; cursor: pointer; transition: transform 0.15s; }
-.colcard:active { transform: scale(0.97); }
-.colart { display: flex; align-items: center; justify-content: center; aspect-ratio: 3 / 4; }
-.colart svg { height: 76%; width: auto; filter: drop-shadow(0 10px 16px rgb(0 0 0 / 0.55)); }
-.colmeta { display: block; padding: 8px 9px 11px; }
-.colmeta b { display: block; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.colmeta span { display: block; margin-top: 2px; font-size: 10.5px; color: var(--muted); }
+/* Collections: thick bars stacked down the screen (CollectionPicker). */
+.colbars { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.colbar { position: relative; display: flex; align-items: flex-end; height: 122px; padding: 0; overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.1); border-radius: 22px; background: #121218; color: #fff; font: inherit;
+  text-align: left; cursor: pointer; transition: transform 0.15s; box-shadow: 0 14px 34px -18px rgb(0 0 0 / 0.8); }
+.colbar:active { transform: scale(0.985); }
+.bannerart { position: absolute; inset: 0; overflow: hidden; }
+.bannerprint { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.13;
+  -webkit-mask-image: linear-gradient(90deg, transparent 18%, #000 70%); mask-image: linear-gradient(90deg, transparent 18%, #000 70%); }
+.bannerglow { position: absolute; right: -10%; top: 50%; width: 70%; aspect-ratio: 1; transform: translateY(-50%);
+  border-radius: 50%; opacity: 0.45; filter: blur(24px); }
+.bannerfigs { position: absolute; top: 0; bottom: 0; right: 13%; width: 40%; }
+.bf { position: absolute; bottom: 0; display: block; filter: drop-shadow(0 12px 18px rgb(0 0 0 / 0.55)); }
+.bf svg { display: block; width: 100%; height: auto; }
+.bf.l { left: 2%; width: 34%; transform: rotate(-8deg); filter: brightness(0.82) drop-shadow(0 12px 18px rgb(0 0 0 / 0.55)); }
+.bf.r { right: 0; width: 32%; transform: rotate(9deg); filter: brightness(0.82) drop-shadow(0 12px 18px rgb(0 0 0 / 0.55)); }
+.bf.m { left: 50%; width: 42%; transform: translate(-50%, 6%); }
+.colshade { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(0 0 0 / 0.55), rgb(0 0 0 / 0.1) 50%, transparent); }
+.colrow { position: relative; display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; width: 100%; padding: 14px; }
+.colname b { display: block; font-size: 23px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; text-shadow: 0 2px 10px rgb(0 0 0 / 0.45); }
+.colname span { display: inline-block; margin-top: 7px; padding: 3px 9px; border-radius: 999px; background: rgb(0 0 0 / 0.35);
+  font-size: 11px; font-weight: 500; color: rgb(255 255 255 / 0.9); }
+.colgo { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+  background: rgb(255 255 255 / 0.15); font-size: 22px; line-height: 1; }
 .backbtn { flex: none; width: 32px; height: 32px; margin-left: -8px; border: 0; background: none; color: var(--muted);
   font-size: 28px; line-height: 1; cursor: pointer; }
 .backbtn:hover { color: var(--chalk); }
@@ -2456,9 +2470,10 @@ const STOCKED = stockedUnits();
 /* Collections, ported from src/lib/lines.ts. The front page is a row of
    these; each opens the same four boxes over its own shelf. */
 const LINES = [
-  { id: "bearbrick", name: "Bearbrick", accent: "#e0465b", sized: true },
+  { id: "bearbrick", name: "Be@rbrick", accent: "#e0465b", sized: true },
   { id: "popmart", name: "Pop Mart", accent: "#f2a7c8", sized: false },
   { id: "squishy", name: "Squishy", accent: "#7ad3c4", sized: false },
+  { id: "tapcap", name: "TapCap", accent: "#f5a524", sized: false },
 ];
 function getLine(id) { return LINES.find((l) => l.id === id); }
 
@@ -2532,9 +2547,11 @@ const DEMO_NAMES = {
     "Lilac Dreamer", "Coral Dreamer", "Frost Dreamer", "Golden Dreamer", "Velvet Dreamer", "Secret Dreamer", "Halo Dreamer"],
   squishy: ["Mochi Cat", "Bao Cat", "Dango Cat", "Taro Cat", "Matcha Cat", "Peach Bun", "Melon Bun", "Sesame Bun",
     "Custard Bun", "Ube Bun", "Sakura Bun", "Golden Bun", "Cocoa Bun", "Secret Bun", "Dream Bun"],
+  tapcap: ["Sunny Cap", "Cola Cap", "Mint Cap", "Grape Cap", "Lemon Cap", "Berry Cap", "Ocean Cap", "Peach Cap",
+    "Cherry Cap", "Lime Cap", "Midnight Cap", "Golden Cap", "Rose Cap", "Secret Cap", "Star Cap"],
 };
 const EXTRA_PIECES = [];
-for (const line of ["popmart", "squishy"]) {
+for (const line of ["popmart", "squishy", "tapcap"]) {
   let n = 0;
   for (const [tier, slots] of Object.entries(DEMO_SHELF)) {
     for (const [rarity, units] of slots) {
@@ -2688,6 +2705,20 @@ function collectionSVG(line, palette, uid, title) {
       '<ellipse cx="52" cy="166" rx="12" ry="7" fill="#ff7aa8" opacity="0.55"/><ellipse cx="148" cy="166" rx="12" ry="7" fill="#ff7aa8" opacity="0.55"/>' +
       '<path d="M90 168q10 9 20 0" stroke="#1d1430" stroke-width="4" stroke-linecap="round" fill="none"/>' +
       '<ellipse cx="66" cy="92" rx="26" ry="12" fill="#fff" opacity="0.28" transform="rotate(-20 66 92)"/></svg>';
+  }
+  if (line === "tapcap") {
+    const base = (palette && palette.base) || "#ffc65c", accent = (palette && palette.accent) || "#d9820f";
+    return head + '<defs><radialGradient id="' + id + 't" cx="36%" cy="30%" r="80%"><stop offset="0" stop-color="#fff" stop-opacity="0.75"/>' +
+      '<stop offset="0.3" stop-color="' + base + '"/><stop offset="1" stop-color="' + accent + '"/></radialGradient></defs>' +
+      '<ellipse cx="100" cy="292" rx="70" ry="10" fill="#000" opacity="0.35"/>' +
+      '<path d="M100.0 90.0 L111.6 98.9 L125.3 93.8 L133.8 105.7 L148.4 104.9 L153.1 118.8 L167.2 122.4 L167.5 137.0 L180.1 144.6 L176.0 158.6 L185.8 169.6 L177.8 181.8 L183.8 195.1 L172.6 204.5 L174.5 219.0 L161.0 224.6 L158.5 239.0 L143.9 240.4 L137.3 253.5 L123.0 250.5 L112.8 261.0 L100.0 254.0 L87.2 261.0 L77.0 250.5 L62.7 253.5 L56.1 240.4 L41.5 239.0 L39.0 224.6 L25.5 219.0 L27.4 204.5 L16.2 195.1 L22.2 181.8 L14.2 169.6 L24.0 158.6 L19.9 144.6 L32.5 137.0 L32.8 122.4 L46.9 118.8 L51.6 104.9 L66.2 105.7 L74.7 93.8 L88.4 98.9Z" fill="' + accent + '" transform="translate(0 12)"/>' +
+      '<path d="M100.0 90.0 L111.6 98.9 L125.3 93.8 L133.8 105.7 L148.4 104.9 L153.1 118.8 L167.2 122.4 L167.5 137.0 L180.1 144.6 L176.0 158.6 L185.8 169.6 L177.8 181.8 L183.8 195.1 L172.6 204.5 L174.5 219.0 L161.0 224.6 L158.5 239.0 L143.9 240.4 L137.3 253.5 L123.0 250.5 L112.8 261.0 L100.0 254.0 L87.2 261.0 L77.0 250.5 L62.7 253.5 L56.1 240.4 L41.5 239.0 L39.0 224.6 L25.5 219.0 L27.4 204.5 L16.2 195.1 L22.2 181.8 L14.2 169.6 L24.0 158.6 L19.9 144.6 L32.5 137.0 L32.8 122.4 L46.9 118.8 L51.6 104.9 L66.2 105.7 L74.7 93.8 L88.4 98.9Z" fill="url(#' + id + 't)"/>' +
+      '<circle cx="100" cy="176" r="62" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="3"/>' +
+      '<ellipse cx="78" cy="174" rx="10" ry="13" fill="#2a1606"/><ellipse cx="122" cy="174" rx="10" ry="13" fill="#2a1606"/>' +
+      '<circle cx="81" cy="169" r="3.6" fill="#fff"/><circle cx="125" cy="169" r="3.6" fill="#fff"/>' +
+      '<ellipse cx="64" cy="194" rx="10" ry="6" fill="#ff7a59" opacity="0.5"/><ellipse cx="136" cy="194" rx="10" ry="6" fill="#ff7a59" opacity="0.5"/>' +
+      '<path d="M90 196q10 9 20 0" stroke="#2a1606" stroke-width="4" stroke-linecap="round" fill="none"/>' +
+      '<ellipse cx="72" cy="128" rx="26" ry="11" fill="#fff" opacity="0.4" transform="rotate(-24 72 128)"/></svg>';
   }
   const base = (palette && palette.base) || "#9fe3d6", accent = (palette && palette.accent) || "#4fb8a6";
   return head + '<defs><radialGradient id="' + id + 'u" cx="40%" cy="30%" r="78%"><stop offset="0" stop-color="#fff" stop-opacity="0.7"/>' +
@@ -3065,27 +3096,57 @@ function railAura() {
 
 /* The front page and the stock tab's first page: the collections, as a row
    of cards. Ported from src/components/CollectionPicker.tsx. */
+/* The drawn scene in a collection's bar, until a cover photo is uploaded in
+   the app's Inventory management. Ported from CollectionBanner.tsx. */
+const BANNER_SCENES = {
+  bearbrick: { ground: "linear-gradient(115deg, #14070c 0%, #4f0d1e 42%, #b8213c 100%)", glow: "#ff6b81",
+    poses: [{ base: "#5eb3ff", accent: "#2f6fd6", pattern: "jelly" }, { base: "#f5c542", accent: "#b8860b", pattern: "chrome" }, { base: "#f8fafc", accent: "#e0465b", pattern: "split" }] },
+  popmart: { ground: "linear-gradient(115deg, #160a1d 0%, #5e2457 44%, #ee86b9 100%)", glow: "#ffc2df",
+    poses: [{ base: "#cdb4ff", accent: "#8f6bd9" }, { base: "#f6b8d1", accent: "#d9739f" }, { base: "#ffc9a3", accent: "#e58a5a" }] },
+  squishy: { ground: "linear-gradient(115deg, #061716 0%, #124d48 44%, #56c9b6 100%)", glow: "#b9fff1",
+    poses: [{ base: "#d8c8ff", accent: "#9b84e0" }, { base: "#9fe3d6", accent: "#4fb8a6" }, { base: "#ffd1b0", accent: "#f09a6a" }] },
+  tapcap: { ground: "linear-gradient(115deg, #140b03 0%, #5a3208 44%, #f0a12a 100%)", glow: "#ffe2a6",
+    poses: [{ base: "#8fd3ff", accent: "#3b8fd0" }, { base: "#ffc65c", accent: "#d9820f" }, { base: "#ff9db0", accent: "#e0566f" }] },
+};
+function bannerPose(line, pose, uid) {
+  if (line === "bearbrick") return figureSVG({ id: uid, name: "", line: "bearbrick", pattern: pose.pattern || "solid",
+    palette: { base: pose.base, accent: pose.accent, detail: "hsl(210 20% 96%)", wash: "hsl(220 24% 11%)" } }, { tag: uid });
+  return collectionSVG(line, pose, uid, "");
+}
+function collectionBanner(line) {
+  const sc = BANNER_SCENES[line];
+  const pid = "cbp-" + line;
+  return '<span class="bannerart" aria-hidden="true" style="background:' + sc.ground + '">' +
+    '<svg class="bannerprint"><defs><pattern id="' + pid + '" width="54" height="64" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)">' +
+      '<g fill="#fff" transform="translate(8 6) scale(0.16)">' + printShapes(line) + '</g>' +
+      '<g fill="#fff" transform="translate(35 38) scale(0.11) rotate(24 100 160)">' + printShapes(line) + '</g>' +
+    '</pattern></defs><rect width="100%" height="100%" fill="url(#' + pid + ')"/></svg>' +
+    '<span class="bannerglow" style="background:radial-gradient(circle,' + sc.glow + ' 0%, transparent 68%)"></span>' +
+    '<span class="bannerfigs">' +
+      '<span class="bf l">' + bannerPose(line, sc.poses[0], pid + "-l") + '</span>' +
+      '<span class="bf r">' + bannerPose(line, sc.poses[2], pid + "-r") + '</span>' +
+      '<span class="bf m">' + bannerPose(line, sc.poses[1], pid + "-m") + '</span>' +
+    '</span></span>';
+}
+
+/* The front page and the stock tab's first page: the collections, as thick
+   bars stacked down the screen. Ported from CollectionPicker.tsx. */
 function collectionsScreen(mode) {
-  const cards = LINES.map((line) => {
+  const bars = LINES.map((line) => {
     const boxes = productsFor(line.id);
-    const shelf = boxes.map((b) => shelfFor(b.id)).flat().filter((e) => e.available > 0)
-      .sort((a, b) => RARITY_ORDER.indexOf(a.piece.rarity) - RARITY_ORDER.indexOf(b.piece.rarity));
-    const units = shelf.reduce((sum, e) => sum + e.available, 0);
+    const units = boxes.map((b) => shelfFor(b.id)).flat().reduce((sum, e) => sum + e.available, 0);
     const from = Math.min(...boxes.map((b) => b.priceCents)) / 100;
-    // Bearbrick shows the best piece on its shelf; the others their drawing.
-    const art = line.id === "bearbrick" && shelf[0]
-      ? figureSVG(shelf[0].piece, { tag: "card" })
-      : collectionSVG(line.id, null, "card-" + line.id, line.name);
-    return '<button class="colcard" type="button" data-pickline="' + line.id + '" data-mode="' + mode + '">' +
-      '<span class="colart" style="background:radial-gradient(120% 85% at 50% 18%, color-mix(in srgb,' + line.accent +
-        ' 42%, transparent), #0b0b10 78%)">' + art + '</span>' +
-      '<span class="colmeta"><b>' + esc(line.name) + '</b><span>' + (units > 0 ? 'From $' + from : 'Coming soon') + '</span></span>' +
+    return '<button class="colbar" type="button" data-pickline="' + line.id + '" data-mode="' + mode + '">' +
+      collectionBanner(line.id) + '<span class="colshade"></span>' +
+      '<span class="colrow"><span class="colname"><b>' + esc(line.name) + '</b>' +
+        '<span>' + (units > 0 ? 'From $' + from : 'Coming soon') + '</span></span>' +
+        '<span class="colgo" aria-hidden="true">›</span></span>' +
     '</button>';
   }).join("");
   return '<div class="section" id="shop" style="padding-top:14px">' +
     '<div class="headrow"><h1 class="head shimmer">' + (mode === "stock" ? "Current stock" : "Pick a collection") + '</h1>' +
       (mode === "stock" ? '' : '<button class="qbtn" type="button" data-how="1" aria-label="How it works" aria-haspopup="dialog">?</button>') + '</div>' +
-    '<div class="colgrid">' + cards + '</div></div>';
+    '<div class="colbars">' + bars + '</div></div>';
 }
 
 function homeScreen() {
@@ -3617,13 +3678,14 @@ const PRINT_WINDOW = {
 };
 
 /* Each collection's carton carries its own figure on its own ground. */
-const PRINT_GROUNDS = { bearbrick: PRINT_GROUND, popmart: "#f7c3d8", squishy: "#b6eadf" };
+const PRINT_GROUNDS = { bearbrick: PRINT_GROUND, popmart: "#f7c3d8", squishy: "#b6eadf", tapcap: "#ffd99a" };
 function groundFor(line) { return PRINT_GROUNDS[line] || PRINT_GROUND; }
 function printShapes(line) {
   if (line === "popmart") return '<ellipse cx="62" cy="64" rx="18" ry="42" transform="rotate(-14 62 64)"/>' +
     '<ellipse cx="138" cy="64" rx="18" ry="42" transform="rotate(14 138 64)"/><ellipse cx="100" cy="146" rx="78" ry="66"/>' +
     '<path d="M64 212c0-14 16-22 36-22s36 8 36 22v40c0 12-10 20-22 20H86c-12 0-22-8-22-20z"/>' +
     '<rect x="70" y="262" width="26" height="30" rx="12"/><rect x="104" y="262" width="26" height="30" rx="12"/>';
+  if (line === "tapcap") return '<path d="M100.0 90.0 L111.6 98.9 L125.3 93.8 L133.8 105.7 L148.4 104.9 L153.1 118.8 L167.2 122.4 L167.5 137.0 L180.1 144.6 L176.0 158.6 L185.8 169.6 L177.8 181.8 L183.8 195.1 L172.6 204.5 L174.5 219.0 L161.0 224.6 L158.5 239.0 L143.9 240.4 L137.3 253.5 L123.0 250.5 L112.8 261.0 L100.0 254.0 L87.2 261.0 L77.0 250.5 L62.7 253.5 L56.1 240.4 L41.5 239.0 L39.0 224.6 L25.5 219.0 L27.4 204.5 L16.2 195.1 L22.2 181.8 L14.2 169.6 L24.0 158.6 L19.9 144.6 L32.5 137.0 L32.8 122.4 L46.9 118.8 L51.6 104.9 L66.2 105.7 L74.7 93.8 L88.4 98.9Z"/>';
   if (line === "squishy") return '<path d="M30 150 42 92 82 130z"/><path d="M170 150 158 92 118 130z"/>' +
     '<path d="M100 112c58 0 92 42 92 106 0 56-32 84-92 84S8 274 8 218c0-64 34-106 92-106z"/>';
   return bodyShapes();
