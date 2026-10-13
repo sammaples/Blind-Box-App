@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { DailySpinCard } from "@/components/DailySpinCard";
+import { TradeInCard } from "@/components/TradeInCard";
 
 export const metadata: Metadata = {
   title: "Rewards — Blind Box",
-  description: "Free ways to earn coins: the daily spin, and more on the way.",
+  description: "The daily spin, trade-ins, and more on the way.",
 };
 
 /**
@@ -19,8 +20,9 @@ export default function RewardsPage() {
     <div className="mx-auto w-full max-w-3xl px-5 pb-10 pt-10 sm:px-8 sm:pt-16">
       <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Rewards</h1>
 
-      <div className="mt-6">
+      <div className="mt-6 space-y-3">
         <DailySpinCard />
+        <TradeInCard />
       </div>
 
       <div className="mt-4 overflow-hidden rounded-2xl border border-hairline bg-ink-card">

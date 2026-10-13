@@ -21,6 +21,7 @@ import type {
   Draw,
   Reservation,
   StockChange,
+  TradeInResult,
   StockChangeResult,
   StockRow,
   StoredImage,
@@ -104,6 +105,7 @@ function toOrder(r: Row): Order {
     paidCoins: r.paid_coins === null || r.paid_coins === undefined
       ? null
       : Number(r.paid_coins),
+    madeFrom: (r.made_from as string[] | null | undefined) ?? null,
   };
 }
 
@@ -228,6 +230,77 @@ export function createPostgresBackend(connectionString: string): Backend {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Draws one piece off a shelf inside a transaction the caller holds: takes
+   * the unit and writes the order. Null when the shelf has nothing left.
+   */
+  async function drawInto(
+    client: PoolClient,
+    { line, tier }: { line: string; tier: Tier },
+    draw: Draw,
+    build: BuildOrder,
+  ): Promise<Reservation | null> {
+    // The draw depends on the whole shelf, so the whole shelf is locked for
+    // the length of the transaction. Buyers of one shelf serialise; buyers
+    // of different shelves do not block each other.
+    const { rows } = await client.query(
+      // Joined to the catalogue so an archived piece can never be drawn.
+      // Locking is FOR UPDATE OF s: the draw needs the stock rows held,
+      // not the catalogue, which must stay editable meanwhile.
+      `select s.piece_id, s.stocked - s.sold as available
+         from stock s
+         join catalog_pieces c
+           on c.id = s.piece_id and c.archived_at is null
+        where s.tier = $1 and c.line = $2 and s.stocked > s.sold
+        order by s.piece_id
+          for update of s`,
+      [tier, line],
+    );
+    if (rows.length === 0) return null;
+
+    const snapshot = rows.map(
+      (r) => [r.piece_id as string, Number(r.available)] as const,
+    );
+    const { pieceId, seed, rollValue } = draw(snapshot);
+
+    const taken = await client.query(
+      `update stock set sold = sold + 1
+        where piece_id = $1
+          and stocked > sold
+          and exists (
+            select 1 from catalog_pieces c
+             where c.id = stock.piece_id and c.archived_at is null
+          )`,
+      [pieceId],
+    );
+    if (taken.rowCount === 0) return null;
+
+    const order = build({ pieceId, seed, rollValue, poolSnapshot: snapshot });
+    await client.query(
+      `insert into orders (
+         id, collector_id, product_id, piece_id, status, created_at,
+         revealed_at, roll_seed, roll_value, pool_snapshot, email, paid_coins, made_from
+       ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+      [
+        order.id,
+        order.collectorId,
+        order.productId,
+        order.pieceId,
+        order.status,
+        order.createdAt,
+        order.revealedAt,
+        order.rollSeed,
+        order.rollValue,
+        JSON.stringify(order.poolSnapshot),
+        order.email,
+        order.paidCoins,
+        order.madeFrom?.length ? [...order.madeFrom] : null,
+      ],
+    );
+
+    return { pieceId, seed, rollValue, poolSnapshot: snapshot, order };
   }
 
   async function query(text: string, values?: unknown[]) {
@@ -772,66 +845,47 @@ export function createPostgresBackend(connectionString: string): Backend {
       }));
     },
 
-    async reserve({ line, tier }, draw: Draw, build: BuildOrder): Promise<Reservation | null> {
+    async reserve(shelf, draw: Draw, build: BuildOrder): Promise<Reservation | null> {
+      return withTx((client) => drawInto(client, shelf, draw, build));
+    },
+
+    async tradeIn({ collectorId, orderIds, shelf }, draw: Draw, build: BuildOrder): Promise<TradeInResult> {
+      if (orderIds.length === 0 || new Set(orderIds).size !== orderIds.length) {
+        return { ok: false, reason: "ineligible" };
+      }
       return withTx(async (client) => {
-        // The draw depends on the whole shelf, so the whole shelf is locked for
-        // the length of the transaction. Buyers of one shelf serialise; buyers
-        // of different shelves do not block each other.
-        const { rows } = await client.query(
-          // Joined to the catalogue so an archived piece can never be drawn.
-          // Locking is FOR UPDATE OF s: the draw needs the stock rows held,
-          // not the catalogue, which must stay editable meanwhile.
-          `select s.piece_id, s.stocked - s.sold as available
-             from stock s
-             join catalog_pieces c
-               on c.id = s.piece_id and c.archived_at is null
-            where s.tier = $1 and c.line = $2 and s.stocked > s.sold
-            order by s.piece_id
-              for update of s`,
-          [tier, line],
+        // Locked, so a second tap on the same pieces waits here and then finds
+        // them already traded, and a parcel being packed cannot take them
+        // meanwhile either.
+        const { rows: picked } = await client.query(
+          `select o.id, o.collector_id, o.status, o.shipment_id, c.line
+             from orders o
+             left join catalog_pieces c on c.id = o.piece_id
+            where o.id = any($1::text[])
+              for update of o`,
+          [[...orderIds]],
         );
-        if (rows.length === 0) return null;
+        const eligible =
+          picked.length === orderIds.length &&
+          picked.every(
+            (o: Row) =>
+              o.collector_id === collectorId &&
+              o.shipment_id === null &&
+              o.status === "revealed",
+          );
+        if (!eligible) return { ok: false, reason: "ineligible" } as const;
+        if (!picked.every((o: Row) => (o.line ?? DEFAULT_LINE) === shelf.line)) {
+          return { ok: false, reason: "mixed" } as const;
+        }
 
-        const snapshot = rows.map(
-          (r) => [r.piece_id as string, Number(r.available)] as const,
-        );
-        const { pieceId, seed, rollValue } = draw(snapshot);
+        const reservation = await drawInto(client, shelf, draw, build);
+        if (!reservation) return { ok: false, reason: "soldout" } as const;
 
-        const taken = await client.query(
-          `update stock set sold = sold + 1
-            where piece_id = $1
-              and stocked > sold
-              and exists (
-                select 1 from catalog_pieces c
-                 where c.id = stock.piece_id and c.archived_at is null
-              )`,
-          [pieceId],
-        );
-        if (taken.rowCount === 0) return null;
-
-        const order = build({ pieceId, seed, rollValue, poolSnapshot: snapshot });
         await client.query(
-          `insert into orders (
-             id, collector_id, product_id, piece_id, status, created_at,
-             revealed_at, roll_seed, roll_value, pool_snapshot, email, paid_coins
-           ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-          [
-            order.id,
-            order.collectorId,
-            order.productId,
-            order.pieceId,
-            order.status,
-            order.createdAt,
-            order.revealedAt,
-            order.rollSeed,
-            order.rollValue,
-            JSON.stringify(order.poolSnapshot),
-            order.email,
-            order.paidCoins,
-          ],
+          `update orders set status = 'traded' where id = any($1::text[])`,
+          [[...orderIds]],
         );
-
-        return { pieceId, seed, rollValue, poolSnapshot: snapshot, order };
+        return { ok: true, reservation } as const;
       });
     },
 

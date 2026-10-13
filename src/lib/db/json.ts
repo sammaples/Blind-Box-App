@@ -20,6 +20,7 @@ import type {
   Draw,
   Reservation,
   StockChange,
+  TradeInResult,
   StockChangeResult,
   StockRow,
   StoredImage,
@@ -66,6 +67,42 @@ const EMPTY: Db = {
   settings: {},
 };
 const AUDIT_LIMIT = 1000;
+
+/** Draws one piece off a shelf inside a write the caller holds. */
+function drawInto(
+  db: Db,
+  { line, tier }: { line: string; tier: Tier },
+  draw: Draw,
+  build: BuildOrder,
+): Reservation | null {
+  const archived = new Set(
+    db.pieces.filter((p) => p.archived).map((p) => p.id),
+  );
+  const inLine = new Set(
+    db.pieces.filter((p) => (p.line ?? DEFAULT_LINE) === line).map((p) => p.id),
+  );
+  const available = Object.entries(db.stock)
+    .filter(
+      ([pieceId, row]) =>
+        row.tier === tier &&
+        inLine.has(pieceId) &&
+        row.stocked > row.sold &&
+        !archived.has(pieceId),
+    )
+    .map(([pieceId, row]) => [pieceId, row.stocked - row.sold] as const)
+    .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+
+  if (available.length === 0) return null;
+
+  const { pieceId, seed, rollValue } = draw(available);
+  const row = db.stock[pieceId];
+  if (!row || row.stocked <= row.sold || archived.has(pieceId)) return null;
+
+  row.sold += 1;
+  const order = build({ pieceId, seed, rollValue, poolSnapshot: available });
+  db.orders.push(order);
+  return { pieceId, seed, rollValue, poolSnapshot: available, order };
+}
 
 function blankCollector(id: string): Collector {
   return {
@@ -568,35 +605,29 @@ export function createJsonBackend(): Backend {
       }));
     },
 
-    async reserve({ line, tier }, draw: Draw, build: BuildOrder): Promise<Reservation | null> {
-      return transact((db) => {
-        const archived = new Set(
-          db.pieces.filter((p) => p.archived).map((p) => p.id),
+    async reserve(shelf, draw: Draw, build: BuildOrder): Promise<Reservation | null> {
+      return transact((db) => drawInto(db, shelf, draw, build));
+    },
+
+    async tradeIn({ collectorId, orderIds, shelf }, draw: Draw, build: BuildOrder): Promise<TradeInResult> {
+      if (orderIds.length === 0 || new Set(orderIds).size !== orderIds.length) {
+        return { ok: false, reason: "ineligible" };
+      }
+      return transact((db): TradeInResult => {
+        const picked = orderIds.map((oid) => db.orders.find((o) => o.id === oid));
+        const eligible = picked.every(
+          (o) => o && o.collectorId === collectorId && !o.shipmentId && o.status === "revealed",
         );
-        const inLine = new Set(
-          db.pieces.filter((p) => (p.line ?? DEFAULT_LINE) === line).map((p) => p.id),
-        );
-        const available = Object.entries(db.stock)
-          .filter(
-            ([pieceId, row]) =>
-              row.tier === tier &&
-              inLine.has(pieceId) &&
-              row.stocked > row.sold &&
-              !archived.has(pieceId),
-          )
-          .map(([pieceId, row]) => [pieceId, row.stocked - row.sold] as const)
-          .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+        if (!eligible) return { ok: false, reason: "ineligible" };
+        const lineOf = new Map(db.pieces.map((p) => [p.id, p.line ?? DEFAULT_LINE]));
+        if (!picked.every((o) => (lineOf.get(o!.pieceId) ?? DEFAULT_LINE) === shelf.line)) {
+          return { ok: false, reason: "mixed" };
+        }
 
-        if (available.length === 0) return null;
-
-        const { pieceId, seed, rollValue } = draw(available);
-        const row = db.stock[pieceId];
-        if (!row || row.stocked <= row.sold || archived.has(pieceId)) return null;
-
-        row.sold += 1;
-        const order = build({ pieceId, seed, rollValue, poolSnapshot: available });
-        db.orders.push(order);
-        return { pieceId, seed, rollValue, poolSnapshot: available, order };
+        const reservation = drawInto(db, shelf, draw, build);
+        if (!reservation) return { ok: false, reason: "soldout" };
+        for (const order of picked) order!.status = "traded";
+        return { ok: true, reservation };
       });
     },
 

@@ -72,6 +72,11 @@ export interface Reservation {
   order: Order;
 }
 
+/** How a trade-in went. Only `ok` changed anything. */
+export type TradeInResult =
+  | { ok: true; reservation: Reservation }
+  | { ok: false; reason: "ineligible" | "mixed" | "soldout" };
+
 /** Decides which piece comes off a shelf, given the shelf as it stands. */
 export type Draw = (snapshot: PoolSnapshot) => {
   pieceId: string;
@@ -295,6 +300,18 @@ export interface Backend {
    */
   /** Draws from one collection's shelf of one tier. */
   reserve(shelf: { line: LineId; tier: Tier }, draw: Draw, build: BuildOrder): Promise<Reservation | null>;
+
+  /**
+   * Trades pieces in for a box: marks the orders traded and draws the new box
+   * from the shelf, in one transaction. Every order must be the collector's,
+   * opened, not in a parcel, and of the shelf's collection — or nothing
+   * happens. A shelf with nothing left also changes nothing.
+   */
+  tradeIn(
+    input: { collectorId: string; orderIds: readonly string[]; shelf: { line: LineId; tier: Tier } },
+    draw: Draw,
+    build: BuildOrder,
+  ): Promise<TradeInResult>;
 
   /** Applies stock edits and records them in the change log, atomically. */
   applyStockChanges(changes: readonly StockChange[]): Promise<StockChangeResult[]>;

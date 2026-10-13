@@ -17,7 +17,7 @@ const STATUS_LABEL: Record<string, string> = {
   packing: "In a parcel, being packed",
   shipped: "Shipped",
   delivered: "Delivered",
-  traded: "Traded in for coins",
+  traded: "Traded in",
 };
 
 export default async function CollectionPage() {

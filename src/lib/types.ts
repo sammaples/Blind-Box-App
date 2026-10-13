@@ -147,9 +147,9 @@ export type OrderStatus =
   | "shipped"
   | "delivered"
   /**
-   * Handed back for coins. An end state, like delivered: the piece has left
-   * the vault and the unit is not coming back to the shelf, because what was
-   * sold was the pull and not a rental.
+   * Traded in: three of these went back for a Bronze box. An end state, like
+   * delivered — the piece has left the vault and its unit does not return to
+   * the shelf on its own.
    */
   | "traded";
 
@@ -220,6 +220,8 @@ export interface Order {
   shipmentId: string | null;
   /** Coins this box cost, when it was bought with them. Null means a card. */
   paidCoins: number | null;
+  /** The orders traded in for this box, when it came from a trade-in. */
+  madeFrom?: string[] | null;
 }
 
 /**

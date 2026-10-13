@@ -46,8 +46,9 @@ export function redeemCost(priceCents: number): number {
  * did, every redemption would pay back a tenth of itself, and coins would
  * slowly mint themselves out of nothing.
  */
-export function earnsCoins(order: { paidCoins: number | null }): boolean {
-  return order.paidCoins === null;
+export function earnsCoins(order: { paidCoins: number | null; madeFrom?: string[] | null }): boolean {
+  // A box from a trade-in was not paid for either, so it earns nothing.
+  return order.paidCoins === null && !order.madeFrom?.length;
 }
 
 /**

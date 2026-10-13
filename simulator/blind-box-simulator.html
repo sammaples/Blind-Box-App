@@ -1155,6 +1155,75 @@ p.sub { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 8px 0 0;
   font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
 }
 .chip s { width: 5px; height: 5px; border-radius: 50%; }
+
+/* ---------------------------- trade-in ----------------------------- *
+ * Ported from src/components/TradeIn.tsx. */
+.tradecard { border-color: rgb(103 232 249 / 0.25); margin-top: 12px;
+  background: radial-gradient(120% 140% at 0% 0%, rgb(56 214 240 / 0.24), rgb(30 90 160 / 0.14) 55%, var(--ink-card) 100%); }
+.pilltag.aqua { background: #67e8f9; color: #03222e; }
+.minipool { width: 52px; height: 52px; flex: none; display: grid; place-items: center; }
+.minipool svg { width: 52px; height: 52px; filter: drop-shadow(0 4px 10px rgb(0 0 0 / 0.5)); }
+.minipool .arms { transform-origin: 20px 20px; animation: miniturn 5s linear infinite; }
+.tradetitle { margin: 8px 0 0; width: fit-content; font-size: 28px; font-weight: 600; letter-spacing: -0.02em; animation-duration: 5s;
+  background-image: linear-gradient(100deg, #3fb7d6 0%, #8ff0ff 28%, #f2feff 48%, #8ff0ff 68%, #3fb7d6 100%); }
+.tradesub { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
+.tpool { position: relative; width: min(280px, 100%); aspect-ratio: 1; margin-top: 18px; }
+.tpool > svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.tglow { position: absolute; inset: -30px; border-radius: 50%; filter: blur(40px); opacity: 0.15;
+  background: radial-gradient(circle, rgb(56 214 240 / 0.67), transparent 68%); }
+.tsheen { position: absolute; inset: 4%; border-radius: 50%; opacity: 0.7; mix-blend-mode: screen; filter: blur(6px); pointer-events: none;
+  background: conic-gradient(from 0deg, transparent 0deg, #9ff6ff33 30deg, transparent 70deg, transparent 140deg, #ffffff26 175deg, transparent 215deg, transparent 280deg, #9ff6ff2e 310deg, transparent 350deg); }
+.teye { position: absolute; left: 38%; top: 38%; width: 24%; height: 24%; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, #000a12 0%, #011c2ccc 50%, transparent 72%); }
+.tfl { position: absolute; width: 25%; height: 25%; margin: -12.5% 0 0 -12.5%; }
+.tfl button { position: relative; width: 100%; height: 100%; display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: pointer; }
+.tfl button svg { position: relative; height: 100%; width: auto; filter: drop-shadow(0 6px 10px rgb(0 20 30 / 0.6)); }
+.tfl button.land { animation: tland 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+@keyframes tland { from { transform: translateY(-40px) scale(0); opacity: 0; } }
+.tfl .shadow { position: absolute; bottom: 4%; left: 11%; width: 78%; height: 18%; border-radius: 50%; background: rgb(1 34 50 / 0.6); filter: blur(3px); }
+.tfl .ripple { position: absolute; inset: 8%; border-radius: 50%; border: 2px solid rgb(255 255 255 / 0.8); animation: tripple 0.9s 0.12s ease-out both; pointer-events: none; }
+@keyframes tripple { from { transform: scale(0.4); opacity: 0.9; } to { transform: scale(1.7); opacity: 0; } }
+.tfl .empty { width: 100%; height: 100%; display: grid; place-items: center; border-radius: 50%; border: 2px dashed rgb(255 255 255 / 0.35); background: rgb(255 255 255 / 0.06); color: rgb(255 255 255 / 0.55); }
+.tfl .empty svg { width: 33%; height: 33%; }
+.tflash { position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, #fff 0%, #c9fbff 30%, #5fe3f7aa 55%, transparent 72%); animation: tflash 0.42s ease-out both; }
+@keyframes tflash { 0% { opacity: 0; transform: scale(0.2); } 50% { opacity: 1; transform: scale(1.15); } 100% { opacity: 0.9; transform: scale(1.3); } }
+.tscreenflash { position: absolute; inset: 0; z-index: 60; background: #fff; pointer-events: none; animation: tscreen 0.6s both; }
+@keyframes tscreen { 0% { opacity: 0; } 30% { opacity: 0.75; } 100% { opacity: 0; } }
+.tafter { position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, #ffffffdd 0%, #a8f6ff88 35%, transparent 70%); animation: tafter 0.9s ease-out both; }
+@keyframes tafter { from { opacity: 1; transform: scale(1.3); } to { opacity: 0; transform: scale(1.6); } }
+.tring { position: absolute; left: 30%; top: 30%; width: 40%; height: 40%; border-radius: 50%; border: 2px solid rgb(255 255 255 / 0.7); pointer-events: none; animation: tring 1.5s ease-out both; }
+@keyframes tring { from { transform: scale(0.2); opacity: 0.9; } to { transform: scale(2.1); opacity: 0; } }
+.tdrop { position: absolute; left: 50%; top: 50%; border-radius: 50%; background: #dffcff; pointer-events: none; animation: tdrop 0.9s ease-out both; }
+@keyframes tdrop { 0% { transform: translate(0, 0) scale(0.6); opacity: 1; } 50% { transform: translate(calc(var(--dx) * 0.6), var(--up)) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 0; } }
+.tbox { position: absolute; inset: 0; display: grid; place-items: center; perspective: 924px; }
+.tbox .rise { position: relative; animation: trise 1.25s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes trise { from { transform: translateY(10px) rotate(-900deg) scale(0.05); opacity: 0; } to { transform: translateY(-6px) rotate(0deg) scale(1); opacity: 1; } }
+.tbox .rise .floor { position: absolute; left: -10%; right: -10%; bottom: -12px; height: 16px; border-radius: 50%; background: rgb(0 0 0 / 0.45); filter: blur(8px); }
+.tunder { width: 100%; min-height: 80px; margin-top: 18px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.tbtn { width: 100%; border: 0; border-radius: 999px; padding: 13px 18px; font: inherit; font-size: 15.5px; font-weight: 700; letter-spacing: 0.02em; cursor: pointer; color: #03222e;
+  background: linear-gradient(180deg, #e9fdff 0%, #8eeaf6 55%, #45c4dc 100%); box-shadow: 0 8px 28px rgb(56 214 240 / 0.45), inset 0 -2px 4px rgb(0 60 80 / 0.25); }
+.tbtn:disabled { opacity: 0.5; box-shadow: none; cursor: default; color: rgb(3 34 46 / 0.6); }
+.tbtn.ghost { background: none; color: var(--chalk); border: 1px solid var(--hairline); box-shadow: none; font-weight: 600; }
+.tunder .cap { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); }
+.tunder .err { margin: 6px 0 0; font-size: 12px; color: #fb7185; }
+.tunder .made { margin: 0; font-size: 17px; font-weight: 600; animation: tfade 0.4s 0.8s both; }
+.tunder .row2 { display: flex; gap: 8px; width: 100%; margin-top: 12px; animation: tfade 0.4s 0.8s both; }
+@keyframes tfade { from { opacity: 0; transform: translateY(8px); } }
+.tradepick { width: 100%; margin-top: 12px; transition: opacity 0.2s; }
+.tradepick.busy { opacity: 0.4; pointer-events: none; }
+.tradepick .lineswitch { margin: 0 0 12px; }
+.tradegrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.ttile { position: relative; display: flex; flex-direction: column; align-items: center; padding: 7px; border-radius: 15px; cursor: pointer; font: inherit; color: inherit;
+  border: 1px solid var(--hairline); background: var(--ink-card); }
+.ttile.on { border-color: #67e8f9; background: rgb(103 232 249 / 0.08); }
+.ttile:disabled { opacity: 0.4; cursor: default; }
+.ttile .art { display: grid; place-items: center; width: 100%; height: 78px; border-radius: 11px; }
+.ttile .art svg { height: 66px; width: auto; }
+.ttile b { display: block; width: 100%; margin-top: 5px; font-size: 11px; font-weight: 500; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ttile .n { position: absolute; right: 5px; top: 5px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #67e8f9; color: #03222e; font-size: 11px; font-weight: 700; }
+.tnone { padding: 26px; border-radius: 16px; border: 1px dashed var(--hairline); text-align: center; font-size: 13px; color: var(--muted); }
 </style>
 <style>
 /* ----------------------------- sheets ----------------------------- */
@@ -2426,7 +2495,7 @@ function boxReward(priceCents) { return Math.round(priceCents / 100 * COINS_EARN
 function redeemCost(priceCents) { return Math.round(priceCents / 100 * COINS_PER_DOLLAR_REDEEMED); }
 /* A box redeemed with coins does not earn; if it did, coins would slowly
    mint themselves out of nothing. */
-function earnsCoins(ord) { return !ord.paidCoins; }
+function earnsCoins(ord) { return !ord.paidCoins && !(ord.madeFrom && ord.madeFrom.length); }
 function formatCoins(n) { return n.toLocaleString(); }
 
 /* Every movement writes the balance it produced, the same as the ledger
@@ -3406,6 +3475,9 @@ function rewardsScreen() {
     '<button class="spincard" type="button" data-go="spin">' + miniWheel(!done) +
       '<span class="wt"><b>Daily spin</b><small>Up to 1,500 coins, free</small></span>' +
       '<span class="pilltag' + (done ? ' off' : '') + '">' + (done ? untilLabel(nextSpinAt() - Date.now()) : 'Spin') + '</span></button>' +
+    '<button class="spincard tradecard" type="button" data-go="trade">' + miniPool() +
+      '<span class="wt"><b>Trade-in</b><small>3 pieces → 1 Bronze box</small></span>' +
+      '<span class="pilltag aqua">Trade</span></button>' +
     '<div class="ways" style="margin-top:14px">' +
       soon("Challenges", "Daily &amp; weekly", '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4M9 14.5l2 2 4-4"/>') +
       soon("Refer a friend", "Bring a friend in", '<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5M17 8v6M14 11h6"/>') +
@@ -3548,7 +3620,7 @@ const TABS = [
 ];
 function tabBar() {
   return TABS.map(([screen, label, icon]) =>
-    '<button type="button" data-tabbar="1" data-go="' + screen + '"' + ((state.screen === "spin" ? "rewards" : state.screen) === screen ? ' aria-current="page"' : '') + '>' +
+    '<button type="button" data-tabbar="1" data-go="' + screen + '"' + ((state.screen === "spin" || state.screen === "trade" ? "rewards" : state.screen) === screen ? ' aria-current="page"' : '') + '>' +
       '<svg viewBox="0 0 24 24" aria-hidden="true">' + icon + '</svg><span>' + label + '</span></button>').join("");
 }
 
@@ -3906,6 +3978,7 @@ const STATUS_LABEL = {
   packing: "In a parcel, being packed",
   shipped: "Shipped",
   delivered: "Delivered",
+  traded: "Traded in",
 };
 
 function openScreen() {
@@ -4475,6 +4548,7 @@ function render(keepScroll) {
     else if (state.screen === "spin") h += spinScreen();
     else if (state.screen === "stock") h += stockScreen();
     else if (state.screen === "rewards") h += rewardsScreen();
+    else if (state.screen === "trade") h += tradeScreen();
     else if (state.screen === "open") h += openScreen();
     else h += collectionScreen();
   } catch (err) {
@@ -5126,7 +5200,7 @@ deviceScreen.addEventListener("click", (event) => {
     render(true); return;
   }
   if (t.dataset.selectall) {
-    const ready = state.orders.filter((o) => o.status !== "paid" && !o.shipmentId);
+    const ready = state.orders.filter((o) => o.status === "revealed" && !o.shipmentId);
     state.picked = state.picked.length === ready.length ? [] : ready.map((o) => o.id);
     render(true); return;
   }
@@ -5560,6 +5634,352 @@ setInterval(() => {
 
 load();
 render();
+</script>
+<script>
+"use strict";
+/* ============================ trade-in ============================= *
+ * Ported from src/components/TradeIn.tsx and src/app/api/rewards/trade.
+ * Three opened pieces of one collection go into the whirlpool and a sealed
+ * Bronze box of that collection comes out. One clock drives the water, the
+ * specks and the floating pieces, and survives re-renders: the screen's DOM
+ * is rebuilt on every tap, the water's state is not.
+ * -------------------------------------------------------------------- */
+const TRADE_COUNT = 3;
+const T_BASE = 26, T_TOP = 1150, T_SWIRL_MS = 2800, T_SLOT_R = 27;
+const T_C = 200, T_WATER_R = 184;
+
+function tSpiral(theta0, turns) {
+  let d = "";
+  for (let k = 0; k <= 64; k++) {
+    const t = k / 64;
+    const r = 10 + (T_WATER_R - 10) * Math.pow(1 - t, 1.3);
+    const a = theta0 - t * turns * Math.PI * 2;
+    d += (k ? "L" : "M") + (T_C + r * Math.cos(a)).toFixed(1) + " " + (T_C + r * Math.sin(a)).toFixed(1);
+  }
+  return d;
+}
+const T_ARMS = Array.from({ length: 6 }, (_, i) => tSpiral((i / 6) * Math.PI * 2, 1.15));
+const T_FOAM = Array.from({ length: 4 }, (_, i) => tSpiral((i / 4) * Math.PI * 2 + 0.5, 0.8));
+const T_SPECKS = Array.from({ length: 22 }, (_, i) => ({
+  a: (i * 137.5 * Math.PI) / 180, r: 30 + ((i * 53) % 150),
+  size: 1.2 + ((i * 7) % 5) * 0.45, alpha: 0.35 + ((i * 11) % 6) * 0.1,
+}));
+const T_DROPS = Array.from({ length: 16 }, (_, i) => {
+  const a = (i / 16) * Math.PI * 2 + (i % 3) * 0.2, d = 30 + ((i * 37) % 26);
+  return { x: Math.cos(a) * d * 2.6, y: (Math.sin(a) * d * 0.8 - 8) * 2.6, s: 4 + (i % 4) * 2, delay: (i % 5) * 25 };
+});
+
+const TR = { orbit: 0, speed: T_BASE, pull: 0, tweens: [], specks: T_SPECKS.map((p) => ({ a: p.a, r: p.r })), raf: 0, last: 0 };
+function tTween(key, to, ms, ease) {
+  TR.tweens = TR.tweens.filter((t) => t.key !== key);
+  TR.tweens.push({ key, from: TR[key], to, t0: performance.now(), ms, ease });
+}
+const tEaseIn = (p) => p * p * p;
+const tEaseOut = (p) => 1 - Math.pow(1 - p, 3);
+
+function tradeBox(line) { return productsFor(line).find((p) => p.tier === "bronze"); }
+function tradeable() {
+  return state.orders.filter((o) => o.status === "revealed" && !o.shipmentId)
+    .map((o) => ({ o, piece: getPiece(o.pieceId) })).filter((x) => x.piece);
+}
+
+function miniPool() {
+  const arm = (k) => {
+    let d = "";
+    for (let s = 0; s <= 24; s++) {
+      const t = s / 24, r = 2 + 15 * Math.pow(1 - t, 1.3), a = (k / 4) * Math.PI * 2 - t * Math.PI * 2.2;
+      d += (s ? "L" : "M") + (20 + r * Math.cos(a)).toFixed(2) + " " + (20 + r * Math.sin(a)).toFixed(2);
+    }
+    return d;
+  };
+  return '<span class="minipool"><svg viewBox="0 0 40 40" aria-hidden="true"><defs><radialGradient id="mini-pool" cx="50%" cy="50%" r="50%">' +
+    '<stop offset="0" stop-color="#01131f"/><stop offset="0.45" stop-color="#0a6788"/><stop offset="0.85" stop-color="#3fcfe3"/><stop offset="1" stop-color="#bff8fc"/></radialGradient></defs>' +
+    '<circle cx="20" cy="20" r="19.5" fill="#c9eef4"/><circle cx="20" cy="20" r="17.5" fill="url(#mini-pool)"/>' +
+    '<g class="arms">' + [0, 1, 2, 3].map((k) => '<path d="' + arm(k) + '" stroke="#e8feff" stroke-opacity="0.55" stroke-width="1.1" fill="none" stroke-linecap="round"/>').join("") +
+    '</g></svg></span>';
+}
+
+function tFloater(i) {
+  const id = state.tradePicked[i];
+  const x = id && tradeable().find((p) => p.o.id === id);
+  const inner = x
+    ? '<button type="button" class="' + (state.tradeLanded === id ? "land" : "") + '" data-tradepick="' + id + '" aria-label="Take ' + esc(x.piece.name) + ' out">' +
+        (state.tradeLanded === id ? '<span class="ripple"></span>' : '') + '<span class="shadow"></span>' +
+        figureSVG(x.piece, { tag: "tf" + i, simple: true }) + '</button>'
+    : '<span class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg></span>';
+  return '<div class="tfl" id="tf' + i + '">' + inner + '</div>';
+}
+
+function tradeScreen() {
+  if (!Array.isArray(state.tradePicked)) state.tradePicked = [];
+  // Back after opening the box it made: start a fresh trade.
+  if (state.tradePhase === "out" && !(state.tradeMade && (order(state.tradeMade) || {}).status === "paid")) {
+    state.tradePhase = "pick"; state.tradeMade = null;
+  }
+  const phase = state.tradePhase || "pick";
+  const all = tradeable();
+  const counts = {};
+  for (const x of all) counts[x.piece.line] = (counts[x.piece.line] || 0) + 1;
+  if (!state.tradeLine || (!counts[state.tradeLine] && phase === "pick")) {
+    state.tradeLine = LINES.reduce((best, l) => (counts[l.id] || 0) > (counts[best] || 0) ? l.id : best, "bearbrick");
+  }
+  const line = state.tradeLine;
+  const busy = phase === "swirl" || phase === "flash";
+  const ready = state.tradePicked.length === TRADE_COUNT && phase === "pick";
+  const made = state.tradeMade && order(state.tradeMade);
+  const box = made ? getProduct(made.productId) : null;
+
+  let pool = '<div class="tglow" id="tglow"></div>' +
+    '<svg viewBox="0 0 400 400" aria-hidden="true"><defs>' +
+      '<radialGradient id="wp-water" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#01131f"/><stop offset="0.16" stop-color="#03304a"/><stop offset="0.42" stop-color="#0a6788"/><stop offset="0.72" stop-color="#1aa9c4"/><stop offset="0.93" stop-color="#6fe1ec"/><stop offset="1" stop-color="#bff8fc"/></radialGradient>' +
+      '<linearGradient id="wp-rim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4feff"/><stop offset="0.45" stop-color="#9fdbe7"/><stop offset="1" stop-color="#2f7f95"/></linearGradient>' +
+      '<radialGradient id="wp-fade" cx="50%" cy="50%" r="50%"><stop offset="0.08" stop-color="#000"/><stop offset="0.4" stop-color="#fff" stop-opacity="0.7"/><stop offset="1" stop-color="#fff"/></radialGradient>' +
+      '<mask id="wp-mask"><circle cx="200" cy="200" r="184" fill="url(#wp-fade)"/></mask><clipPath id="wp-clip"><circle cx="200" cy="200" r="184"/></clipPath></defs>' +
+      '<circle cx="200" cy="200" r="198" fill="url(#wp-rim)"/><circle cx="200" cy="200" r="190" fill="#0b4d63"/><circle cx="200" cy="200" r="184" fill="url(#wp-water)"/>' +
+      '<g clip-path="url(#wp-clip)"><g mask="url(#wp-mask)">' +
+        '<g id="tarms" transform="rotate(' + TR.orbit + ' 200 200)">' + T_ARMS.map((d) =>
+          '<path d="' + d + '" stroke="#c8fbff" stroke-opacity="0.1" stroke-width="16" fill="none" stroke-linecap="round"/>' +
+          '<path d="' + d + '" stroke="#e8feff" stroke-opacity="0.42" stroke-width="2.6" fill="none" stroke-linecap="round"/>').join("") + '</g>' +
+        '<g id="tfoam" transform="rotate(' + (TR.orbit * 1.6 + 30) + ' 200 200)">' + T_FOAM.map((d) =>
+          '<path d="' + d + '" stroke="#fff" stroke-opacity="0.3" stroke-width="1.4" stroke-dasharray="3 9" fill="none" stroke-linecap="round"/>').join("") + '</g>' +
+      '</g>' + T_SPECKS.map((p, i) => '<circle id="ts' + i + '" r="' + p.size + '" fill="#f2feff" cx="' + (T_C + TR.specks[i].r * Math.cos(TR.specks[i].a)).toFixed(1) + '" cy="' + (T_C + TR.specks[i].r * Math.sin(TR.specks[i].a)).toFixed(1) + '" opacity="' + p.alpha + '"/>').join("") + '</g>' +
+      '<path d="M62 112A162 162 0 0 1 150 44" stroke="#fff" stroke-opacity="0.7" stroke-width="5" stroke-linecap="round" fill="none"/>' +
+      '<path d="M318 300A150 150 0 0 1 270 342" stroke="#fff" stroke-opacity="0.25" stroke-width="3" stroke-linecap="round" fill="none"/>' +
+    '</svg><div class="tsheen" id="tsheen"></div><div class="teye" id="teye"></div>';
+  if (phase === "pick" || phase === "swirl") for (let i = 0; i < TRADE_COUNT; i++) pool += tFloater(i);
+  if (phase === "flash") pool += '<div class="tflash"></div>';
+  if (phase === "out" && box) {
+    const w = 84;
+    pool += '<div class="tafter"></div>' + [0, 350, 700].map((d) => '<div class="tring" style="animation-delay:' + d + 'ms"></div>').join("") +
+      T_DROPS.map((p) => '<span class="tdrop" style="width:' + p.s + 'px;height:' + p.s + 'px;margin:' + (-p.s / 2) + 'px 0 0 ' + (-p.s / 2) + 'px;--dx:' + p.x.toFixed(0) + 'px;--dy:' + (p.y + 34).toFixed(0) + 'px;--up:' + (p.y - 46).toFixed(0) + 'px;animation-delay:' + (50 + p.delay) + 'ms"></span>').join("") +
+      '<div class="tbox"><div class="rise"><span class="floor"></span><div class="cube" style="--bw:' + w + 'px">' +
+        facesAt(w).map(([size, t, face, lit, shade]) => '<div style="' + size + 'transform:' + t + ';overflow:hidden">' + boxPrint(face, box.line) +
+          '<span style="position:absolute;inset:0;background:linear-gradient(150deg, rgb(0 0 0 / ' + shade + '), rgb(0 0 0 / ' + (shade + 0.1) + ') 78%)"></span></div>').join("") +
+        (reduced ? "" : facesAt(w).map(([size, t]) => '<div class="glint" aria-hidden="true" style="' + size + 'transform:' + t + ' translateZ(1px)"></div>').join("")) +
+        ["front", "right", "back", "left"].map((f) => boxMark(f, "#fff", box.id, w)).join("") +
+      '</div></div></div>';
+  }
+
+  let under;
+  if (phase === "out" && made && box) {
+    under = '<p class="made">' + esc(getLine(box.line).name + " " + box.name) + '</p>' +
+      '<div class="row2"><button class="tbtn ghost" type="button" data-tradeagain="1">Trade more</button>' +
+      '<button class="tbtn" type="button" data-open="' + made.id + '">Open it</button></div>';
+  } else if (!state.signedIn) {
+    under = '<button class="tbtn" type="button" data-signin="1">Sign in to trade</button>';
+  } else {
+    under = '<button class="tbtn" type="button" data-combine="1"' + (ready ? '' : ' disabled') + '>' + (busy ? "Combining…" : "Combine") + '</button>' +
+      '<p class="cap">' + (busy ? "&nbsp;" : state.tradePicked.length + " of " + TRADE_COUNT + " picked") + '</p>';
+  }
+  if (state.tradeError) under += '<p class="err">' + esc(state.tradeError) + '</p>';
+
+  let pick = "";
+  if (state.signedIn && phase !== "out") {
+    const withPieces = LINES.filter((l) => counts[l.id]);
+    const shown = all.filter((x) => x.piece.line === line);
+    pick = '<div class="tradepick' + (busy ? ' busy' : '') + '">' +
+      (withPieces.length > 1 ? '<div class="lineswitch">' + withPieces.map((l) =>
+        '<button type="button" data-tradeline="' + l.id + '" aria-pressed="' + (l.id === line) + '">' + esc(l.name) + ' <span style="opacity:0.6">' + counts[l.id] + '</span></button>').join("") + '</div>' : '') +
+      (all.length === 0 ? '<div class="tnone">Nothing in your vault to trade.<br><button class="skip" type="button" data-go="home" style="margin-top:10px">Get a box</button></div>'
+        : '<div class="tradegrid">' + shown.map(({ o, piece }) => {
+          const n = state.tradePicked.indexOf(o.id);
+          const full = n === -1 && state.tradePicked.length >= TRADE_COUNT;
+          return '<button class="ttile' + (n >= 0 ? ' on' : '') + '" type="button" data-tradepick="' + o.id + '" aria-pressed="' + (n >= 0) + '"' + (full ? ' disabled' : '') + '>' +
+            '<span class="art" style="background:' + wash(piece) + '">' + figureSVG(piece, { tag: "tt", simple: true }) + '</span>' +
+            '<b>' + esc(piece.name) + '</b>' + (n >= 0 ? '<span class="n">' + (n + 1) + '</span>' : '') + '</button>';
+        }).join("") + '</div>') +
+    '</div>';
+  }
+
+  tLoop();
+  return '<div class="section spinpage" style="padding-top:14px">' +
+    '<div class="spintop"><button type="button" data-go="rewards">← Rewards</button></div>' +
+    '<h1 class="shimmer tradetitle">Trade-in</h1><p class="tradesub">3 of one collection → 1 Bronze box</p>' +
+    '<div class="tpool" id="tpool">' + pool + '</div>' +
+    '<div class="tunder">' + under + '</div>' + pick + '</div>';
+}
+
+/* The water's clock. Runs while the trade screen is up and stops itself
+   when it is not. */
+function tLoop() {
+  if (TR.raf) return;
+  TR.last = performance.now();
+  const frame = (now) => {
+    if (state.screen !== "trade") { TR.raf = 0; return; }
+    const dt = Math.min(0.05, (now - TR.last) / 1000);
+    TR.last = now;
+    TR.tweens = TR.tweens.filter((t) => {
+      const p = Math.min(1, (now - t.t0) / t.ms);
+      TR[t.key] = t.from + (t.to - t.from) * t.ease(p);
+      return p < 1;
+    });
+    const v = TR.speed * (reduced ? 0.25 : 1);
+    TR.orbit += v * dt;
+    const g = (id) => document.getElementById(id);
+    const arms = g("tarms"), foam = g("tfoam"), sheen = g("tsheen"), eye = g("teye"), glow = g("tglow");
+    if (arms) arms.setAttribute("transform", "rotate(" + TR.orbit.toFixed(2) + " 200 200)");
+    if (foam) foam.setAttribute("transform", "rotate(" + (TR.orbit * 1.6 + 30).toFixed(2) + " 200 200)");
+    if (sheen) sheen.style.transform = "rotate(" + (TR.orbit * 0.45).toFixed(2) + "deg)";
+    const fast = Math.max(0, Math.min(1, (TR.speed - T_BASE) / (T_TOP - T_BASE)));
+    if (eye) eye.style.transform = "scale(" + (1 + 0.55 * fast).toFixed(3) + ")";
+    if (glow) glow.style.opacity = (0.15 + 0.8 * fast).toFixed(3);
+    const rush = v / T_BASE;
+    TR.specks.forEach((s, i) => {
+      s.a += (v * Math.PI / 180) * dt * Math.min(4, Math.sqrt(T_WATER_R / Math.max(14, s.r)));
+      s.r -= dt * (6 + rush * 3.2);
+      if (s.r < 12) { s.r = T_WATER_R - 4 - (i % 5) * 6; s.a = Math.random() * Math.PI * 2; }
+      const el = g("ts" + i);
+      if (el) {
+        el.setAttribute("cx", (T_C + s.r * Math.cos(s.a)).toFixed(1));
+        el.setAttribute("cy", (T_C + s.r * Math.sin(s.a)).toFixed(1));
+        el.setAttribute("opacity", String(T_SPECKS[i].alpha * Math.min(1, (s.r - 12) / 40)));
+      }
+    });
+    const p = TR.pull;
+    for (let i = 0; i < TRADE_COUNT; i++) {
+      const el = g("tf" + i);
+      if (!el) continue;
+      const a = (-90 + i * 120 + TR.orbit * 0.55 + p * 260) * Math.PI / 180;
+      const r = T_SLOT_R * (1 - p);
+      el.style.left = (50 + r * Math.cos(a)).toFixed(2) + "%";
+      el.style.top = (50 + r * Math.sin(a) + Math.sin(TR.orbit * 0.08 + i * 2) * 0.9).toFixed(2) + "%";
+      const sc = p < 0.75 ? 1 - (0.55 * p) / 0.75 : 0.45 * (1 - (p - 0.75) / 0.25);
+      el.style.transform = "scale(" + sc.toFixed(3) + ") rotate(" + (p * 540 + Math.sin(i * 2) * 8).toFixed(1) + "deg)";
+      el.style.opacity = String(p < 0.8 ? 1 - (0.15 * p) / 0.8 : 0.85 * (1 - (p - 0.8) / 0.2));
+    }
+    TR.raf = requestAnimationFrame(frame);
+  };
+  TR.raf = requestAnimationFrame(frame);
+}
+
+/* ---- sound: a plip as a piece goes in, a rush, and a pop ---- */
+let T_AC = null, T_OUT = null, T_RUSH = null;
+function tAudio() {
+  if (!T_AC) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    T_AC = new AC(); T_OUT = T_AC.createGain(); T_OUT.gain.value = 0.8; T_OUT.connect(T_AC.destination);
+  }
+  T_AC.resume();
+  return T_AC;
+}
+function tBlip(from, to, at, dur, gain, type) {
+  const ac = tAudio(); if (!ac) return;
+  const t = ac.currentTime + at, o = ac.createOscillator(), g = ac.createGain();
+  o.type = type || "sine";
+  o.frequency.setValueAtTime(from, t); o.frequency.exponentialRampToValueAtTime(to, t + dur * 0.7);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(T_OUT); o.start(t); o.stop(t + dur + 0.02);
+}
+function tPlip() { tBlip(480, 1300, 0, 0.14, 0.22); tBlip(900, 1700, 0.05, 0.1, 0.08); }
+function tWhoosh(secs) {
+  const ac = tAudio(); if (!ac) return;
+  const len = Math.ceil(ac.sampleRate * 2), buf = ac.createBuffer(1, len, ac.sampleRate), data = buf.getChannelData(0);
+  for (let k = 0; k < len; k++) data[k] = Math.random() * 2 - 1;
+  const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
+  const bp = ac.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 0.8;
+  const g = ac.createGain(), t = ac.currentTime;
+  bp.frequency.setValueAtTime(260, t); bp.frequency.exponentialRampToValueAtTime(2600, t + secs);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + secs * 0.85);
+  src.connect(bp).connect(g).connect(T_OUT);
+  const o = ac.createOscillator(), og = ac.createGain();
+  o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(190, t + secs);
+  og.gain.setValueAtTime(0.0001, t); og.gain.exponentialRampToValueAtTime(0.18, t + secs * 0.8);
+  o.connect(og).connect(T_OUT); src.start(t); o.start(t);
+  T_RUSH = () => {
+    const n = ac.currentTime;
+    for (const gg of [g, og]) { gg.gain.cancelScheduledValues(n); gg.gain.setValueAtTime(Math.max(0.0001, gg.gain.value), n); gg.gain.exponentialRampToValueAtTime(0.0001, n + 0.5); }
+    src.stop(n + 0.55); o.stop(n + 0.55);
+  };
+}
+function tStopRush() { if (T_RUSH) T_RUSH(); T_RUSH = null; }
+function tPop() {
+  tStopRush();
+  tBlip(220, 880, 0, 0.32, 0.35);
+  tBlip(1760, 2350, 0.06, 0.22, 0.09, "triangle");
+  tBlip(2350, 3140, 0.14, 0.24, 0.07, "triangle");
+  tBlip(3140, 3950, 0.22, 0.3, 0.05, "triangle");
+}
+
+/* The trade, done here because this page has no server. In the app it is one
+   transaction: the three orders are marked traded and the box drawn together,
+   or nothing happens. */
+function tradeCombine() {
+  const ids = state.tradePicked.slice();
+  if (ids.length !== TRADE_COUNT || (state.tradePhase || "pick") !== "pick") return;
+  const line = state.tradeLine;
+  const box = tradeBox(line);
+  const picked = ids.map((id) => order(id));
+  state.tradeError = null;
+  if (!picked.every((o) => o && o.status === "revealed" && !o.shipmentId && (getPiece(o.pieceId) || {}).line === line)) {
+    state.tradeError = "One of those pieces can't be traded any more."; render(true); return;
+  }
+  const swirl = reduced ? 900 : T_SWIRL_MS;
+  app.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+  tWhoosh(swirl / 1000);
+  state.tradePhase = "swirl";
+  state.tradeLanded = null;
+  tTween("speed", T_TOP, swirl, (p) => p * p * (0.4 + 0.6 * p));
+  tTween("pull", 1, swirl, tEaseIn);
+  render(true);
+  setTimeout(() => {
+    const drawn = box && drawFrom(box.id);
+    if (!drawn) {
+      tStopRush();
+      tTween("pull", 0, 700, tEaseOut); tTween("speed", T_BASE, 1200, tEaseOut);
+      state.tradePhase = "pick"; state.tradeError = box.name + "es are sold out right now.";
+      render(true); return;
+    }
+    for (const o of picked) o.status = "traded";
+    state.sold[drawn.pieceId] = (state.sold[drawn.pieceId] || 0) + 1;
+    const ord = {
+      id: "ord_" + Math.random().toString(36).slice(2, 12),
+      productId: box.id, pieceId: drawn.pieceId, poolSnapshot: drawn.snapshot,
+      status: "paid", paidCoins: null, madeFrom: ids,
+      createdAt: new Date().toISOString(), shipping: null, tracking: null,
+    };
+    state.orders.unshift(ord);
+    state.tradeMade = ord.id;
+    save();
+    tPop();
+    state.tradePhase = "flash";
+    render(true);
+    const fl = document.createElement("div");
+    fl.className = "tscreenflash";
+    deviceScreen.appendChild(fl);
+    setTimeout(() => fl.remove(), 700);
+    setTimeout(() => {
+      state.tradePicked = []; TR.pull = 0;
+      TR.tweens = TR.tweens.filter((t) => t.key !== "pull");
+      state.tradePhase = "out";
+      tTween("speed", T_BASE, 2600, tEaseOut);
+      render(true);
+    }, reduced ? 150 : 420);
+  }, swirl);
+}
+
+deviceScreen.addEventListener("click", (event) => {
+  const t = event.target.closest("[data-tradepick],[data-tradeline],[data-combine],[data-tradeagain]");
+  if (!t || state.screen !== "trade") return;
+  const phase = state.tradePhase || "pick";
+  if (t.dataset.tradepick) {
+    if (phase !== "pick") return;
+    const id = t.dataset.tradepick, at = state.tradePicked.indexOf(id);
+    state.tradeError = null;
+    if (at !== -1) { state.tradePicked.splice(at, 1); state.tradeLanded = null; }
+    else if (state.tradePicked.length < TRADE_COUNT) {
+      state.tradePicked.push(id); state.tradeLanded = id; tPlip();
+      if (state.tradePicked.length === TRADE_COUNT) setTimeout(() => app.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" }), 0);
+    }
+    render(true); return;
+  }
+  if (t.dataset.tradeline) {
+    if (phase === "swirl" || phase === "flash") return;
+    state.tradeLine = t.dataset.tradeline; state.tradePicked = []; state.tradeError = null; render(true); return;
+  }
+  if (t.dataset.combine) { tradeCombine(); return; }
+  if (t.dataset.tradeagain) { state.tradeMade = null; state.tradePhase = "pick"; state.tradeLanded = null; render(true); return; }
+});
 </script>
 
 </body></html>
