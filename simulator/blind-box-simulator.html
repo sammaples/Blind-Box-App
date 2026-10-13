@@ -591,6 +591,23 @@ p.sub { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 8px 0 0;
 @media (prefers-reduced-motion: reduce) { .shimmer { animation: none; } }
 /* The "?" at the end of the heading's row: How it works, in a card. */
 .headrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+/* Collections: the front page's row of cards (CollectionPicker). */
+.colgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 20px; }
+.colcard { display: block; padding: 0; border: 1px solid var(--hairline); border-radius: 18px; overflow: hidden;
+  background: var(--card, #121218); color: inherit; font: inherit; text-align: left; cursor: pointer; transition: transform 0.15s; }
+.colcard:active { transform: scale(0.97); }
+.colart { display: flex; align-items: center; justify-content: center; aspect-ratio: 3 / 4; }
+.colart svg { height: 76%; width: auto; filter: drop-shadow(0 10px 16px rgb(0 0 0 / 0.55)); }
+.colmeta { display: block; padding: 8px 9px 11px; }
+.colmeta b { display: block; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.colmeta span { display: block; margin-top: 2px; font-size: 10.5px; color: var(--muted); }
+.backbtn { flex: none; width: 32px; height: 32px; margin-left: -8px; border: 0; background: none; color: var(--muted);
+  font-size: 28px; line-height: 1; cursor: pointer; }
+.backbtn:hover { color: var(--chalk); }
+.lineswitch { display: flex; gap: 7px; margin-top: 18px; overflow-x: auto; scrollbar-width: none; }
+.lineswitch button { flex: none; border: 1px solid var(--hairline); border-radius: 999px; padding: 7px 14px; background: none;
+  color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.lineswitch button[aria-pressed="true"] { background: #fff; border-color: rgb(255 255 255 / 0.7); color: #0b0b10; }
 .qbtn {
   flex: none; width: 32px; height: 32px; border-radius: 999px; display: grid; place-items: center;
   border: 1px solid var(--hairline); background: rgb(255 255 255 / 0.06); color: rgb(245 245 247 / 0.8);
@@ -2436,34 +2453,105 @@ function coinsLabel(n, size) {
 const STOCKED = stockedUnits();
 
 /* ---------------------------- products ----------------------------- */
-const PRODUCTS = [
+/* Collections, ported from src/lib/lines.ts. The front page is a row of
+   these; each opens the same four boxes over its own shelf. */
+const LINES = [
+  { id: "bearbrick", name: "Bearbrick", accent: "#e0465b", sized: true },
+  { id: "popmart", name: "Pop Mart", accent: "#f2a7c8", sized: false },
+  { id: "squishy", name: "Squishy", accent: "#7ad3c4", sized: false },
+];
+function getLine(id) { return LINES.find((l) => l.id === id); }
+
+const BEARBRICK_PRODUCTS = [
   { id:"bronze", name:"Bronze Box",
     tagline:"The everyday box. One 100% figure, with a 400% hiding in the run.",
     description:"Where the collecting happens. A single 100% figure drawn from the bronze shelf as it stands today — mostly the standard colourways, with a rare in the mix and a 400% chase at the bottom of the run. What is listed below is what is in the warehouse right now, and every rate is that piece's share of it.",
-    priceCents:2500, accent:"#c2795a", tier:"bronze",
+    priceCents:2500, accent:"#c2795a", line:"bearbrick", tier:"bronze",
     highlights:["One guaranteed 100% figure","A rare in every series lineup","400% chase in the pool while stock lasts"] },
   { id:"silver", name:"Silver Box",
     tagline:"A better shelf. Rares and an ultra join the pool.",
     description:"The step up. The same live-stock draw, over a shelf that trades the plainest colourways for an ultra rare and a scarcer 400% chase. Fewer pieces in the pool than bronze, and better ones.",
-    priceCents:5000, accent:"#b6bcc8", tier:"silver",
+    priceCents:5000, accent:"#b6bcc8", line:"bearbrick", tier:"silver",
     highlights:["One guaranteed 100% figure","Ultra rares in the pool","A scarcer 400% chase than bronze"] },
   { id:"gold", name:"Gold Box",
     tagline:"No commons. Artist rares and ultras only.",
     description:"The artist shelf. Every piece in this pool is a rare or an ultra — the hand-sprayed editions and the hero pieces — and the 400% chases behind them are the short-run ones. A small pool by design: there is nothing in it you would be disappointed to draw.",
-    priceCents:10000, accent:"#e0b64e", tier:"gold",
+    priceCents:10000, accent:"#e0b64e", line:"bearbrick", tier:"gold",
     highlights:["No common pieces in the pool at all","Artist editions and hero ultras","Short-run 400% chases"] },
   { id:"diamond", name:"Diamond Box",
     tagline:"The secrets, and the grails behind them.",
     description:"The hidden pieces, sold on purpose. Every 100% in this pool is a series secret, and the 400% chases are the ones that barely exist — the factory test shot, the solid gold, the signed one-of-one. The smallest pool in the shop.",
-    priceCents:25000, accent:"#7fd7e8", tier:"diamond",
+    priceCents:25000, accent:"#7fd7e8", line:"bearbrick", tier:"diamond",
     highlights:["Series secret pieces only","The scarcest 400% chases in the shop","The smallest pool we sell"] },
 ];
+
+/* Every other collection gets the same four boxes — same tiers, prices and
+   colours — with general copy, since its shelves are whatever is stocked. */
+const BOX_TEMPLATE = {
+  bronze: { tagline: "The everyday box. A chase hiding in the run.",
+    description: "One piece drawn from the bronze shelf as it stands today — mostly the standard pieces, with a rare in the mix and a chase at the bottom of the run.",
+    highlights: ["One guaranteed piece", "A rare in the mix", "A chase in the pool while stock lasts"] },
+  silver: { tagline: "A better shelf. Rares and an ultra join the pool.",
+    description: "The step up: a shelf that trades the plainest pieces for an ultra rare and a scarcer chase.",
+    highlights: ["One guaranteed piece", "Ultra rares in the pool", "A scarcer chase than bronze"] },
+  gold: { tagline: "No commons. Rares and ultras only.",
+    description: "Every piece in this pool is a rare or an ultra, with short-run chases behind them.",
+    highlights: ["No common pieces at all", "Rares and ultras only", "Short-run chases"] },
+  diamond: { tagline: "The secrets, and the grails behind them.",
+    description: "The hidden pieces, sold on purpose: secrets and the scarcest chases.",
+    highlights: ["Secret pieces only", "The scarcest chases", "The smallest pool we sell"] },
+};
+const PRODUCTS = LINES.flatMap((line) => line.id === "bearbrick" ? BEARBRICK_PRODUCTS :
+  BEARBRICK_PRODUCTS.map((b) => ({ ...b, ...BOX_TEMPLATE[b.tier], id: line.id + "-" + b.tier, line: line.id })));
+function productsFor(line) { return PRODUCTS.filter((p) => p.line === line); }
+/* The boxes of the collection the shop is showing. */
+function SHOP() { return productsFor(state.line || "bearbrick"); }
 
 const TIER_LABEL = { bronze:"Bronze", silver:"Silver", gold:"Gold", diamond:"Diamond" };
 const TIER_ACCENT = Object.fromEntries(PRODUCTS.map((p) => [p.tier, p.accent]));
 
 function getProduct(id) { return PRODUCTS.find((p) => p.id === id); }
-const ALL_PIECES = [...ALL_100, ...BIG_PIECES];
+for (const p of ALL_100) p.line = "bearbrick";
+for (const p of BIG_PIECES) p.line = "bearbrick";
+/* Demo pieces for Pop Mart and Squishy, so their boxes can be opened here.
+   The real app has none until they are stocked in Inventory management. */
+const RARITY_TONE = {
+  common: { base: "hsl(210 12% 62%)", accent: "hsl(210 14% 44%)" },
+  rare: { base: "hsl(214 72% 62%)", accent: "hsl(214 60% 44%)" },
+  ultra: { base: "hsl(275 80% 72%)", accent: "hsl(272 62% 52%)" },
+  chase: { base: "hsl(43 88% 58%)", accent: "hsl(38 76% 44%)" },
+};
+const DEMO_SHELF = {
+  bronze: [["common", 14], ["common", 14], ["rare", 4], ["chase", 1]],
+  silver: [["common", 10], ["rare", 6], ["ultra", 2], ["chase", 1]],
+  gold: [["rare", 6], ["ultra", 4], ["chase", 1]],
+  diamond: [["ultra", 3], ["chase", 1]],
+};
+const DEMO_NAMES = {
+  popmart: ["Peach Dreamer", "Mint Dreamer", "Sky Dreamer", "Night Dreamer", "Berry Dreamer", "Cloud Dreamer", "Star Dreamer", "Honey Dreamer",
+    "Lilac Dreamer", "Coral Dreamer", "Frost Dreamer", "Golden Dreamer", "Velvet Dreamer", "Secret Dreamer", "Halo Dreamer"],
+  squishy: ["Mochi Cat", "Bao Cat", "Dango Cat", "Taro Cat", "Matcha Cat", "Peach Bun", "Melon Bun", "Sesame Bun",
+    "Custard Bun", "Ube Bun", "Sakura Bun", "Golden Bun", "Cocoa Bun", "Secret Bun", "Dream Bun"],
+};
+const EXTRA_PIECES = [];
+for (const line of ["popmart", "squishy"]) {
+  let n = 0;
+  for (const [tier, slots] of Object.entries(DEMO_SHELF)) {
+    for (const [rarity, units] of slots) {
+      const name = DEMO_NAMES[line][n % DEMO_NAMES[line].length];
+      n++;
+      EXTRA_PIECES.push({
+        id: line + "-" + tier + "-" + n, line, name,
+        setName: line === "popmart" ? "Dreamer Series" : "", series: null, category: null, type: "",
+        scale: "100%", tier, rarity, pattern: "solid",
+        palette: { ...RARITY_TONE[rarity], detail: "hsl(210 20% 96%)", wash: "hsl(220 24% 11%)" },
+        weight: 1, blurb: "", units,
+      });
+    }
+  }
+}
+for (const p of EXTRA_PIECES) STOCKED.set(p.id, p.units);
+const ALL_PIECES = [...ALL_100, ...BIG_PIECES, ...EXTRA_PIECES];
 function getPiece(id) { return ALL_PIECES.find((p) => p.id === id); }
 
 /**
@@ -2476,7 +2564,7 @@ function shelfFor(productId) {
   let remaining = 0;
   for (const [pieceId, stocked] of STOCKED) {
     const piece = getPiece(pieceId);
-    if (!piece || piece.tier !== product.tier) continue;
+    if (!piece || piece.tier !== product.tier || piece.line !== product.line) continue;
     const available = Math.max(0, stocked - (state.sold[pieceId] || 0));
     remaining += available;
     rows.push({ piece, stocked, available });
@@ -2574,8 +2662,53 @@ function bodyShapes() {
     '<rect x="102" y="220" width="33" height="72" rx="10"/>';
 }
 
+/* Pop Mart and Squishy figures, ported from src/components/CollectionArt.tsx,
+   in the same 200 x 310 frame as the bear. */
+function collectionSVG(line, palette, uid, title) {
+  const id = "ca" + hash(uid).toString(36);
+  const head = '<svg viewBox="0 0 200 310" role="img" aria-label="' + esc(title || "") + '">';
+  if (line === "popmart") {
+    const base = (palette && palette.base) || "#f6b8d1", accent = (palette && palette.accent) || "#d9739f";
+    return head + '<defs><radialGradient id="' + id + 'h" cx="38%" cy="30%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity="0.55"/>' +
+      '<stop offset="0.35" stop-color="' + base + '"/><stop offset="1" stop-color="' + accent + '"/></radialGradient>' +
+      '<linearGradient id="' + id + 'b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + base + '"/><stop offset="1" stop-color="' + accent + '"/></linearGradient></defs>' +
+      '<ellipse cx="100" cy="296" rx="52" ry="8" fill="#000" opacity="0.35"/>' +
+      '<rect x="70" y="262" width="26" height="30" rx="12" fill="' + accent + '"/><rect x="104" y="262" width="26" height="30" rx="12" fill="' + accent + '"/>' +
+      '<path d="M62 214c0-16 17-26 38-26s38 10 38 26v38c0 12-10 20-22 20H84c-12 0-22-8-22-20z" fill="url(#' + id + 'b)"/>' +
+      '<rect x="44" y="208" width="22" height="46" rx="11" fill="' + accent + '" transform="rotate(14 55 231)"/>' +
+      '<rect x="134" y="208" width="22" height="46" rx="11" fill="' + accent + '" transform="rotate(-14 145 231)"/>' +
+      '<ellipse cx="58" cy="52" rx="20" ry="40" fill="url(#' + id + 'h)" transform="rotate(-14 58 52)"/>' +
+      '<ellipse cx="142" cy="52" rx="20" ry="40" fill="url(#' + id + 'h)" transform="rotate(14 142 52)"/>' +
+      '<ellipse cx="58" cy="58" rx="9" ry="24" fill="#fff" opacity="0.35" transform="rotate(-14 58 58)"/>' +
+      '<ellipse cx="142" cy="58" rx="9" ry="24" fill="#fff" opacity="0.35" transform="rotate(14 142 58)"/>' +
+      '<ellipse cx="100" cy="132" rx="82" ry="72" fill="url(#' + id + 'h)"/>' +
+      '<ellipse cx="70" cy="138" rx="15" ry="19" fill="#1d1430"/><ellipse cx="130" cy="138" rx="15" ry="19" fill="#1d1430"/>' +
+      '<circle cx="75" cy="131" r="5.5" fill="#fff"/><circle cx="135" cy="131" r="5.5" fill="#fff"/>' +
+      '<circle cx="66" cy="146" r="2.4" fill="#fff" opacity="0.8"/><circle cx="126" cy="146" r="2.4" fill="#fff" opacity="0.8"/>' +
+      '<ellipse cx="52" cy="166" rx="12" ry="7" fill="#ff7aa8" opacity="0.55"/><ellipse cx="148" cy="166" rx="12" ry="7" fill="#ff7aa8" opacity="0.55"/>' +
+      '<path d="M90 168q10 9 20 0" stroke="#1d1430" stroke-width="4" stroke-linecap="round" fill="none"/>' +
+      '<ellipse cx="66" cy="92" rx="26" ry="12" fill="#fff" opacity="0.28" transform="rotate(-20 66 92)"/></svg>';
+  }
+  const base = (palette && palette.base) || "#9fe3d6", accent = (palette && palette.accent) || "#4fb8a6";
+  return head + '<defs><radialGradient id="' + id + 'u" cx="40%" cy="30%" r="78%"><stop offset="0" stop-color="#fff" stop-opacity="0.7"/>' +
+    '<stop offset="0.3" stop-color="' + base + '"/><stop offset="1" stop-color="' + accent + '"/></radialGradient></defs>' +
+    '<ellipse cx="100" cy="292" rx="78" ry="11" fill="#000" opacity="0.35"/>' +
+    '<path d="M38 132 48 78 86 112z" fill="url(#' + id + 'u)"/><path d="M162 132 152 78 114 112z" fill="url(#' + id + 'u)"/>' +
+    '<path d="M50 120 54 94 72 110z" fill="#ff9fc0" opacity="0.6"/><path d="M150 120 146 94 128 110z" fill="#ff9fc0" opacity="0.6"/>' +
+    '<path d="M100 96c56 0 90 40 90 104 0 56-30 86-90 86S10 256 10 200c0-64 34-104 90-104z" fill="url(#' + id + 'u)"/>' +
+    '<ellipse cx="70" cy="270" rx="16" ry="10" fill="' + accent + '" opacity="0.7"/><ellipse cx="130" cy="270" rx="16" ry="10" fill="' + accent + '" opacity="0.7"/>' +
+    '<path d="M64 188q8-10 16 0" stroke="#173b36" stroke-width="5" stroke-linecap="round" fill="none"/>' +
+    '<path d="M120 188q8-10 16 0" stroke="#173b36" stroke-width="5" stroke-linecap="round" fill="none"/>' +
+    '<path d="M90 208q5 6 10 0q5 6 10 0" stroke="#173b36" stroke-width="4" stroke-linecap="round" fill="none"/>' +
+    '<ellipse cx="54" cy="210" rx="13" ry="8" fill="#ff8fb4" opacity="0.5"/><ellipse cx="146" cy="210" rx="13" ry="8" fill="#ff8fb4" opacity="0.5"/>' +
+    '<ellipse cx="70" cy="140" rx="30" ry="14" fill="#fff" opacity="0.35" transform="rotate(-18 70 140)"/>' +
+    '<circle cx="152" cy="150" r="5" fill="#fff" opacity="0.4"/></svg>';
+}
+
 function figureSVG(piece, opts) {
   const o = opts || {};
+  // A Pop Mart or Squishy piece is drawn as its own kind of figure.
+  if (piece.line && piece.line !== "bearbrick") return collectionSVG(piece.line, piece.palette, piece.id + (o.tag || ""), piece.name);
   const simple = !!o.simple;
   const p = piece.palette;
   const id = "f" + hash(piece.id + (o.tag || "")).toString(36);
@@ -2709,6 +2842,8 @@ const deviceScreen = document.getElementById("screen");
 const state = {
   screen: "home",          // home | open | collection
   orderId: null,
+  line: null,              // the collection the shop is showing; null = the cards
+  stockLine: null,         // the collection the stock tab is showing; null = the cards
   tab: "bronze",
   rarity: "all",
   detail: null,            // piece id
@@ -2911,14 +3046,14 @@ function supportScreen() {
 const PAD = 2;
 /* Which box a slot in the padded strip is showing. */
 function boxAt(slot) {
-  const n = PRODUCTS.length;
+  const n = SHOP().length;
   return (((slot - PAD) % n) + n) % n;
 }
 
 /* One light per tier, stacked; only the one in front is lit. */
 function railAura() {
   return '<div class="aura" aria-hidden="true">' +
-    PRODUCTS.map((p, i) =>
+    SHOP().map((p, i) =>
       '<div data-aura="' + i + '" data-on="' + (i === (state.box || 0)) + '">' +
         '<i style="background:radial-gradient(circle at 50% 50%,' + p.accent + ' 0%, color-mix(in srgb,' +
           p.accent + ' 62%, transparent) 34%, color-mix(in srgb,' + p.accent + ' 22%, transparent) 58%, transparent 78%)"></i>' +
@@ -2928,14 +3063,42 @@ function railAura() {
   '</div>';
 }
 
+/* The front page and the stock tab's first page: the collections, as a row
+   of cards. Ported from src/components/CollectionPicker.tsx. */
+function collectionsScreen(mode) {
+  const cards = LINES.map((line) => {
+    const boxes = productsFor(line.id);
+    const shelf = boxes.map((b) => shelfFor(b.id)).flat().filter((e) => e.available > 0)
+      .sort((a, b) => RARITY_ORDER.indexOf(a.piece.rarity) - RARITY_ORDER.indexOf(b.piece.rarity));
+    const units = shelf.reduce((sum, e) => sum + e.available, 0);
+    const from = Math.min(...boxes.map((b) => b.priceCents)) / 100;
+    // Bearbrick shows the best piece on its shelf; the others their drawing.
+    const art = line.id === "bearbrick" && shelf[0]
+      ? figureSVG(shelf[0].piece, { tag: "card" })
+      : collectionSVG(line.id, null, "card-" + line.id, line.name);
+    return '<button class="colcard" type="button" data-pickline="' + line.id + '" data-mode="' + mode + '">' +
+      '<span class="colart" style="background:radial-gradient(120% 85% at 50% 18%, color-mix(in srgb,' + line.accent +
+        ' 42%, transparent), #0b0b10 78%)">' + art + '</span>' +
+      '<span class="colmeta"><b>' + esc(line.name) + '</b><span>' + (units > 0 ? 'From $' + from : 'Coming soon') + '</span></span>' +
+    '</button>';
+  }).join("");
+  return '<div class="section" id="shop" style="padding-top:14px">' +
+    '<div class="headrow"><h1 class="head shimmer">' + (mode === "stock" ? "Current stock" : "Pick a collection") + '</h1>' +
+      (mode === "stock" ? '' : '<button class="qbtn" type="button" data-how="1" aria-label="How it works" aria-haspopup="dialog">?</button>') + '</div>' +
+    '<div class="colgrid">' + cards + '</div></div>';
+}
+
 function homeScreen() {
+  if (!state.line) return collectionsScreen("home");
+  const PRODUCTS = SHOP();
   const shelves = PRODUCTS.map((p) => shelfFor(p.id)).flat();
   const inStock = shelves.filter((e) => e.available > 0);
   const units = inStock.reduce((sum, e) => sum + e.available, 0);
   // No headline above the shop: the page is the boxes, and "Pick your box"
   // is the first thing on it.
   let h = '<div class="section" id="shop" style="padding-top:14px">' +
-    '<div class="headrow"><h1 class="head shimmer">Pick your box</h1>' +
+    '<div class="headrow"><button class="backbtn" type="button" data-lineback="1" aria-label="All collections">\u2039</button>' +
+      '<h1 class="head shimmer">Pick your box</h1><span style="flex:1"></span>' +
       '<button class="qbtn" type="button" data-how="1" aria-label="How it works" aria-haspopup="dialog">?</button></div>' +
     '<div class="railwrap">' + railAura() +
       '<div class="rail" id="rail" aria-roledescription="carousel" aria-label="Boxes for sale">' +
@@ -2955,6 +3118,7 @@ function homeScreen() {
 
 /* Everything on the shelves, on a tab of its own. */
 function stockScreen() {
+  if (!state.stockLine) return collectionsScreen("stock");
   return setBrowser();
 }
 
@@ -3011,7 +3175,7 @@ function ago(at) {
    you watch can be told apart from the list a fresh render starts with. */
 const PULLS_SEEN = {};
 function recentPulls(arrive) {
-  const p = PRODUCTS[Math.min(state.box || 0, PRODUCTS.length - 1)];
+  const p = SHOP()[Math.min(state.box || 0, SHOP().length - 1)];
   const pulls = recentPullsFor(p.id);
   // Only a live arrival animates. A render of the page, or a swipe onto
   // another box, shows the list as it is.
@@ -3089,8 +3253,8 @@ let PULL_LANDING = false;
 function simPullTick() {
   if (Date.now() >= NEXT_SIM_PULL) {
     NEXT_SIM_PULL = Date.now() + 22000 + Math.random() * 26000;
-    const here = PRODUCTS[Math.min(state.box || 0, PRODUCTS.length - 1)];
-    const p = Math.random() < 0.65 ? here : PRODUCTS[Math.floor(Math.random() * PRODUCTS.length)];
+    const here = SHOP()[Math.min(state.box || 0, SHOP().length - 1)];
+    const p = Math.random() < 0.65 ? here : SHOP()[Math.floor(Math.random() * SHOP().length)];
     const shelf = shelfFor(p.id).filter((e) => e.available > 0);
     const total = shelf.reduce((sum, e) => sum + e.available, 0);
     if (total > 0) {
@@ -3106,7 +3270,7 @@ function simPullTick() {
 function landPull() {
   if (PULL_LANDING || state.screen !== "home" || !state.onboarded) return;
   if (PULL_HELD || state.detail || state.checkout || state.how) return;
-  const here = PRODUCTS[Math.min(state.box || 0, PRODUCTS.length - 1)];
+  const here = SHOP()[Math.min(state.box || 0, SHOP().length - 1)];
   const first = recentPullsFor(here.id)[0];
   if (!first || first.id === PULLS_SEEN[here.id]) return;
   const swap = () => {
@@ -3317,7 +3481,7 @@ const TABS = [
 ];
 function tabBar() {
   return TABS.map(([screen, label, icon]) =>
-    '<button type="button" data-go="' + screen + '"' + ((state.screen === "spin" ? "rewards" : state.screen) === screen ? ' aria-current="page"' : '') + '>' +
+    '<button type="button" data-tabbar="1" data-go="' + screen + '"' + ((state.screen === "spin" ? "rewards" : state.screen) === screen ? ' aria-current="page"' : '') + '>' +
       '<svg viewBox="0 0 24 24" aria-hidden="true">' + icon + '</svg><span>' + label + '</span></button>').join("");
 }
 
@@ -3452,15 +3616,28 @@ const PRINT_WINDOW = {
   bottom: [PRINT_FACE_W * 1.6, 80, PRINT_FACE_W, PRINT_FACE_W],
 };
 
+/* Each collection's carton carries its own figure on its own ground. */
+const PRINT_GROUNDS = { bearbrick: PRINT_GROUND, popmart: "#f7c3d8", squishy: "#b6eadf" };
+function groundFor(line) { return PRINT_GROUNDS[line] || PRINT_GROUND; }
+function printShapes(line) {
+  if (line === "popmart") return '<ellipse cx="62" cy="64" rx="18" ry="42" transform="rotate(-14 62 64)"/>' +
+    '<ellipse cx="138" cy="64" rx="18" ry="42" transform="rotate(14 138 64)"/><ellipse cx="100" cy="146" rx="78" ry="66"/>' +
+    '<path d="M64 212c0-14 16-22 36-22s36 8 36 22v40c0 12-10 20-22 20H86c-12 0-22-8-22-20z"/>' +
+    '<rect x="70" y="262" width="26" height="30" rx="12"/><rect x="104" y="262" width="26" height="30" rx="12"/>';
+  if (line === "squishy") return '<path d="M30 150 42 92 82 130z"/><path d="M170 150 158 92 118 130z"/>' +
+    '<path d="M100 112c58 0 92 42 92 106 0 56-32 84-92 84S8 274 8 218c0-64 34-106 92-106z"/>';
+  return bodyShapes();
+}
 let printUid = 0;
-function boxPrint(face) {
+function boxPrint(face, line) {
+  line = line || "bearbrick";
   const [x, y, w, h] = PRINT_WINDOW[face];
-  const gid = "bbfig-" + face + "-" + printUid++;
+  const gid = "bbfig-" + line + "-" + face + "-" + printUid++;
   return '<svg aria-hidden viewBox="' + x + ' ' + y + ' ' + w + ' ' + h +
     '" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%">' +
-    '<defs><g id="' + gid + '">' + bodyShapes() + '</g></defs>' +
+    '<defs><g id="' + gid + '">' + printShapes(line) + '</g></defs>' +
     '<rect x="' + (x - 20) + '" y="' + (y - 20) + '" width="' + (w + 40) +
-      '" height="' + (h + 40) + '" fill="' + PRINT_GROUND + '"/>' +
+      '" height="' + (h + 40) + '" fill="' + groundFor(line) + '"/>' +
     PRINT_FIGURES.map((f) =>
       '<use href="#' + gid + '" fill="' + f.fill + '" transform="translate(' + f.x + ' ' + f.y +
       ') rotate(' + f.rotate + ') scale(' + f.scale + ') translate(-100 -160)"/>').join("") +
@@ -3534,7 +3711,7 @@ function productCard(p) {
         .map(([size, t, face, lit, shade]) => printed
           // A printed face keeps the five-plane shading, but as a wash over
           // the artwork — without it the sides read as one flat shape.
-          ? '<div style="' + size + 'transform:' + t + ';overflow:hidden">' + boxPrint(face) +
+          ? '<div style="' + size + 'transform:' + t + ';overflow:hidden">' + boxPrint(face, p.line) +
             '<span style="position:absolute;inset:0;background:linear-gradient(150deg, rgb(0 0 0 / ' +
             shade + '), rgb(0 0 0 / ' + (shade + 0.1) + ') 78%)"></span></div>'
           : '<div style="' + size + 'transform:' + t + ';background:linear-gradient(150deg, color-mix(in srgb,' +
@@ -3562,7 +3739,7 @@ function productCard(p) {
  * screen; the rates get room for the worst case and keep it.
  */
 function boxDetail() {
-  const p = PRODUCTS[Math.min(state.box || 0, PRODUCTS.length - 1)];
+  const p = SHOP()[Math.min(state.box || 0, SHOP().length - 1)];
   const shelf = shelfFor(p.id);
   const inStock = shelf.filter((e) => e.available > 0);
   const units = inStock.reduce((sum, e) => sum + e.available, 0);
@@ -3607,7 +3784,10 @@ function setBrowser() {
   const rarities = RARITY_ORDER.filter((r) => present.has(r));
   let h = '<div class="section" id="set">' +
     '<h2 class="head">Live Stock</h2>' +
-    '<div class="tabs" style="margin-top:24px">' + PRODUCTS.map((p) =>
+    '<div class="lineswitch">' + LINES.map((l) =>
+      '<button type="button" data-stockline="' + l.id + '" aria-pressed="' + (l.id === state.stockLine) + '">' + esc(l.name) + '</button>').join("") +
+    '</div>' +
+    '<div class="tabs" style="margin-top:12px">' + productsFor(state.stockLine).map((p) =>
       '<button class="tab" type="button" data-tab="' + p.id + '" aria-pressed="' + (p.id === state.tab) + '"' +
       (p.id === state.tab ? ' style="background:' + p.accent + '"' : '') + '>' + esc(p.name) + '</button>').join("") +
     '</div>';
@@ -3715,7 +3895,7 @@ function openScreen() {
       [cap, 'rotateX(-90deg) translateZ(99px)', 'bottom'],
     ].map(([size, t, face], i) => '<div class="face" style="' + size + 'transform:' + t +
       (printed ? ';overflow:hidden' : ';background:' + faceBg) + ';box-shadow:' + shadow + '">' +
-      (printed ? boxPrint(face) : "") + '</div>').join("");
+      (printed ? boxPrint(face, product.line) : "") + '</div>').join("");
 
     const linings = [
       [wall, 'translateZ(62.5px) rotateY(180deg)', '#e9e9ec', '#c3c4c9'],
@@ -3744,11 +3924,11 @@ function openScreen() {
           '<div class="board" style="' + (die ? 'clip-path:url(#bb-diecut-head);' : '') +
             (printed ? '' : 'background:linear-gradient(170deg, color-mix(in srgb,' + product.accent +
               ' 40%, #17171d), #0e0e13)') + '">' +
-            (printed ? boxPrint(turn ? 'left' : 'front') : '') +
+            (printed ? boxPrint(turn ? 'left' : 'front', product.line) : '') +
             '<span style="position:absolute;inset:0;background:rgb(0 0 0 / 0.12)"></span>' +
           '</div>' +
           '<div class="seam" style="transform:rotateY(180deg);background:' +
-            (printed ? PRINT_GROUND : 'color-mix(in srgb,' + product.accent + ' 40%, #17171d)') + '"></div>' +
+            (printed ? groundFor(product.line) : 'color-mix(in srgb,' + product.accent + ' 40%, #17171d)') + '"></div>' +
         '</div>' +
       '</div>').join("");
 
@@ -3803,7 +3983,7 @@ function openScreen() {
       '<h2>' + esc(piece.name) + '</h2>' +
       (pieceSubtitle(piece) ? '<p class="meta">' + esc(pieceSubtitle(piece)) + '</p>' : '') +
       '<div class="row" style="justify-content:center">' + chip(piece.rarity) +
-        '<span class="scalepill">' + piece.scale + '</span></div>' +
+        ((getLine(piece.line) || {}).sized === false ? '' : '<span class="scalepill">' + piece.scale + '</span>') + '</div>' +
     '</div>';
   }
   h += '</div>';
@@ -4176,7 +4356,7 @@ function detailSheet() {
     '<p>' + esc(piece.blurb) + '</p>' +
     '<dl class="stats"><div><dt>Box</dt><dd style="color:' + TIER_ACCENT[piece.tier] + '">' +
       TIER_LABEL[piece.tier] + '</dd></div>' +
-    '<div><dt>Scale</dt><dd>' + piece.scale + '</dd></div>' +
+    ((getLine(piece.line) || {}).sized === false ? '' : '<div><dt>Scale</dt><dd>' + piece.scale + '</dd></div>') +
       '<div><dt>Pull rate</dt><dd>' + (available > 0 ? formatOdds(odds) : "—") + '</dd></div></dl>' +
     (available > 0 ? '' : '<p class="sub" style="font-size:11.5px;color:var(--faint)">Sold out — out of the pool until it is restocked.</p>') +
     '<button class="btn wide" type="button" data-close="detail" style="margin-top:16px;background:rgb(255 255 255/0.1);color:var(--chalk)">Close</button>' +
@@ -4772,8 +4952,24 @@ function submitShipment(form) {
 
 /* One delegated listener for the whole app — no per-render rebinding. */
 deviceScreen.addEventListener("click", (event) => {
-  const t = event.target.closest("[data-go],[data-buy],[data-tab],[data-rarity],[data-piece],[data-open],[data-close],[data-scroll],[data-pick],[data-selectall],[data-shipopen],[data-shipcancel],[data-rail],[data-railto],[data-coinpay],[data-hist],[data-how],[data-cleardemo],[data-odds],[data-spin],[data-profile],[data-signin],[data-apple],[data-sendcode],[data-diffemail],[data-sheet],[data-sheetclose],[data-signout],[data-delete],[data-deletecancel],[data-deleteyes],[data-pgo],[data-skipob],[data-nextcard],[data-cardto],#box,#confirmbuy");
+  const t = event.target.closest("[data-pickline],[data-lineback],[data-stockline],[data-go],[data-buy],[data-tab],[data-rarity],[data-piece],[data-open],[data-close],[data-scroll],[data-pick],[data-selectall],[data-shipopen],[data-shipcancel],[data-rail],[data-railto],[data-coinpay],[data-hist],[data-how],[data-cleardemo],[data-odds],[data-spin],[data-profile],[data-signin],[data-apple],[data-sendcode],[data-diffemail],[data-sheet],[data-sheetclose],[data-signout],[data-delete],[data-deletecancel],[data-deleteyes],[data-pgo],[data-skipob],[data-nextcard],[data-cardto],#box,#confirmbuy");
   if (!t) return;
+  /* ---- collections ---- */
+  if (t.dataset.pickline) {
+    if (t.dataset.mode === "stock") {
+      state.stockLine = t.dataset.pickline;
+      state.tab = productsFor(state.stockLine)[0].id; state.rarity = "all";
+    } else {
+      state.line = t.dataset.pickline; state.box = 0;
+    }
+    render(); scrollTop(); return;
+  }
+  if (t.dataset.lineback) { state.line = null; state.box = 0; render(); scrollTop(); return; }
+  if (t.dataset.stockline) {
+    state.stockLine = t.dataset.stockline;
+    state.tab = productsFor(state.stockLine)[0].id; state.rarity = "all";
+    render(true); return;
+  }
 
   // The rail moves without a re-render: it is a scroll, not a state change.
   if (t.dataset.railto !== undefined) { railTo(Number(t.dataset.railto)); return; }
@@ -4830,8 +5026,14 @@ deviceScreen.addEventListener("click", (event) => {
   if (SPIN_RUNNING) return;
   if (t.dataset.go) {
     state.spinJust = false;
+    // The tab bar goes to the start of a tab: the collection cards.
+    if (t.dataset.tabbar && t.dataset.go === "home") { state.line = null; state.box = 0; }
+    if (t.dataset.tabbar && t.dataset.go === "stock") state.stockLine = null;
     // "Box details" opens the stock tab on the box you were looking at.
-    if (t.dataset.boxdetails) { state.tab = t.dataset.boxdetails; state.rarity = "all"; }
+    if (t.dataset.boxdetails) {
+      state.tab = t.dataset.boxdetails; state.rarity = "all";
+      state.stockLine = (getProduct(t.dataset.boxdetails) || {}).line || "bearbrick";
+    }
     state.screen = t.dataset.go;
     state.detail = null;
     render();
@@ -4948,7 +5150,7 @@ function railRecentre() {
   const rail = document.getElementById("rail");
   if (!rail) return;
   const cards = railCards(rail);
-  const n = PRODUCTS.length;
+  const n = SHOP().length;
   if (cards.length <= n) return;
   const run = cards[n].offsetLeft - cards[0].offsetLeft;
   const slot = railSlot(rail);
