@@ -28,7 +28,7 @@ iPhone Home Screen as a PWA.
   other collections have no sizes (hidden everywhere). All tiers are buyable
   (Diamond's "coming soon" flag was removed; the flag still exists).
 - **Box prints:** each collection's carton has its own print — bears on blue,
-  vinyl figures on pink (Pop Mart), soft buns on mint (Squishy), crimped caps
+  vinyl figures on pink (Pop Mart), soft buns on mint (Squishy), flocked block figures
   on amber (TapCap).
 - **Current stock** (`/stock`) starts on the same collection bars; each
   collection's stock is `/stock/<collection>`, with a switcher at the top.

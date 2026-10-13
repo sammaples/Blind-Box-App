@@ -9,7 +9,7 @@ import { BearbrickArt } from "./BearbrickArt";
  * Bearbrick has its own generated art, coloured per piece. The others are
  * drawn here, in the same 200 × 310 frame so they sit in every slot a bear
  * does: a big-headed vinyl figure for Pop Mart, a plump soft one for
- * Squishy, and a crimped cap with a face for TapCap. They stand in for a piece with no photograph yet, and on the front
+ * Squishy, and a tall flocked block with a torn cap for TapCap. They stand in for a piece with no photograph yet, and on the front
  * page's collection cards until a real photo is uploaded.
  *
  * Generic on purpose — the shop sells the real thing; the drawing is only a
@@ -109,32 +109,45 @@ export function CollectionArt({
   }
 
   if (line === "tapcap") {
-    const base = palette?.base ?? "#ffc65c";
-    const accent = palette?.accent ?? "#d9820f";
+    // A tall flocked block: a cap with slit eyes and a little smile, torn
+    // along its bottom edge, sitting over a dark gap, on a body with an
+    // arched notch at its foot.
+    const base = palette?.base ?? "#8fd44e";
+    const accent = palette?.accent ?? "#4c9a1c";
     return (
       <svg {...svgProps}>
         <defs>
-          <radialGradient id={`${id}-top`} cx="36%" cy="30%" r="80%">
-            <stop offset="0" stopColor="#fff" stopOpacity="0.75" />
-            <stop offset="0.3" stopColor={base} />
+          <linearGradient id={`${id}-fur`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#fff" stopOpacity="0.35" />
+            <stop offset="0.25" stopColor={base} />
             <stop offset="1" stopColor={accent} />
-          </radialGradient>
+          </linearGradient>
+          {/* the flocking: a fine scatter of light specks over the colour */}
+          <pattern id={`${id}-flock`} width="7" height="7" patternUnits="userSpaceOnUse">
+            <circle cx="1.5" cy="1.5" r="0.9" fill="#fff" opacity="0.22" />
+            <circle cx="5" cy="4.5" r="0.8" fill="#000" opacity="0.12" />
+          </pattern>
         </defs>
-        <ellipse cx="100" cy="292" rx="70" ry="10" fill="#000" opacity="0.35" />
-        {/* the crimped rim, then its side seen below it */}
-        <path d="M100.0 90.0 L111.6 98.9 L125.3 93.8 L133.8 105.7 L148.4 104.9 L153.1 118.8 L167.2 122.4 L167.5 137.0 L180.1 144.6 L176.0 158.6 L185.8 169.6 L177.8 181.8 L183.8 195.1 L172.6 204.5 L174.5 219.0 L161.0 224.6 L158.5 239.0 L143.9 240.4 L137.3 253.5 L123.0 250.5 L112.8 261.0 L100.0 254.0 L87.2 261.0 L77.0 250.5 L62.7 253.5 L56.1 240.4 L41.5 239.0 L39.0 224.6 L25.5 219.0 L27.4 204.5 L16.2 195.1 L22.2 181.8 L14.2 169.6 L24.0 158.6 L19.9 144.6 L32.5 137.0 L32.8 122.4 L46.9 118.8 L51.6 104.9 L66.2 105.7 L74.7 93.8 L88.4 98.9Z" fill={accent} transform="translate(0 12)" />
-        <path d="M100.0 90.0 L111.6 98.9 L125.3 93.8 L133.8 105.7 L148.4 104.9 L153.1 118.8 L167.2 122.4 L167.5 137.0 L180.1 144.6 L176.0 158.6 L185.8 169.6 L177.8 181.8 L183.8 195.1 L172.6 204.5 L174.5 219.0 L161.0 224.6 L158.5 239.0 L143.9 240.4 L137.3 253.5 L123.0 250.5 L112.8 261.0 L100.0 254.0 L87.2 261.0 L77.0 250.5 L62.7 253.5 L56.1 240.4 L41.5 239.0 L39.0 224.6 L25.5 219.0 L27.4 204.5 L16.2 195.1 L22.2 181.8 L14.2 169.6 L24.0 158.6 L19.9 144.6 L32.5 137.0 L32.8 122.4 L46.9 118.8 L51.6 104.9 L66.2 105.7 L74.7 93.8 L88.4 98.9Z" fill={`url(#${id}-top)`} />
-        <circle cx="100" cy="176" r="62" fill="none" stroke="#fff" strokeOpacity="0.35" strokeWidth="3" />
+        <ellipse cx="100" cy="294" rx="64" ry="9" fill="#000" opacity="0.35" />
+        {/* the gap between cap and body, with the works showing */}
+        <rect x="50" y="146" width="100" height="40" rx="4" fill="#2f3a3e" />
+        <rect x="68" y="162" width="64" height="11" rx="3" fill="#c9b8a2" opacity="0.9" />
+        <rect x="76" y="164" width="10" height="7" rx="1.5" fill="#6f625a" />
+        <rect x="114" y="164" width="10" height="7" rx="1.5" fill="#6f625a" />
+        {/* body */}
+        <path d="M54 180H146Q156 180 156 190V286H44V190Q44 180 54 180Z" fill={`url(#${id}-fur)`} />
+        <path d="M54 180H146Q156 180 156 190V286H44V190Q44 180 54 180Z" fill={`url(#${id}-flock)`} />
+        <path d="M89 286V266A11 11 0 0 1 111 266V286Z" fill="#16220d" />
+        {/* cap */}
+        <path d="M56 22H144Q160 22 160 38V150L148 163 136 149 124 161 112 150 100 165 88 150 76 161 64 149 52 163 40 150V38Q40 22 56 22Z" fill={`url(#${id}-fur)`} />
+        <path d="M56 22H144Q160 22 160 38V150L148 163 136 149 124 161 112 150 100 165 88 150 76 161 64 149 52 163 40 150V38Q40 22 56 22Z" fill={`url(#${id}-flock)`} />
+        <path d="M44 132 56 140 68 129 80 141 92 130 104 142 116 130 128 141 140 129 152 139" stroke={accent} strokeWidth="3" strokeLinejoin="round" fill="none" opacity="0.7" />
         {/* face */}
-        <ellipse cx="78" cy="174" rx="10" ry="13" fill="#2a1606" />
-        <ellipse cx="122" cy="174" rx="10" ry="13" fill="#2a1606" />
-        <circle cx="81" cy="169" r="3.6" fill="#fff" />
-        <circle cx="125" cy="169" r="3.6" fill="#fff" />
-        <ellipse cx="64" cy="194" rx="10" ry="6" fill="#ff7a59" opacity="0.5" />
-        <ellipse cx="136" cy="194" rx="10" ry="6" fill="#ff7a59" opacity="0.5" />
-        <path d="M90 196q10 9 20 0" stroke="#2a1606" strokeWidth="4" strokeLinecap="round" fill="none" />
-        {/* gloss */}
-        <ellipse cx="72" cy="128" rx="26" ry="11" fill="#fff" opacity="0.4" transform="rotate(-24 72 128)" />
+        <rect x="68" y="50" width="9" height="34" rx="4.5" fill="#16220d" />
+        <rect x="123" y="50" width="9" height="34" rx="4.5" fill="#16220d" />
+        <path d="M91 72q9 -9 18 0" stroke="#16220d" strokeWidth="4" strokeLinecap="round" fill="none" />
+        {/* soft light on the top edge */}
+        <rect x="50" y="28" width="56" height="10" rx="5" fill="#fff" opacity="0.22" />
       </svg>
     );
   }

@@ -44,9 +44,9 @@ const SCENES: Record<LineId, { ground: string; glow: string; ink: string; poses:
     glow: "#ffe2a6",
     ink: "#ffffff",
     poses: [
+      { palette: { base: "#ff9db0", accent: "#d9566f" } },
+      { palette: { base: "#8fd44e", accent: "#4c9a1c" } },
       { palette: { base: "#8fd3ff", accent: "#3b8fd0" } },
-      { palette: { base: "#ffc65c", accent: "#d9820f" } },
-      { palette: { base: "#ff9db0", accent: "#e0566f" } },
     ],
   },
   squishy: {
