@@ -11,7 +11,7 @@
  * spreadsheet import — follows from this list.
  */
 
-export type LineId = "bearbrick" | "popmart" | "squishy";
+export type LineId = "bearbrick" | "popmart" | "squishy" | "tapcap";
 
 export interface Line {
   id: LineId;
@@ -24,9 +24,10 @@ export interface Line {
 
 /** In the order they appear on the front page. */
 export const LINES: readonly Line[] = [
-  { id: "bearbrick", name: "Bearbrick", accent: "#e0465b", sized: true },
+  { id: "bearbrick", name: "Be@rbrick", accent: "#e0465b", sized: true },
   { id: "popmart", name: "Pop Mart", accent: "#f2a7c8", sized: false },
   { id: "squishy", name: "Squishy", accent: "#7ad3c4", sized: false },
+  { id: "tapcap", name: "TapCap", accent: "#f5a524", sized: false },
 ];
 
 /** Where everything that predates collections belongs. */
@@ -49,5 +50,6 @@ export function toLine(value: unknown): LineId | null {
   // The names people actually type for the first one.
   if (key === "bearbricks" || key === "berbrick" || key === "bearbick") return "bearbrick";
   if (key === "squishies" || key === "squish") return "squishy";
+  if (key === "tapcaps" || key === "tapcapp") return "tapcap";
   return null;
 }

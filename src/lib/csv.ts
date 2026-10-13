@@ -174,10 +174,11 @@ export const CSV_TEMPLATE =
   // No coins column: pieces are not traded in for coins any more. A sheet
   // that still has one imports fine; the column is read and kept, not used.
   "collection,name,set,series,tier,scale,rarity,category,image,quantity,notes\n" +
-  "Bearbrick,Sky Blue Bear,Series 47,47,bronze,100%,common,cute,https://example.com/sky.jpg,12,Gloss finish\n" +
-  "Bearbrick,Chrome Grail,400% Collection,,diamond,400%,chase,,https://example.com/chrome.jpg,1,One of one\n" +
+  "Be@rbrick,Sky Blue Bear,Series 47,47,bronze,100%,common,cute,https://example.com/sky.jpg,12,Gloss finish\n" +
+  "Be@rbrick,Chrome Grail,400% Collection,,diamond,400%,chase,,https://example.com/chrome.jpg,1,One of one\n" +
   "Pop Mart,Pink Dreamer,Spring Series,,bronze,,common,,https://example.com/pink.jpg,10,\n" +
-  "Squishy,Mint Mochi Cat,,,silver,,rare,,https://example.com/mochi.jpg,6,Slow rise\n";
+  "Squishy,Mint Mochi Cat,,,silver,,rare,,https://example.com/mochi.jpg,6,Slow rise\n" +
+  "TapCap,Sunny Cap,,,gold,,ultra,,https://example.com/sunny.jpg,3,\n";
 
 /**
  * Reads a catalogue spreadsheet. Every row is validated independently: a bad
@@ -196,7 +197,7 @@ export function importCatalogue(text: string): ImportResult {
     return {
       rows: [],
       errors: [
-        "No 'name' column found. The first row must be a header — name and tier are required (and scale for Bearbrick).",
+        "No 'name' column found. The first row must be a header — name and tier are required (and scale for Be@rbrick).",
       ],
       columns,
     };

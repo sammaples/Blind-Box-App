@@ -3,6 +3,9 @@ import { AdminConsole } from "@/components/AdminConsole";
 import { AdminSignIn } from "@/components/AdminSignIn";
 import { adminMode, checkAdmin } from "@/lib/admin";
 import { allPieces } from "@/lib/pieces";
+import { coverKey } from "@/lib/collections";
+import { backend } from "@/lib/db";
+import { LINES, type LineId } from "@/lib/lines";
 import { recentAudit, warehouse } from "@/lib/stock";
 
 export const dynamic = "force-dynamic";
@@ -24,11 +27,13 @@ export default async function AdminPage() {
     return <Shell>{denial(access.reason, mode === "bootstrap")}</Shell>;
   }
 
-  const [rows, audit, catalogue] = await Promise.all([
+  const [rows, audit, catalogue, coverList] = await Promise.all([
     warehouse(),
     recentAudit(),
     allPieces(),
+    Promise.all(LINES.map(async (l) => [l.id, (await backend().getSetting(coverKey(l.id))) || null] as const)),
   ]);
+  const covers = Object.fromEntries(coverList) as Record<LineId, string | null>;
   const stock = Object.fromEntries(
     rows.map((row) => [row.piece.id, { stocked: row.stocked, sold: row.sold }]),
   );
@@ -53,6 +58,7 @@ export default async function AdminPage() {
       }))}
       stock={stock}
       audit={audit}
+      covers={covers}
       bootstrapAccess={mode === "bootstrap"}
     />
   );

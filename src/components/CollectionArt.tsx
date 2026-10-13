@@ -8,8 +8,8 @@ import { BearbrickArt } from "./BearbrickArt";
  *
  * Bearbrick has its own generated art, coloured per piece. The others are
  * drawn here, in the same 200 × 310 frame so they sit in every slot a bear
- * does: a big-headed vinyl figure for Pop Mart, and a plump soft one for
- * Squishy. They stand in for a piece with no photograph yet, and on the front
+ * does: a big-headed vinyl figure for Pop Mart, a plump soft one for
+ * Squishy, and a crimped cap with a face for TapCap. They stand in for a piece with no photograph yet, and on the front
  * page's collection cards until a real photo is uploaded.
  *
  * Generic on purpose — the shop sells the real thing; the drawing is only a
@@ -104,6 +104,37 @@ export function CollectionArt({
         <path d="M90 168q10 9 20 0" stroke="#1d1430" strokeWidth="4" strokeLinecap="round" fill="none" />
         {/* gloss */}
         <ellipse cx="66" cy="92" rx="26" ry="12" fill="#fff" opacity="0.28" transform="rotate(-20 66 92)" />
+      </svg>
+    );
+  }
+
+  if (line === "tapcap") {
+    const base = palette?.base ?? "#ffc65c";
+    const accent = palette?.accent ?? "#d9820f";
+    return (
+      <svg {...svgProps}>
+        <defs>
+          <radialGradient id={`${id}-top`} cx="36%" cy="30%" r="80%">
+            <stop offset="0" stopColor="#fff" stopOpacity="0.75" />
+            <stop offset="0.3" stopColor={base} />
+            <stop offset="1" stopColor={accent} />
+          </radialGradient>
+        </defs>
+        <ellipse cx="100" cy="292" rx="70" ry="10" fill="#000" opacity="0.35" />
+        {/* the crimped rim, then its side seen below it */}
+        <path d="M100.0 90.0 L111.6 98.9 L125.3 93.8 L133.8 105.7 L148.4 104.9 L153.1 118.8 L167.2 122.4 L167.5 137.0 L180.1 144.6 L176.0 158.6 L185.8 169.6 L177.8 181.8 L183.8 195.1 L172.6 204.5 L174.5 219.0 L161.0 224.6 L158.5 239.0 L143.9 240.4 L137.3 253.5 L123.0 250.5 L112.8 261.0 L100.0 254.0 L87.2 261.0 L77.0 250.5 L62.7 253.5 L56.1 240.4 L41.5 239.0 L39.0 224.6 L25.5 219.0 L27.4 204.5 L16.2 195.1 L22.2 181.8 L14.2 169.6 L24.0 158.6 L19.9 144.6 L32.5 137.0 L32.8 122.4 L46.9 118.8 L51.6 104.9 L66.2 105.7 L74.7 93.8 L88.4 98.9Z" fill={accent} transform="translate(0 12)" />
+        <path d="M100.0 90.0 L111.6 98.9 L125.3 93.8 L133.8 105.7 L148.4 104.9 L153.1 118.8 L167.2 122.4 L167.5 137.0 L180.1 144.6 L176.0 158.6 L185.8 169.6 L177.8 181.8 L183.8 195.1 L172.6 204.5 L174.5 219.0 L161.0 224.6 L158.5 239.0 L143.9 240.4 L137.3 253.5 L123.0 250.5 L112.8 261.0 L100.0 254.0 L87.2 261.0 L77.0 250.5 L62.7 253.5 L56.1 240.4 L41.5 239.0 L39.0 224.6 L25.5 219.0 L27.4 204.5 L16.2 195.1 L22.2 181.8 L14.2 169.6 L24.0 158.6 L19.9 144.6 L32.5 137.0 L32.8 122.4 L46.9 118.8 L51.6 104.9 L66.2 105.7 L74.7 93.8 L88.4 98.9Z" fill={`url(#${id}-top)`} />
+        <circle cx="100" cy="176" r="62" fill="none" stroke="#fff" strokeOpacity="0.35" strokeWidth="3" />
+        {/* face */}
+        <ellipse cx="78" cy="174" rx="10" ry="13" fill="#2a1606" />
+        <ellipse cx="122" cy="174" rx="10" ry="13" fill="#2a1606" />
+        <circle cx="81" cy="169" r="3.6" fill="#fff" />
+        <circle cx="125" cy="169" r="3.6" fill="#fff" />
+        <ellipse cx="64" cy="194" rx="10" ry="6" fill="#ff7a59" opacity="0.5" />
+        <ellipse cx="136" cy="194" rx="10" ry="6" fill="#ff7a59" opacity="0.5" />
+        <path d="M90 196q10 9 20 0" stroke="#2a1606" strokeWidth="4" strokeLinecap="round" fill="none" />
+        {/* gloss */}
+        <ellipse cx="72" cy="128" rx="26" ry="11" fill="#fff" opacity="0.4" transform="rotate(-24 72 128)" />
       </svg>
     );
   }

@@ -62,6 +62,7 @@ const GROUNDS: Record<LineId, string> = {
   bearbrick: PRINT_GROUND,
   popmart: "#f7c3d8",
   squishy: "#b6eadf",
+  tapcap: "#ffd99a",
 };
 
 /** The ground a collection's box is printed on, which its folded edges match. */
@@ -139,7 +140,7 @@ const WINDOW: Record<BoxFace, [number, number, number, number]> = {
 };
 
 /** Each collection's figure, in the same 200 × 320 box the bear is drawn in. */
-function Figure({ line }: { line: LineId }) {
+export function Figure({ line }: { line: LineId }) {
   if (line === "popmart") {
     return (
       <>
@@ -151,6 +152,9 @@ function Figure({ line }: { line: LineId }) {
         <rect x={104} y={262} width={26} height={30} rx={12} />
       </>
     );
+  }
+  if (line === "tapcap") {
+    return <path d="M100.0 90.0 L111.6 98.9 L125.3 93.8 L133.8 105.7 L148.4 104.9 L153.1 118.8 L167.2 122.4 L167.5 137.0 L180.1 144.6 L176.0 158.6 L185.8 169.6 L177.8 181.8 L183.8 195.1 L172.6 204.5 L174.5 219.0 L161.0 224.6 L158.5 239.0 L143.9 240.4 L137.3 253.5 L123.0 250.5 L112.8 261.0 L100.0 254.0 L87.2 261.0 L77.0 250.5 L62.7 253.5 L56.1 240.4 L41.5 239.0 L39.0 224.6 L25.5 219.0 L27.4 204.5 L16.2 195.1 L22.2 181.8 L14.2 169.6 L24.0 158.6 L19.9 144.6 L32.5 137.0 L32.8 122.4 L46.9 118.8 L51.6 104.9 L66.2 105.7 L74.7 93.8 L88.4 98.9Z" />;
   }
   if (line === "squishy") {
     return (

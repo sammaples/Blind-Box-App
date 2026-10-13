@@ -1,9 +1,10 @@
 "use client";
 
-import { DEFAULT_LINE, LINES, type LineId } from "@/lib/lines";
+import { DEFAULT_LINE, getLine, LINES, type LineId } from "@/lib/lines";
+import { CollectionBanner } from "@/components/CollectionBanner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AddProduct, type EditableProduct, type NewProduct } from "@/components/AddProduct";
 import { CatalogueGrid } from "@/components/CatalogueGrid";
 import { PieceImage } from "@/components/PieceImage";
@@ -67,9 +68,12 @@ export function AdminConsole({
   pieces,
   stock,
   audit,
+  covers,
   bootstrapAccess,
 }: {
   pieces: AdminPiece[];
+  /** Each collection's front-page cover photo, or null for the drawing. */
+  covers: Record<LineId, string | null>;
   stock: Levels;
   audit: AuditBatch[];
   bootstrapAccess: boolean;
@@ -363,6 +367,8 @@ export function AdminConsole({
         ))}
       </div>
 
+      <CoverRow key={line} line={line} initial={covers[line] ?? null} />
+
       {/* shelf / add tabs */}
       <div className="mt-4 flex gap-1 overflow-x-auto border-b border-hairline">
         {(["catalogue", "shelf", "add", "log"] as const).map((t) => (
@@ -421,6 +427,98 @@ export function AdminConsole({
         <Catalogue pieces={shown} totalPieces={pieces.length} line={line} levels={levels} busy={busy} onChange={send} />
       )}
       {tab === "log" && <ChangeLog entries={log} byId={byId} />}
+    </div>
+  );
+}
+
+/**
+ * The selected collection's cover photo: the picture in its bar on the front
+ * page. Upload one and it shows at once; remove it and the drawing returns.
+ * Wide photos suit the bar best — it is about two and a half times as wide as
+ * it is tall, and the photo is cropped to fill it.
+ */
+function CoverRow({ line, initial }: { line: LineId; initial: string | null }) {
+  const [url, setUrl] = useState<string | null>(initial);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const file = useRef<HTMLInputElement>(null);
+  const name = getLine(line)?.name ?? line;
+
+  const save = async (next: string | null) => {
+    const res = await fetch("/api/admin/covers", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ line, url: next }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error ?? "Could not save the cover");
+    setUrl(data.url ?? null);
+  };
+
+  const upload = async (picked: File) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const body = new FormData();
+      body.append("file", picked);
+      const res = await fetch("/api/admin/images", { method: "POST", body });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error ?? "That photo would not upload");
+      await save(data.url as string);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That photo would not upload");
+    } finally {
+      setBusy(false);
+      if (file.current) file.current.value = "";
+    }
+  };
+
+  return (
+    <div className="mt-4 flex items-center gap-4 rounded-2xl border border-hairline bg-ink-card p-3">
+      <span className="relative block h-16 w-40 shrink-0 overflow-hidden rounded-xl">
+        <CollectionBanner line={line} coverUrl={url} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px] font-medium">{name} cover</span>
+        <span className="mt-0.5 block text-[11px] text-faint">{url ? "Your photo" : "Drawing — upload a photo to replace it"}</span>
+        {error && <span className="mt-1 block text-[11px] text-rose-400">{error}</span>}
+        <span className="mt-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => file.current?.click()}
+            className="rounded-full bg-chalk px-3.5 py-1.5 text-[12px] font-semibold text-ink disabled:opacity-50"
+          >
+            {busy ? "Uploading…" : url ? "Change cover" : "Upload cover"}
+          </button>
+          {url && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setBusy(true);
+                setError(null);
+                save(null)
+                  .catch((err) => setError(err instanceof Error ? err.message : "Could not remove it"))
+                  .finally(() => setBusy(false));
+              }}
+              className="rounded-full border border-hairline px-3.5 py-1.5 text-[12px] text-muted hover:text-chalk"
+            >
+              Remove
+            </button>
+          )}
+        </span>
+      </span>
+      <input
+        ref={file}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+        onChange={(e) => {
+          const picked = e.target.files?.[0];
+          if (picked) void upload(picked);
+        }}
+      />
     </div>
   );
 }

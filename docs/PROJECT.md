@@ -12,9 +12,12 @@ Next.js 16 app router + Tailwind + framer-motion, Postgres (Neon) via
 node-pg-migrate, with a JSON-file backend for local use. Installable to the
 iPhone Home Screen as a PWA.
 
-- **Collections:** the front page (`/`) is "Pick a collection" — a row of
-  cards: **Bearbrick, Pop Mart, Squishy** (three across; more wrap to a second
-  row). Each opens `/shop/<collection>`, the box shop below, over that
+- **Collections:** the front page (`/`) is "Pick a collection" — thick bars
+  stacked down one screen: **Be@rbrick** (always written that way, capital B),
+  **Pop Mart, Squishy, TapCap**. Each bar shows the collection's cover photo
+  (uploaded in Inventory management → collection → Change cover; stored as the
+  `cover:<collection>` setting) or, until then, a drawn scene. Each opens
+  `/shop/<collection>`, the box shop below, over that
   collection's own pieces and stock. Defined in `src/lib/lines.ts` (code calls
   a collection a "line"); adding one is an entry there plus its drawing in
   `CollectionArt` and its box print in `BoxPrint`. Every piece belongs to one
@@ -25,8 +28,9 @@ iPhone Home Screen as a PWA.
   other collections have no sizes (hidden everywhere). All tiers are buyable
   (Diamond's "coming soon" flag was removed; the flag still exists).
 - **Box prints:** each collection's carton has its own print — bears on blue,
-  vinyl figures on pink (Pop Mart), soft buns on mint (Squishy).
-- **Current stock** (`/stock`) starts on the same collection cards; each
+  vinyl figures on pink (Pop Mart), soft buns on mint (Squishy), crimped caps
+  on amber (TapCap).
+- **Current stock** (`/stock`) starts on the same collection bars; each
   collection's stock is `/stock/<collection>`, with a switcher at the top.
 - **The draw:** one real piece per box, drawn server-side at purchase from a
   live stock shelf. Pull rates are published per piece and move as stock
