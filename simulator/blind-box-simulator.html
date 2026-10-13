@@ -2685,26 +2685,31 @@ function collectionSVG(line, palette, uid, title) {
   const id = "ca" + hash(uid).toString(36);
   const head = '<svg viewBox="0 0 200 310" role="img" aria-label="' + esc(title || "") + '">';
   if (line === "popmart") {
+    // Plush: furry edges from a displacement filter, fine strands over the colour, a crisp face on top.
     const base = (palette && palette.base) || "#f6b8d1", accent = (palette && palette.accent) || "#d9739f";
-    return head + '<defs><radialGradient id="' + id + 'h" cx="38%" cy="30%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity="0.55"/>' +
+    const shapes = (fill) => '<rect x="70" y="262" width="26" height="30" rx="12" fill="' + fill + '"/><rect x="104" y="262" width="26" height="30" rx="12" fill="' + fill + '"/>' +
+      '<path d="M62 214c0-16 17-26 38-26s38 10 38 26v38c0 12-10 20-22 20H84c-12 0-22-8-22-20z" fill="' + fill + '"/>' +
+      '<rect x="44" y="208" width="22" height="46" rx="11" fill="' + fill + '" transform="rotate(14 55 231)"/>' +
+      '<rect x="134" y="208" width="22" height="46" rx="11" fill="' + fill + '" transform="rotate(-14 145 231)"/>' +
+      '<ellipse cx="58" cy="52" rx="20" ry="40" fill="' + fill + '" transform="rotate(-14 58 52)"/>' +
+      '<ellipse cx="142" cy="52" rx="20" ry="40" fill="' + fill + '" transform="rotate(14 142 52)"/>' +
+      '<ellipse cx="100" cy="132" rx="82" ry="72" fill="' + fill + '"/>';
+    return head + '<defs><radialGradient id="' + id + 'h" cx="38%" cy="30%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity="0.45"/>' +
       '<stop offset="0.35" stop-color="' + base + '"/><stop offset="1" stop-color="' + accent + '"/></radialGradient>' +
-      '<linearGradient id="' + id + 'b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + base + '"/><stop offset="1" stop-color="' + accent + '"/></linearGradient></defs>' +
+      '<pattern id="' + id + 'r" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(12)">' +
+        '<path d="M1 7.5 2.6 2M5 8 6.2 3" stroke="#fff" stroke-width="0.9" stroke-linecap="round" opacity="0.3"/>' +
+        '<path d="M3.2 8 4 4.2M7 6.2 7.6 2.4" stroke="#000" stroke-width="0.8" stroke-linecap="round" opacity="0.14"/></pattern>' +
+      '<filter id="' + id + 'z" x="-8%" y="-8%" width="116%" height="116%"><feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="3" result="n"/>' +
+        '<feDisplacementMap in="SourceGraphic" in2="n" scale="7" xChannelSelector="R" yChannelSelector="G"/></filter></defs>' +
       '<ellipse cx="100" cy="296" rx="52" ry="8" fill="#000" opacity="0.35"/>' +
-      '<rect x="70" y="262" width="26" height="30" rx="12" fill="' + accent + '"/><rect x="104" y="262" width="26" height="30" rx="12" fill="' + accent + '"/>' +
-      '<path d="M62 214c0-16 17-26 38-26s38 10 38 26v38c0 12-10 20-22 20H84c-12 0-22-8-22-20z" fill="url(#' + id + 'b)"/>' +
-      '<rect x="44" y="208" width="22" height="46" rx="11" fill="' + accent + '" transform="rotate(14 55 231)"/>' +
-      '<rect x="134" y="208" width="22" height="46" rx="11" fill="' + accent + '" transform="rotate(-14 145 231)"/>' +
-      '<ellipse cx="58" cy="52" rx="20" ry="40" fill="url(#' + id + 'h)" transform="rotate(-14 58 52)"/>' +
-      '<ellipse cx="142" cy="52" rx="20" ry="40" fill="url(#' + id + 'h)" transform="rotate(14 142 52)"/>' +
-      '<ellipse cx="58" cy="58" rx="9" ry="24" fill="#fff" opacity="0.35" transform="rotate(-14 58 58)"/>' +
-      '<ellipse cx="142" cy="58" rx="9" ry="24" fill="#fff" opacity="0.35" transform="rotate(14 142 58)"/>' +
-      '<ellipse cx="100" cy="132" rx="82" ry="72" fill="url(#' + id + 'h)"/>' +
+      '<g filter="url(#' + id + 'z)">' + shapes(base) + shapes('url(#' + id + 'h)') + shapes('url(#' + id + 'r)') +
+        '<ellipse cx="58" cy="58" rx="9" ry="24" fill="#fff" opacity="0.3" transform="rotate(-14 58 58)"/>' +
+        '<ellipse cx="142" cy="58" rx="9" ry="24" fill="#fff" opacity="0.3" transform="rotate(14 142 58)"/></g>' +
       '<ellipse cx="70" cy="138" rx="15" ry="19" fill="#1d1430"/><ellipse cx="130" cy="138" rx="15" ry="19" fill="#1d1430"/>' +
       '<circle cx="75" cy="131" r="5.5" fill="#fff"/><circle cx="135" cy="131" r="5.5" fill="#fff"/>' +
       '<circle cx="66" cy="146" r="2.4" fill="#fff" opacity="0.8"/><circle cx="126" cy="146" r="2.4" fill="#fff" opacity="0.8"/>' +
       '<ellipse cx="52" cy="166" rx="12" ry="7" fill="#ff7aa8" opacity="0.55"/><ellipse cx="148" cy="166" rx="12" ry="7" fill="#ff7aa8" opacity="0.55"/>' +
-      '<path d="M90 168q10 9 20 0" stroke="#1d1430" stroke-width="4" stroke-linecap="round" fill="none"/>' +
-      '<ellipse cx="66" cy="92" rx="26" ry="12" fill="#fff" opacity="0.28" transform="rotate(-20 66 92)"/></svg>';
+      '<path d="M90 168q10 9 20 0" stroke="#1d1430" stroke-width="4" stroke-linecap="round" fill="none"/></svg>';
   }
   if (line === "tapcap") {
     // A tall flocked block: a torn cap with slit eyes over a dark gap, on a body with an arched notch.
@@ -2717,9 +2722,9 @@ function collectionSVG(line, palette, uid, title) {
       '<rect x="50" y="146" width="100" height="40" rx="4" fill="#2f3a3e"/>' +
       '<rect x="68" y="162" width="64" height="11" rx="3" fill="#c9b8a2" opacity="0.9"/>' +
       '<rect x="76" y="164" width="10" height="7" rx="1.5" fill="#6f625a"/><rect x="114" y="164" width="10" height="7" rx="1.5" fill="#6f625a"/>' +
-      '<path d="M54 180H146Q156 180 156 190V286H44V190Q44 180 54 180Z" fill="url(#' + id + 'f)"/><path d="M54 180H146Q156 180 156 190V286H44V190Q44 180 54 180Z" fill="url(#' + id + 'k)"/>' +
+      '<path d="M54 180H146Q156 180 156 191L145 286H55L44 191Q44 180 54 180Z" fill="' + base + '"/><path d="M54 180H146Q156 180 156 191L145 286H55L44 191Q44 180 54 180Z" fill="url(#' + id + 'f)"/><path d="M54 180H146Q156 180 156 191L145 286H55L44 191Q44 180 54 180Z" fill="url(#' + id + 'k)"/>' +
       '<path d="M89 286V266A11 11 0 0 1 111 266V286Z" fill="#16220d"/>' +
-      '<path d="M56 22H144Q160 22 160 38V150L148 163 136 149 124 161 112 150 100 165 88 150 76 161 64 149 52 163 40 150V38Q40 22 56 22Z" fill="url(#' + id + 'f)"/><path d="M56 22H144Q160 22 160 38V150L148 163 136 149 124 161 112 150 100 165 88 150 76 161 64 149 52 163 40 150V38Q40 22 56 22Z" fill="url(#' + id + 'k)"/>' +
+      '<path d="M61 22H139Q150 22 151 33L160 150 148 163 136 149 124 161 112 150 100 165 88 150 76 161 64 149 52 163 40 150 49 33Q50 22 61 22Z" fill="' + base + '"/><path d="M61 22H139Q150 22 151 33L160 150 148 163 136 149 124 161 112 150 100 165 88 150 76 161 64 149 52 163 40 150 49 33Q50 22 61 22Z" fill="url(#' + id + 'f)"/><path d="M61 22H139Q150 22 151 33L160 150 148 163 136 149 124 161 112 150 100 165 88 150 76 161 64 149 52 163 40 150 49 33Q50 22 61 22Z" fill="url(#' + id + 'k)"/>' +
       '<path d="M44 132 56 140 68 129 80 141 92 130 104 142 116 130 128 141 140 129 152 139" stroke="' + accent + '" stroke-width="3" stroke-linejoin="round" fill="none" opacity="0.7"/>' +
       '<rect x="68" y="50" width="9" height="34" rx="4.5" fill="#16220d"/><rect x="123" y="50" width="9" height="34" rx="4.5" fill="#16220d"/>' +
       '<path d="M91 72q9 -9 18 0" stroke="#16220d" stroke-width="4" stroke-linecap="round" fill="none"/>' +
@@ -2729,9 +2734,9 @@ function collectionSVG(line, palette, uid, title) {
   return head + '<defs><radialGradient id="' + id + 'u" cx="40%" cy="30%" r="78%"><stop offset="0" stop-color="#fff" stop-opacity="0.7"/>' +
     '<stop offset="0.3" stop-color="' + base + '"/><stop offset="1" stop-color="' + accent + '"/></radialGradient></defs>' +
     '<ellipse cx="100" cy="292" rx="78" ry="11" fill="#000" opacity="0.35"/>' +
-    '<path d="M38 132 48 78 86 112z" fill="url(#' + id + 'u)"/><path d="M162 132 152 78 114 112z" fill="url(#' + id + 'u)"/>' +
+    '<path d="M38 132 48 78 86 112z" fill="' + base + '"/><path d="M38 132 48 78 86 112z" fill="url(#' + id + 'u)"/><path d="M162 132 152 78 114 112z" fill="' + base + '"/><path d="M162 132 152 78 114 112z" fill="url(#' + id + 'u)"/>' +
     '<path d="M50 120 54 94 72 110z" fill="#ff9fc0" opacity="0.6"/><path d="M150 120 146 94 128 110z" fill="#ff9fc0" opacity="0.6"/>' +
-    '<path d="M100 96c56 0 90 40 90 104 0 56-30 86-90 86S10 256 10 200c0-64 34-104 90-104z" fill="url(#' + id + 'u)"/>' +
+    '<path d="M100 96c56 0 90 40 90 104 0 56-30 86-90 86S10 256 10 200c0-64 34-104 90-104z" fill="' + base + '"/><path d="M100 96c56 0 90 40 90 104 0 56-30 86-90 86S10 256 10 200c0-64 34-104 90-104z" fill="url(#' + id + 'u)"/>' +
     '<ellipse cx="70" cy="270" rx="16" ry="10" fill="' + accent + '" opacity="0.7"/><ellipse cx="130" cy="270" rx="16" ry="10" fill="' + accent + '" opacity="0.7"/>' +
     '<path d="M64 188q8-10 16 0" stroke="#173b36" stroke-width="5" stroke-linecap="round" fill="none"/>' +
     '<path d="M120 188q8-10 16 0" stroke="#173b36" stroke-width="5" stroke-linecap="round" fill="none"/>' +
@@ -3686,7 +3691,7 @@ function printShapes(line) {
     '<ellipse cx="138" cy="64" rx="18" ry="42" transform="rotate(14 138 64)"/><ellipse cx="100" cy="146" rx="78" ry="66"/>' +
     '<path d="M64 212c0-14 16-22 36-22s36 8 36 22v40c0 12-10 20-22 20H86c-12 0-22-8-22-20z"/>' +
     '<rect x="70" y="262" width="26" height="30" rx="12"/><rect x="104" y="262" width="26" height="30" rx="12"/>';
-  if (line === "tapcap") return '<path d="M56 22H144Q160 22 160 38V150L148 163 136 149 124 161 112 150 100 165 88 150 76 161 64 149 52 163 40 150V38Q40 22 56 22Z"/><path d="M54 180H146Q156 180 156 190V286H44V190Q44 180 54 180Z"/>';
+  if (line === "tapcap") return '<path d="M61 22H139Q150 22 151 33L160 150 148 163 136 149 124 161 112 150 100 165 88 150 76 161 64 149 52 163 40 150 49 33Q50 22 61 22Z"/><path d="M54 180H146Q156 180 156 191L145 286H55L44 191Q44 180 54 180Z"/>';
   if (line === "squishy") return '<path d="M30 150 42 92 82 130z"/><path d="M170 150 158 92 118 130z"/>' +
     '<path d="M100 112c58 0 92 42 92 106 0 56-32 84-92 84S8 274 8 218c0-64 34-106 92-106z"/>';
   return bodyShapes();
