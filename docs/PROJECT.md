@@ -45,11 +45,14 @@ iPhone Home Screen as a PWA.
 - **Daily spin** (Rewards tab): free once a day, 14 slots (1×1,500, 2×250,
   11×50) at odds 1/10/89%, drawn on the server; odds behind an ⓘ. Real
   ratchet click per peg. Admins get a "Reset my daily spin" button.
-- **Trade-in** (Rewards tab, under the daily spin; `/rewards/trade`): pick 3
-  opened vault pieces from **one** collection, tap Combine, they spin down a
-  whirlpool, and a sealed **Bronze box of that collection** comes out. Server
-  side and atomic: the 3 orders become `traded` and the box is drawn from the
-  shelf like a bought one (refused if Bronze is sold out). The new order keeps
+- **Trade-in** (Rewards tab, under the daily spin; `/rewards/trade`): a bar
+  picks the box — **3 pieces for Bronze, 5 Silver, 10 Gold, 25 Diamond**
+  (`TRADE_IN_COST` in `src/lib/tradeIn.ts`). Pick that many opened vault
+  pieces from **one** collection, tap Combine, they spin down a whirlpool
+  (floating in one ring, or two rings for 10/25, pouring in ring by ring), and
+  a sealed box of that tier and collection comes out. Server side and atomic:
+  the orders become `traded` and the box is drawn from the shelf like a
+  bought one (refused if that box is sold out). The new order keeps
   `made_from`; it earns no coins. Traded pieces don't go back on the shelf
   automatically.
 - **Profile:** silver button top right. Rows: My vault, Rewards, Coins, and

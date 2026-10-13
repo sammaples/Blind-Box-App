@@ -1176,6 +1176,14 @@ p.sub { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 8px 0 0;
 .teye { position: absolute; left: 38%; top: 38%; width: 24%; height: 24%; border-radius: 50%; pointer-events: none;
   background: radial-gradient(circle, #000a12 0%, #011c2ccc 50%, transparent 72%); }
 .tfl { position: absolute; width: 25%; height: 25%; margin: -12.5% 0 0 -12.5%; }
+.tfl.small .empty { border-width: 1.5px; border-color: rgb(255 255 255 / 0.3); }
+.ttiers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 100%; margin-top: 14px; padding: 4px; border-radius: 16px; border: 1px solid var(--hairline); background: var(--ink-card); box-sizing: border-box; }
+.ttiers button { display: flex; flex-direction: column; align-items: center; padding: 7px 0; border: 0; border-radius: 12px; background: none; font: inherit; color: var(--muted); cursor: pointer; }
+.ttiers button[aria-checked="true"] { color: var(--chalk); }
+.ttiers b { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; }
+.ttiers b i { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.ttiers small { margin-top: 2px; font-size: 10.5px; opacity: 0.7; }
+.tclear { background: none; border: 0; padding: 0; font: inherit; font-weight: 500; color: var(--chalk); cursor: pointer; }
 .tfl button { position: relative; width: 100%; height: 100%; display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: pointer; }
 .tfl button svg { position: relative; height: 100%; width: auto; filter: drop-shadow(0 6px 10px rgb(0 20 30 / 0.6)); }
 .tfl button.land { animation: tland 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
@@ -3476,7 +3484,7 @@ function rewardsScreen() {
       '<span class="wt"><b>Daily spin</b><small>Up to 1,500 coins, free</small></span>' +
       '<span class="pilltag' + (done ? ' off' : '') + '">' + (done ? untilLabel(nextSpinAt() - Date.now()) : 'Spin') + '</span></button>' +
     '<button class="spincard tradecard" type="button" data-go="trade">' + miniPool() +
-      '<span class="wt"><b>Trade-in</b><small>3 pieces → 1 Bronze box</small></span>' +
+      '<span class="wt"><b>Trade-in</b><small>Trade pieces for a box</small></span>' +
       '<span class="pilltag aqua">Trade</span></button>' +
     '<div class="ways" style="margin-top:14px">' +
       soon("Challenges", "Daily &amp; weekly", '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4M9 14.5l2 2 4-4"/>') +
@@ -5644,8 +5652,25 @@ render();
  * specks and the floating pieces, and survives re-renders: the screen's DOM
  * is rebuilt on every tap, the water's state is not.
  * -------------------------------------------------------------------- */
-const TRADE_COUNT = 3;
-const T_BASE = 26, T_TOP = 1150, T_SWIRL_MS = 2800, T_SLOT_R = 27;
+/* The better the box, the more pieces it takes. */
+const TRADE_COST = { bronze: 3, silver: 5, gold: 10, diamond: 25 };
+const TRADE_TIERS = ["bronze", "silver", "gold", "diamond"];
+const TRADE_TIER_NAME = { bronze: "Bronze", silver: "Silver", gold: "Gold", diamond: "Diamond" };
+const T_BASE = 26, T_TOP = 1150;
+const T_SWIRL_MS = { bronze: 2800, silver: 2900, gold: 3100, diamond: 3500 };
+function tradeTier() { return TRADE_COST[state.tradeTier] ? state.tradeTier : "bronze"; }
+function tradeCost() { return TRADE_COST[tradeTier()]; }
+/* Where the pieces float: one ring for a few, two for many, the inner one
+   turning faster the way water does nearer the drain. Shares of the pool. */
+function tRing(count, r, spin, offset, delayBase) {
+  return Array.from({ length: count }, (_, k) => ({ a: -90 + offset + (k * 360) / count, r, spin, delay: delayBase + (k / count) * 0.22 }));
+}
+function tSlots(n) {
+  if (n <= 3) return { size: 25, slots: tRing(n, 27, 0.55, 0, 0) };
+  if (n <= 5) return { size: 21, slots: tRing(n, 28, 0.55, 0, 0) };
+  if (n <= 10) return { size: 15, slots: tRing(4, 17, 0.8, 45, 0.18).concat(tRing(n - 4, 35, 0.5, 0, 0)) };
+  return { size: 11, slots: tRing(8, 19, 0.8, 22, 0.2).concat(tRing(n - 8, 36, 0.5, 0, 0)) };
+}
 const T_C = 200, T_WATER_R = 184;
 
 function tSpiral(theta0, turns) {
@@ -5677,7 +5702,7 @@ function tTween(key, to, ms, ease) {
 const tEaseIn = (p) => p * p * p;
 const tEaseOut = (p) => 1 - Math.pow(1 - p, 3);
 
-function tradeBox(line) { return productsFor(line).find((p) => p.tier === "bronze"); }
+function tradeBox(line, tier) { return productsFor(line).find((p) => p.tier === (tier || "bronze")); }
 function tradeable() {
   return state.orders.filter((o) => o.status === "revealed" && !o.shipmentId)
     .map((o) => ({ o, piece: getPiece(o.pieceId) })).filter((x) => x.piece);
@@ -5699,7 +5724,7 @@ function miniPool() {
     '</g></svg></span>';
 }
 
-function tFloater(i) {
+function tFloater(i, size) {
   const id = state.tradePicked[i];
   const x = id && tradeable().find((p) => p.o.id === id);
   const inner = x
@@ -5707,7 +5732,7 @@ function tFloater(i) {
         (state.tradeLanded === id ? '<span class="ripple"></span>' : '') + '<span class="shadow"></span>' +
         figureSVG(x.piece, { tag: "tf" + i, simple: true }) + '</button>'
     : '<span class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg></span>';
-  return '<div class="tfl" id="tf' + i + '">' + inner + '</div>';
+  return '<div class="tfl' + (size < 20 ? ' small' : '') + '" id="tf' + i + '" style="width:' + size + '%;height:' + size + '%;margin:' + (-size / 2) + '% 0 0 ' + (-size / 2) + '%">' + inner + '</div>';
 }
 
 function tradeScreen() {
@@ -5725,7 +5750,8 @@ function tradeScreen() {
   }
   const line = state.tradeLine;
   const busy = phase === "swirl" || phase === "flash";
-  const ready = state.tradePicked.length === TRADE_COUNT && phase === "pick";
+  const tier = tradeTier(), cost = tradeCost();
+  const ready = state.tradePicked.length === cost && phase === "pick";
   const made = state.tradeMade && order(state.tradeMade);
   const box = made ? getProduct(made.productId) : null;
 
@@ -5746,11 +5772,14 @@ function tradeScreen() {
       '<path d="M62 112A162 162 0 0 1 150 44" stroke="#fff" stroke-opacity="0.7" stroke-width="5" stroke-linecap="round" fill="none"/>' +
       '<path d="M318 300A150 150 0 0 1 270 342" stroke="#fff" stroke-opacity="0.25" stroke-width="3" stroke-linecap="round" fill="none"/>' +
     '</svg><div class="tsheen" id="tsheen"></div><div class="teye" id="teye"></div>';
-  if (phase === "pick" || phase === "swirl") for (let i = 0; i < TRADE_COUNT; i++) pool += tFloater(i);
-  if (phase === "flash") pool += '<div class="tflash"></div>';
+  const lay = tSlots(cost);
+  if (phase === "pick" || phase === "swirl") for (let i = 0; i < cost; i++) pool += tFloater(i, lay.size);
+  const glint = (box || tradeBox(line, tier)).accent;
+  if (phase === "flash") pool += '<div class="tflash" style="background:radial-gradient(circle, #fff 0%, #c9fbff 30%, color-mix(in srgb, ' + glint + ' 70%, transparent) 55%, transparent 72%)"></div>';
   if (phase === "out" && box) {
     const w = 84;
-    pool += '<div class="tafter"></div>' + [0, 350, 700].map((d) => '<div class="tring" style="animation-delay:' + d + 'ms"></div>').join("") +
+    const big = box.tier === "gold" || box.tier === "diamond";
+    pool += '<div class="tafter" style="background:radial-gradient(circle, #ffffffdd 0%, color-mix(in srgb, ' + glint + ' 55%, transparent) 35%, transparent 70%)"></div>' + (big ? [0, 250, 500, 750, 1000] : [0, 350, 700]).map((d) => '<div class="tring" style="animation-delay:' + d + 'ms"></div>').join("") +
       T_DROPS.map((p) => '<span class="tdrop" style="width:' + p.s + 'px;height:' + p.s + 'px;margin:' + (-p.s / 2) + 'px 0 0 ' + (-p.s / 2) + 'px;--dx:' + p.x.toFixed(0) + 'px;--dy:' + (p.y + 34).toFixed(0) + 'px;--up:' + (p.y - 46).toFixed(0) + 'px;animation-delay:' + (50 + p.delay) + 'ms"></span>').join("") +
       '<div class="tbox"><div class="rise"><span class="floor"></span><div class="cube" style="--bw:' + w + 'px">' +
         facesAt(w).map(([size, t, face, lit, shade]) => '<div style="' + size + 'transform:' + t + ';overflow:hidden">' + boxPrint(face, box.line) +
@@ -5769,7 +5798,8 @@ function tradeScreen() {
     under = '<button class="tbtn" type="button" data-signin="1">Sign in to trade</button>';
   } else {
     under = '<button class="tbtn" type="button" data-combine="1"' + (ready ? '' : ' disabled') + '>' + (busy ? "Combining…" : "Combine") + '</button>' +
-      '<p class="cap">' + (busy ? "&nbsp;" : state.tradePicked.length + " of " + TRADE_COUNT + " picked") + '</p>';
+      '<p class="cap">' + (busy ? "&nbsp;" : state.tradePicked.length + " of " + cost + " picked" +
+        (state.tradePicked.length ? ' · <button class="tclear" type="button" data-tradeclear="1">Clear</button>' : '')) + '</p>';
   }
   if (state.tradeError) under += '<p class="err">' + esc(state.tradeError) + '</p>';
 
@@ -5783,7 +5813,7 @@ function tradeScreen() {
       (all.length === 0 ? '<div class="tnone">Nothing in your vault to trade.<br><button class="skip" type="button" data-go="home" style="margin-top:10px">Get a box</button></div>'
         : '<div class="tradegrid">' + shown.map(({ o, piece }) => {
           const n = state.tradePicked.indexOf(o.id);
-          const full = n === -1 && state.tradePicked.length >= TRADE_COUNT;
+          const full = n === -1 && state.tradePicked.length >= cost;
           return '<button class="ttile' + (n >= 0 ? ' on' : '') + '" type="button" data-tradepick="' + o.id + '" aria-pressed="' + (n >= 0) + '"' + (full ? ' disabled' : '') + '>' +
             '<span class="art" style="background:' + wash(piece) + '">' + figureSVG(piece, { tag: "tt", simple: true }) + '</span>' +
             '<b>' + esc(piece.name) + '</b>' + (n >= 0 ? '<span class="n">' + (n + 1) + '</span>' : '') + '</button>';
@@ -5794,7 +5824,13 @@ function tradeScreen() {
   tLoop();
   return '<div class="section spinpage" style="padding-top:14px">' +
     '<div class="spintop"><button type="button" data-go="rewards">← Rewards</button></div>' +
-    '<h1 class="shimmer tradetitle">Trade-in</h1><p class="tradesub">3 of one collection → 1 Bronze box</p>' +
+    '<h1 class="shimmer tradetitle">Trade-in</h1><p class="tradesub">' + cost + ' of one collection → 1 ' + TRADE_TIER_NAME[tier] + ' box</p>' +
+    '<div class="ttiers" role="radiogroup" aria-label="Box">' + TRADE_TIERS.map((t) => {
+      const acc = tradeBox(line, t).accent, on = t === tier;
+      return '<button type="button" role="radio" aria-checked="' + on + '" data-tradetier="' + t + '"' + (busy ? ' disabled' : '') +
+        (on ? ' style="background:color-mix(in srgb, ' + acc + ' 20%, transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb, ' + acc + ' 55%, transparent)"' : '') + '>' +
+        '<b><i style="background:' + acc + '"></i>' + TRADE_TIER_NAME[t] + '</b><small>' + TRADE_COST[t] + ' pieces</small></button>';
+    }).join("") + '</div>' +
     '<div class="tpool" id="tpool">' + pool + '</div>' +
     '<div class="tunder">' + under + '</div>' + pick + '</div>';
 }
@@ -5835,12 +5871,15 @@ function tLoop() {
         el.setAttribute("opacity", String(T_SPECKS[i].alpha * Math.min(1, (s.r - 12) / 40)));
       }
     });
-    const p = TR.pull;
-    for (let i = 0; i < TRADE_COUNT; i++) {
+    const lay = tSlots(tradeCost()).slots;
+    for (let i = 0; i < lay.length; i++) {
       const el = g("tf" + i);
       if (!el) continue;
-      const a = (-90 + i * 120 + TR.orbit * 0.55 + p * 260) * Math.PI / 180;
-      const r = T_SLOT_R * (1 - p);
+      // Each its own share of the swirl, so a big trade pours in ring by ring.
+      const sl = lay[i];
+      const p = Math.min(1, Math.max(0, (TR.pull - sl.delay) / (1 - sl.delay)));
+      const a = (sl.a + TR.orbit * sl.spin + p * 260) * Math.PI / 180;
+      const r = sl.r * (1 - p);
       el.style.left = (50 + r * Math.cos(a)).toFixed(2) + "%";
       el.style.top = (50 + r * Math.sin(a) + Math.sin(TR.orbit * 0.08 + i * 2) * 0.9).toFixed(2) + "%";
       const sc = p < 0.75 ? 1 - (0.55 * p) / 0.75 : 0.45 * (1 - (p - 0.75) / 0.25);
@@ -5902,19 +5941,20 @@ function tPop() {
 }
 
 /* The trade, done here because this page has no server. In the app it is one
-   transaction: the three orders are marked traded and the box drawn together,
+   transaction: the orders are marked traded and the box drawn together,
    or nothing happens. */
 function tradeCombine() {
   const ids = state.tradePicked.slice();
-  if (ids.length !== TRADE_COUNT || (state.tradePhase || "pick") !== "pick") return;
+  const tier = tradeTier();
+  if (ids.length !== tradeCost() || (state.tradePhase || "pick") !== "pick") return;
   const line = state.tradeLine;
-  const box = tradeBox(line);
+  const box = tradeBox(line, tier);
   const picked = ids.map((id) => order(id));
   state.tradeError = null;
   if (!picked.every((o) => o && o.status === "revealed" && !o.shipmentId && (getPiece(o.pieceId) || {}).line === line)) {
     state.tradeError = "One of those pieces can't be traded any more."; render(true); return;
   }
-  const swirl = reduced ? 900 : T_SWIRL_MS;
+  const swirl = reduced ? 900 : T_SWIRL_MS[tier];
   app.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
   tWhoosh(swirl / 1000);
   state.tradePhase = "swirl";
@@ -5959,7 +5999,7 @@ function tradeCombine() {
 }
 
 deviceScreen.addEventListener("click", (event) => {
-  const t = event.target.closest("[data-tradepick],[data-tradeline],[data-combine],[data-tradeagain]");
+  const t = event.target.closest("[data-tradepick],[data-tradeline],[data-tradetier],[data-tradeclear],[data-combine],[data-tradeagain]");
   if (!t || state.screen !== "trade") return;
   const phase = state.tradePhase || "pick";
   if (t.dataset.tradepick) {
@@ -5967,9 +6007,9 @@ deviceScreen.addEventListener("click", (event) => {
     const id = t.dataset.tradepick, at = state.tradePicked.indexOf(id);
     state.tradeError = null;
     if (at !== -1) { state.tradePicked.splice(at, 1); state.tradeLanded = null; }
-    else if (state.tradePicked.length < TRADE_COUNT) {
+    else if (state.tradePicked.length < tradeCost()) {
       state.tradePicked.push(id); state.tradeLanded = id; tPlip();
-      if (state.tradePicked.length === TRADE_COUNT) setTimeout(() => app.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" }), 0);
+      if (state.tradePicked.length === tradeCost()) setTimeout(() => app.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" }), 0);
     }
     render(true); return;
   }
@@ -5977,6 +6017,15 @@ deviceScreen.addEventListener("click", (event) => {
     if (phase === "swirl" || phase === "flash") return;
     state.tradeLine = t.dataset.tradeline; state.tradePicked = []; state.tradeError = null; render(true); return;
   }
+  if (t.dataset.tradetier) {
+    if (phase === "swirl" || phase === "flash") return;
+    if (phase === "out") { state.tradeMade = null; state.tradePhase = "pick"; }
+    state.tradeTier = t.dataset.tradetier;
+    // A smaller box keeps the first pieces picked; a bigger one keeps them all.
+    state.tradePicked = state.tradePicked.slice(0, tradeCost());
+    state.tradeLanded = null; state.tradeError = null; render(true); return;
+  }
+  if (t.dataset.tradeclear) { state.tradePicked = []; state.tradeLanded = null; render(true); return; }
   if (t.dataset.combine) { tradeCombine(); return; }
   if (t.dataset.tradeagain) { state.tradeMade = null; state.tradePhase = "pick"; state.tradeLanded = null; render(true); return; }
 });

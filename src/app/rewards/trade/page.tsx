@@ -6,7 +6,7 @@ import { listOrders } from "@/lib/store";
 
 export const metadata: Metadata = {
   title: "Trade-in — Blind Box",
-  description: "Trade three pieces of one collection for a Bronze box.",
+  description: "Trade pieces of one collection for a box.",
 };
 
 /* The pieces on offer are this collector's, as they stand right now. */

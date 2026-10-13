@@ -5,11 +5,12 @@ import { backend } from "@/lib/db";
 import { drawFrom } from "@/lib/draw";
 import { toLine } from "@/lib/lines";
 import { publicOrder } from "@/lib/serialize";
-import { TRADE_IN_COUNT, tradeInBox } from "@/lib/tradeIn";
+import { TRADE_IN_COST, toTradeTier, tradeInBox } from "@/lib/tradeIn";
 import type { Order } from "@/lib/types";
 
 /**
- * Trades three pieces in for a Bronze box of their collection.
+ * Trades pieces in for a box of their collection: 3 for Bronze, 5 for
+ * Silver, 10 for Gold, 25 for Diamond.
  *
  * The pieces leaving the vault and the new box coming off the shelf are one
  * transaction, so a failed draw leaves the pieces where they were and a
@@ -22,24 +23,34 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Sign in to trade in" }, { status: 401 });
   }
 
-  let body: { orderIds?: unknown; line?: unknown };
+  let body: { orderIds?: unknown; line?: unknown; tier?: unknown };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Malformed request body" }, { status: 400 });
   }
 
+  // No tier means Bronze, which is what a trade was before there was a choice.
+  const tier = body.tier === undefined ? "bronze" : toTradeTier(body.tier);
+  if (!tier) {
+    return NextResponse.json({ error: "Unknown box" }, { status: 400 });
+  }
+  const cost = TRADE_IN_COST[tier];
+
   const orderIds = Array.isArray(body.orderIds)
     ? body.orderIds.filter((id): id is string => typeof id === "string")
     : [];
-  if (orderIds.length !== TRADE_IN_COUNT || new Set(orderIds).size !== TRADE_IN_COUNT) {
-    return NextResponse.json({ error: `Pick ${TRADE_IN_COUNT} pieces` }, { status: 400 });
+  if (orderIds.length !== cost || new Set(orderIds).size !== cost) {
+    return NextResponse.json({ error: `Pick ${cost} pieces` }, { status: 400 });
   }
 
   const line = typeof body.line === "string" ? toLine(body.line) : null;
-  const product = line ? tradeInBox(line) : undefined;
+  const product = line ? tradeInBox(line, tier) : undefined;
   if (!line || !product) {
     return NextResponse.json({ error: "Unknown collection" }, { status: 400 });
+  }
+  if (product.comingSoon) {
+    return NextResponse.json({ error: `${product.name} isn't out yet.` }, { status: 409 });
   }
 
   const result = await backend().tradeIn(
@@ -68,7 +79,7 @@ export async function POST(request: Request) {
       result.reason === "soldout"
         ? `${product.name}es are sold out right now.`
         : result.reason === "mixed"
-          ? "All three have to be from one collection."
+          ? "They all have to be from one collection."
           : "One of those pieces can't be traded any more.";
     return NextResponse.json({ error }, { status: 409 });
   }

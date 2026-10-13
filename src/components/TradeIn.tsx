@@ -5,16 +5,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_LINE, LINES, type LineId } from "@/lib/lines";
-import { TRADE_IN_COUNT, tradeInBox } from "@/lib/tradeIn";
-import type { Piece } from "@/lib/types";
+import { TRADE_IN_COST, TRADE_IN_TIERS, tradeInBox } from "@/lib/tradeIn";
+import type { Piece, Tier } from "@/lib/types";
 import { useAccount } from "./AccountBar";
 import { isPrinted } from "./BoxPrint";
 import { PieceImage } from "./PieceImage";
 import { ProductBox } from "./ProductBox";
 
 /**
- * The trade-in: three pieces of one collection go into the whirlpool and a
- * Bronze box of that collection spins back out.
+ * The trade-in: pieces of one collection go into the whirlpool and a box of
+ * that collection spins back out — 3 for Bronze, 5 for Silver, 10 for Gold,
+ * 25 for Diamond. The bar at the top picks the box.
  *
  * The water is always turning. Picking a piece drops it in to float on the
  * current; Combine speeds the whirlpool up until the pieces are pulled down
@@ -33,10 +34,43 @@ type Phase = "pick" | "swirl" | "flash" | "out";
 /** Degrees a second the water turns at rest, and flat out. */
 const BASE_SPEED = 26;
 const TOP_SPEED = 1150;
-/** How long the pieces take to go down. */
-const SWIRL_MS = 2800;
-/** How far out the pieces float, as a share of the pool's width. */
-const SLOT_R = 27;
+/** How long the pieces take to go down: longer, the bigger the box. */
+const SWIRL_MS: Record<Tier, number> = { bronze: 2800, silver: 2900, gold: 3100, diamond: 3500 };
+
+/**
+ * Where the pieces float. One ring for a few; two for many, the inner one
+ * turning faster the way water does nearer the drain. Sizes and radii are
+ * shares of the pool's width, picked so no two pieces touch and none hangs
+ * over the rim.
+ */
+interface Slot {
+  /** Starting angle, degrees clockwise from the top. */
+  a: number;
+  /** Distance out from the eye. */
+  r: number;
+  /** How fast it rides the current, relative to the water. */
+  spin: number;
+  /** How late it goes down, 0 to 1 of the swirl. */
+  delay: number;
+}
+
+function ring(count: number, r: number, spin: number, offset: number, delayBase: number): Slot[] {
+  return Array.from({ length: count }, (_, k) => ({
+    a: -90 + offset + (k * 360) / count,
+    r,
+    spin,
+    delay: delayBase + (k / count) * 0.22,
+  }));
+}
+
+function slotsFor(n: number): { size: number; slots: Slot[] } {
+  if (n <= 3) return { size: 25, slots: ring(n, 27, 0.55, 0, 0) };
+  if (n <= 5) return { size: 21, slots: ring(n, 28, 0.55, 0, 0) };
+  if (n <= 10) return { size: 15, slots: [...ring(4, 17, 0.8, 45, 0.18), ...ring(n - 4, 35, 0.5, 0, 0)] };
+  return { size: 11, slots: [...ring(8, 19, 0.8, 22, 0.2), ...ring(n - 8, 36, 0.5, 0, 0)] };
+}
+
+const TIER_NAME: Record<Tier, string> = { bronze: "Bronze", silver: "Silver", gold: "Gold", diamond: "Diamond" };
 
 const C = 200; // centre of the 400 × 400 drawing
 const WATER_R = 184;
@@ -98,15 +132,18 @@ export function TradeIn({ pulls, signedIn }: { pulls: TradeablePull[]; signedIn:
     }
     return best;
   });
+  const [tier, setTier] = useState<Tier>("bronze");
+  const cost = TRADE_IN_COST[tier];
+  const layout = useMemo(() => slotsFor(cost), [cost]);
   const [picked, setPicked] = useState<string[]>([]);
   const [phase, setPhase] = useState<Phase>("pick");
   const [error, setError] = useState<string | null>(null);
-  const [made, setMade] = useState<{ orderId: string; line: LineId } | null>(null);
+  const [made, setMade] = useState<{ orderId: string; line: LineId; tier: Tier } | null>(null);
 
   const shown = live.filter((p) => p.piece.line === line);
   const byId = new Map(live.map((p) => [p.orderId, p]));
   const busy = phase === "swirl" || phase === "flash";
-  const ready = picked.length === TRADE_IN_COUNT && phase === "pick";
+  const ready = picked.length === cost && phase === "pick";
 
   /* --- the water: one clock drives the swirl, the specks and the pieces --- */
   const orbit = useMotionValue(0);
@@ -160,15 +197,24 @@ export function TradeIn({ pulls, signedIn }: { pulls: TradeablePull[]; signedIn:
       setPicked(picked.filter((id) => id !== orderId));
       return;
     }
-    if (picked.length >= TRADE_IN_COUNT) return;
+    if (picked.length >= cost) return;
     sound.unlock();
     sound.plip();
     setPicked([...picked, orderId]);
     // The last one in: back up to the pool, to watch it land and press Combine.
-    if (picked.length + 1 === TRADE_IN_COUNT) showPool();
+    if (picked.length + 1 === cost) showPool();
   };
 
   const showPool = () => window.scrollTo({ top: 0, behavior: "smooth" });
+
+  // A smaller box keeps the first pieces picked; a bigger one keeps them all.
+  const switchTier = (t: Tier) => {
+    if (busy || t === tier) return;
+    if (phase === "out") again();
+    setTier(t);
+    setPicked((p) => p.slice(0, TRADE_IN_COST[t]));
+    setError(null);
+  };
 
   const switchLine = (id: LineId) => {
     if (busy || id === line) return;
@@ -182,7 +228,7 @@ export function TradeIn({ pulls, signedIn }: { pulls: TradeablePull[]; signedIn:
     if (!ready) return;
     const ids = [...picked];
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const swirlMs = reduced ? 900 : SWIRL_MS;
+    const swirlMs = reduced ? 900 : SWIRL_MS[tier];
     showPool();
     sound.unlock();
     sound.whoosh(swirlMs / 1000);
@@ -194,7 +240,7 @@ export function TradeIn({ pulls, signedIn }: { pulls: TradeablePull[]; signedIn:
     const request = fetch("/api/rewards/trade", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ orderIds: ids, line }),
+      body: JSON.stringify({ orderIds: ids, line, tier }),
     })
       .then(async (r) => ({ ok: r.ok, data: (await r.json().catch(() => ({}))) as { error?: string; order?: { id: string } } }))
       .catch(() => ({ ok: false, data: { error: "Couldn’t reach the shop. Try again." } as { error?: string; order?: { id: string } } }));
@@ -210,7 +256,7 @@ export function TradeIn({ pulls, signedIn }: { pulls: TradeablePull[]; signedIn:
       return;
     }
 
-    setMade({ orderId: res.data.order.id, line });
+    setMade({ orderId: res.data.order.id, line, tier });
     setGone((g) => new Set([...g, ...ids]));
     sound.pop();
     setPhase("flash");
@@ -227,7 +273,9 @@ export function TradeIn({ pulls, signedIn }: { pulls: TradeablePull[]; signedIn:
     setPhase("pick");
   };
 
-  const box = made ? tradeInBox(made.line) : undefined;
+  const box = made ? tradeInBox(made.line, made.tier) : undefined;
+  const glint = (made ? tradeInBox(made.line, made.tier)?.accent : undefined) ?? "#5fe3f7";
+  const big = made?.tier === "gold" || made?.tier === "diamond";
   const lineName = LINES.find((l) => l.id === line)?.name ?? "";
   const withPieces = LINES.filter((l) => (counts.get(l.id) ?? 0) > 0);
 
@@ -244,10 +292,38 @@ export function TradeIn({ pulls, signedIn }: { pulls: TradeablePull[]; signedIn:
       >
         Trade-in
       </h1>
-      <p className="mt-1 text-[13px] text-muted">3 of one collection → 1 Bronze box</p>
+      <p className="mt-1 text-[13px] text-muted">
+        {cost} of one collection → 1 {TIER_NAME[tier]} box
+      </p>
+
+      {/* Which box to make. */}
+      <div role="radiogroup" aria-label="Box" className="mt-4 grid w-full grid-cols-4 gap-1 rounded-2xl border border-hairline bg-ink-card p-1">
+        {TRADE_IN_TIERS.map((t) => {
+          const on = t === tier;
+          const accent = tradeInBox(line, t)?.accent ?? "#fff";
+          return (
+            <button
+              key={t}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => switchTier(t)}
+              disabled={busy}
+              className={`relative flex flex-col items-center rounded-xl py-2 transition-colors ${on ? "text-chalk" : "text-muted hover:text-chalk"}`}
+              style={on ? { background: `color-mix(in srgb, ${accent} 20%, transparent)`, boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${accent} 55%, transparent)` } : undefined}
+            >
+              <span className="flex items-center gap-1 text-[12px] font-semibold min-[380px]:gap-1.5 min-[380px]:text-[13px]">
+                <span className="size-1.5 shrink-0 rounded-full min-[380px]:size-2" style={{ background: accent }} />
+                {TIER_NAME[t]}
+              </span>
+              <span className="mt-0.5 text-[11px] opacity-70">{TRADE_IN_COST[t]} pieces</span>
+            </button>
+          );
+        })}
+      </div>
 
       {/* The whirlpool. */}
-      <div className="relative mt-5 aspect-square w-full max-w-[min(19rem,calc(100svh-65px-4.25rem-env(safe-area-inset-bottom)-18.5rem))]">
+      <div className="relative mt-5 aspect-square w-full max-w-[min(19rem,calc(100svh-65px-4.25rem-env(safe-area-inset-bottom)-22rem))]">
         {/* Light on the water, brighter as it speeds up. */}
         <motion.div
           aria-hidden
@@ -350,12 +426,14 @@ export function TradeIn({ pulls, signedIn }: { pulls: TradeablePull[]; signedIn:
 
         {/* The pieces floating on it, or the places they go. */}
         {(phase === "pick" || phase === "swirl") &&
-          Array.from({ length: TRADE_IN_COUNT }, (_, i) => {
+          layout.slots.map((slot, i) => {
             const pick = picked[i] ? byId.get(picked[i]) : undefined;
             return (
               <Floater
-                key={i}
+                key={`${cost}-${i}`}
                 i={i}
+                slot={slot}
+                size={layout.size}
                 orbit={orbit}
                 pull={pull}
                 piece={pick?.piece}
@@ -370,7 +448,7 @@ export function TradeIn({ pulls, signedIn }: { pulls: TradeablePull[]; signedIn:
             <motion.div
               aria-hidden
               className="pointer-events-none absolute inset-0 rounded-full"
-              style={{ background: "radial-gradient(circle, #ffffff 0%, #c9fbff 30%, #5fe3f7aa 55%, transparent 72%)" }}
+              style={{ background: `radial-gradient(circle, #ffffff 0%, #c9fbff 30%, color-mix(in srgb, ${glint} 70%, transparent) 55%, transparent 72%)` }}
               initial={{ opacity: 0, scale: 0.2 }}
               animate={{ opacity: [0, 1, 0.9], scale: [0.2, 1.15, 1.3] }}
               transition={{ duration: 0.42, ease: "easeOut" }}
@@ -391,12 +469,12 @@ export function TradeIn({ pulls, signedIn }: { pulls: TradeablePull[]; signedIn:
             <motion.div
               aria-hidden
               className="pointer-events-none absolute inset-0 rounded-full"
-              style={{ background: "radial-gradient(circle, #ffffffdd 0%, #a8f6ff88 35%, transparent 70%)" }}
+              style={{ background: `radial-gradient(circle, #ffffffdd 0%, color-mix(in srgb, ${glint} 55%, transparent) 35%, transparent 70%)` }}
               initial={{ opacity: 1, scale: 1.3 }}
               animate={{ opacity: 0, scale: 1.6 }}
               transition={{ duration: 0.9, ease: "easeOut" }}
             />
-            {[0, 0.35, 0.7].map((d) => (
+            {(big ? [0, 0.25, 0.5, 0.75, 1] : [0, 0.35, 0.7]).map((d) => (
               <motion.div
                 key={d}
                 aria-hidden
@@ -492,7 +570,15 @@ export function TradeIn({ pulls, signedIn }: { pulls: TradeablePull[]; signedIn:
               {busy ? "Combining…" : "Combine"}
             </button>
             <p className="mt-2 text-[13px] text-muted">
-              {busy ? " " : `${picked.length} of ${TRADE_IN_COUNT} picked`}
+              {busy ? " " : `${picked.length} of ${cost} picked`}
+              {!busy && picked.length > 0 && (
+                <>
+                  {" · "}
+                  <button type="button" onClick={() => setPicked([])} className="font-medium text-chalk underline-offset-4 hover:underline">
+                    Clear
+                  </button>
+                </>
+              )}
             </p>
           </>
         )}
@@ -533,7 +619,7 @@ export function TradeIn({ pulls, signedIn }: { pulls: TradeablePull[]; signedIn:
               {shown.map(({ orderId, piece }) => {
                 const n = picked.indexOf(orderId);
                 const on = n >= 0;
-                const full = !on && picked.length >= TRADE_IN_COUNT;
+                const full = !on && picked.length >= cost;
                 return (
                   <li key={orderId}>
                     <button
@@ -576,31 +662,38 @@ export function TradeIn({ pulls, signedIn }: { pulls: TradeablePull[]; signedIn:
  */
 function Floater({
   i,
+  slot,
+  size,
   orbit,
   pull,
   piece,
   onRemove,
 }: {
   i: number;
+  slot: Slot;
+  size: number;
   orbit: MotionValue<number>;
   pull: MotionValue<number>;
   piece?: Piece;
   onRemove?: () => void;
 }) {
-  const angle = (o: number, p: number) => ((-90 + i * 120 + o * 0.55 + p * 260) * Math.PI) / 180;
-  const radius = (p: number) => SLOT_R * (1 - p);
-  const left = useTransform(() => `${50 + radius(pull.get()) * Math.cos(angle(orbit.get(), pull.get()))}%`);
+  // Its own share of the swirl: the outer ring goes down first, the rest
+  // follow one after another, so a big trade pours in rather than vanishing.
+  const own = useTransform(pull, (p) => Math.min(1, Math.max(0, (p - slot.delay) / (1 - slot.delay))));
+  const angle = (o: number, p: number) => ((slot.a + o * slot.spin + p * 260) * Math.PI) / 180;
+  const radius = (p: number) => slot.r * (1 - p);
+  const left = useTransform(() => `${50 + radius(own.get()) * Math.cos(angle(orbit.get(), own.get()))}%`);
   const top = useTransform(
-    () => `${50 + radius(pull.get()) * Math.sin(angle(orbit.get(), pull.get())) + Math.sin(orbit.get() * 0.08 + i * 2) * 0.9}%`,
+    () => `${50 + radius(own.get()) * Math.sin(angle(orbit.get(), own.get())) + Math.sin(orbit.get() * 0.08 + i * 2) * 0.9}%`,
   );
-  const scale = useTransform(pull, [0, 0.75, 1], [1, 0.45, 0]);
-  const rotate = useTransform(pull, (p) => p * 540 + Math.sin(i * 2) * 8);
-  const opacity = useTransform(pull, [0, 0.8, 1], [1, 0.85, 0]);
+  const scale = useTransform(own, [0, 0.75, 1], [1, 0.45, 0]);
+  const rotate = useTransform(own, (p) => p * 540 + Math.sin(i * 2) * 8);
+  const opacity = useTransform(own, [0, 0.8, 1], [1, 0.85, 0]);
 
   return (
     <motion.div
-      className="absolute size-[25%] -translate-x-1/2 -translate-y-1/2"
-      style={{ left, top, scale, rotate, opacity }}
+      className="absolute -translate-x-1/2 -translate-y-1/2"
+      style={{ left, top, scale, rotate, opacity, width: `${size}%`, height: `${size}%` }}
     >
       {piece ? (
         <motion.button
@@ -625,7 +718,11 @@ function Floater({
           <PieceImage piece={piece} className="relative h-full w-auto drop-shadow-[0_6px_10px_rgba(0,20,30,0.6)]" thumb />
         </motion.button>
       ) : (
-        <span className="grid size-full place-items-center rounded-full border-2 border-dashed border-white/35 bg-white/[0.06]">
+        <span
+          className={`grid size-full place-items-center rounded-full border-dashed bg-white/[0.06] ${
+            size < 20 ? "border-[1.5px] border-white/30" : "border-2 border-white/35"
+          }`}
+        >
           <svg viewBox="0 0 24 24" aria-hidden className="size-1/3 text-white/55" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
             <path d="M12 6v12M6 12h12" />
           </svg>
