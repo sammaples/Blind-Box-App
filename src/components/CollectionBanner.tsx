@@ -22,6 +22,9 @@ interface Scene {
   /** Left, middle (in front), right. */
   poses?: [Pose, Pose, Pose];
   photos?: [string, string, string];
+  /** Silhouettes of two of the photos, for the faint print behind them, so
+      the pattern is the same figures as the ones standing in front. */
+  shapes?: [string, string];
   /** Where the photos stand and how tall, when the default doesn't suit
       their shapes. Whole class names, so Tailwind sees them. */
   fit?: { box: string; side: string; middle: string };
@@ -35,12 +38,14 @@ const SCENES: Record<LineId, Scene> = {
     glow: "#ff6b81",
     ink: "#ffffff",
     photos: ["/collections/bearbrick-left.webp", "/collections/bearbrick-middle.webp", "/collections/bearbrick-right.webp"],
+    shapes: ["/collections/bearbrick-shape-middle.png", "/collections/bearbrick-shape-left.png"],
   },
   popmart: {
     ground: "linear-gradient(115deg, #160a1d 0%, #5e2457 44%, #ee86b9 100%)",
     glow: "#ffc2df",
     ink: "#ffffff",
     photos: ["/collections/popmart-left.webp", "/collections/popmart-middle.webp", "/collections/popmart-right.webp"],
+    shapes: ["/collections/popmart-shape-middle.png", "/collections/popmart-shape-left.png"],
     // Wider figures than the bears, so a little more room and a little less height.
     fit: { box: "right-[15%] w-[38%]", side: "h-[58%]", middle: "h-[78%]" },
   },
@@ -49,6 +54,7 @@ const SCENES: Record<LineId, Scene> = {
     glow: "#ffe2a6",
     ink: "#ffffff",
     photos: ["/collections/tapcap-left.webp", "/collections/tapcap-middle.webp", "/collections/tapcap-right.webp"],
+    shapes: ["/collections/tapcap-shape-middle.png", "/collections/tapcap-shape-left.png"],
     // Boxy figures: spread wider so the two behind aren't hidden.
     fit: { box: "right-[17.5%] w-[40%]", side: "h-[60%]", middle: "h-[76%]" },
   },
@@ -95,12 +101,29 @@ export function CollectionBanner({ line, coverUrl }: { line: LineId; coverUrl: s
       >
         <defs>
           <pattern id={pid} width="54" height="64" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)">
-            <g fill={scene.ink} transform="translate(8 6) scale(0.16)">
-              <Figure line={line} />
-            </g>
-            <g fill={scene.ink} transform="translate(35 38) scale(0.11) rotate(24 100 160)">
-              <Figure line={line} />
-            </g>
+            {scene.shapes ? (
+              <>
+                <image href={scene.shapes[0]} x="6" y="5" width="26" height="46" preserveAspectRatio="xMidYMid meet" />
+                <image
+                  href={scene.shapes[1]}
+                  x="33"
+                  y="31"
+                  width="18"
+                  height="30"
+                  preserveAspectRatio="xMidYMid meet"
+                  transform="rotate(24 42 46)"
+                />
+              </>
+            ) : (
+              <>
+                <g fill={scene.ink} transform="translate(8 6) scale(0.16)">
+                  <Figure line={line} />
+                </g>
+                <g fill={scene.ink} transform="translate(35 38) scale(0.11) rotate(24 100 160)">
+                  <Figure line={line} />
+                </g>
+              </>
+            )}
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill={`url(#${pid})`} />

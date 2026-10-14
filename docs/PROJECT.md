@@ -23,6 +23,9 @@ iPhone Home Screen as a PWA.
   brightness, never dimmed or blurred; embedded in the simulator too).
   TapCap's came off a dark forest scene, so they were cut out with BiRefNet
   and colour-corrected for its blue moonlight. Squishy's are still drawn.
+  The faint print behind them is silhouettes of the same photos
+  (`<collection>-shape-middle|left.png`), so the pattern is the figures in
+  front — real Be@rbrick shapes on the Be@rbrick bar.
   The middle one stands in front. Each opens
   `/shop/<collection>`, the box shop below, over that
   collection's own pieces and stock. Defined in `src/lib/lines.ts` (code calls
