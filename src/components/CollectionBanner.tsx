@@ -78,6 +78,7 @@ export function CollectionBanner({ line, coverUrl }: { line: LineId; coverUrl: s
   const scene = SCENES[line];
   const pid = `cb-${line}`;
   const fig = "absolute bottom-0 drop-shadow-[0_12px_18px_rgba(0,0,0,0.55)] transition-transform duration-500";
+  const photo = "absolute bottom-0 drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)] transition-transform duration-500";
 
   return (
     <span aria-hidden className="absolute inset-0 overflow-hidden" style={{ background: scene.ground }}>
@@ -113,14 +114,16 @@ export function CollectionBanner({ line, coverUrl }: { line: LineId; coverUrl: s
       {/* Three of its figures: one in front, two behind. */}
       {scene.photos ? (
         // Photos are taller and narrower than the drawings, so they are sized
-        // by the bar's height rather than by width.
-        <span className="absolute inset-y-0 right-[14%] w-[36%]">
+        // by the bar's height rather than by width. All three at full
+        // brightness with a tight shadow: they are photos, and dimming the two
+        // behind made them read as out of focus.
+        <span className="absolute inset-y-0 right-[16.5%] w-[32%]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={scene.photos[0]} alt="" className={`${fig} left-0 h-[64%] w-auto origin-bottom -rotate-[7deg] brightness-[0.82] group-hover:-translate-y-1`} />
+          <img src={scene.photos[0]} alt="" className={`${photo} left-0 h-[64%] w-auto origin-bottom -rotate-[7deg] group-hover:-translate-y-1`} />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={scene.photos[2]} alt="" className={`${fig} right-0 h-[64%] w-auto origin-bottom rotate-[8deg] brightness-[0.82] group-hover:-translate-y-1`} />
+          <img src={scene.photos[2]} alt="" className={`${photo} right-0 h-[64%] w-auto origin-bottom rotate-[8deg] group-hover:-translate-y-1`} />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={scene.photos[1]} alt="" className={`${fig} left-1/2 h-[80%] w-auto -translate-x-1/2 translate-y-[3%] group-hover:-translate-y-[1%]`} />
+          <img src={scene.photos[1]} alt="" className={`${photo} left-1/2 h-[80%] w-auto -translate-x-1/2 translate-y-[3%] group-hover:-translate-y-[1%]`} />
         </span>
       ) : scene.poses ? (
         <span className="absolute inset-y-0 right-[13%] w-[40%]">

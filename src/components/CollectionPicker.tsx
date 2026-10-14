@@ -59,7 +59,7 @@ export function CollectionPicker({
                 </span>
                 <span
                   aria-hidden
-                  className="grid size-10 shrink-0 place-items-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-transform group-hover:translate-x-0.5"
+                  className="grid size-10 shrink-0 place-items-center rounded-full bg-white/15 text-white transition-transform group-hover:translate-x-0.5"
                 >
                   <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m9 18 6-6-6-6" />

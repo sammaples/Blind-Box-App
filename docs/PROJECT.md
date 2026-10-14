@@ -18,7 +18,9 @@ iPhone Home Screen as a PWA.
   (uploaded in Inventory management → collection → Change cover; stored as the
   `cover:<collection>` setting) or, until then, a scene with three figures —
   Be@rbrick's are cut-out photos of real pieces (`public/collections/`,
-  embedded in the simulator too), the others are drawn. Each opens
+  960px tall, upscaled 4× with Real-ESRGAN before cutting out; all three at
+  full brightness, never dimmed or blurred; embedded in the simulator too),
+  the others are drawn. Each opens
   `/shop/<collection>`, the box shop below, over that
   collection's own pieces and stock. Defined in `src/lib/lines.ts` (code calls
   a collection a "line"); adding one is an entry there plus its drawing in
