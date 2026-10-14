@@ -16,7 +16,9 @@ iPhone Home Screen as a PWA.
   stacked down one screen: **Be@rbrick** (always written that way, capital B),
   **Pop Mart, Squishy, TapCap**. Each bar shows the collection's cover photo
   (uploaded in Inventory management → collection → Change cover; stored as the
-  `cover:<collection>` setting) or, until then, a drawn scene. Each opens
+  `cover:<collection>` setting) or, until then, a scene with three figures —
+  Be@rbrick's are cut-out photos of real pieces (`public/collections/`,
+  embedded in the simulator too), the others are drawn. Each opens
   `/shop/<collection>`, the box shop below, over that
   collection's own pieces and stock. Defined in `src/lib/lines.ts` (code calls
   a collection a "line"); adding one is an entry there plus its drawing in

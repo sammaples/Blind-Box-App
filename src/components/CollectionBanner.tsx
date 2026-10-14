@@ -1,6 +1,5 @@
 import type { LineId } from "@/lib/lines";
 import type { Palette, PatternKind } from "@/lib/types";
-import { BearbrickArt } from "./BearbrickArt";
 import { Figure } from "./BoxPrint";
 import { CollectionArt } from "./CollectionArt";
 
@@ -8,26 +7,29 @@ import { CollectionArt } from "./CollectionArt";
  * The picture filling a collection's bar on the front page.
  *
  * A cover photo when one has been uploaded (Inventory management → Change
- * cover). Until then, a drawn scene: the collection's colours, a faint print
- * of its figures across the ground, and three of its figures posed on the
- * right, out of the way of the name on the left.
+ * cover). Until then, a scene: the collection's colours, a faint print of
+ * its figures across the ground, and three of its figures posed on the
+ * right, out of the way of the name on the left — photos of real pieces,
+ * cut out, where there are some (public/collections/), drawn ones otherwise.
  */
-
-const DETAIL = "hsl(210 20% 96%)";
-const WASH = "hsl(220 24% 11%)";
 
 type Pose = { palette: Pick<Palette, "base" | "accent">; pattern?: PatternKind };
 
-const SCENES: Record<LineId, { ground: string; glow: string; ink: string; poses: [Pose, Pose, Pose] }> = {
+interface Scene {
+  ground: string;
+  glow: string;
+  ink: string;
+  /** Left, middle (in front), right. */
+  poses?: [Pose, Pose, Pose];
+  photos?: [string, string, string];
+}
+
+const SCENES: Record<LineId, Scene> = {
   bearbrick: {
     ground: "linear-gradient(115deg, #14070c 0%, #4f0d1e 42%, #b8213c 100%)",
     glow: "#ff6b81",
     ink: "#ffffff",
-    poses: [
-      { palette: { base: "#5eb3ff", accent: "#2f6fd6" }, pattern: "jelly" },
-      { palette: { base: "#f5c542", accent: "#b8860b" }, pattern: "chrome" },
-      { palette: { base: "#f8fafc", accent: "#e0465b" }, pattern: "split" },
-    ],
+    photos: ["/collections/bearbrick-left.webp", "/collections/bearbrick-middle.webp", "/collections/bearbrick-right.webp"],
   },
   popmart: {
     ground: "linear-gradient(115deg, #160a1d 0%, #5e2457 44%, #ee86b9 100%)",
@@ -62,16 +64,6 @@ const SCENES: Record<LineId, { ground: string; glow: string; ink: string; poses:
 };
 
 function Pose({ line, pose, uid, className }: { line: LineId; pose: Pose; uid: string; className: string }) {
-  if (line === "bearbrick") {
-    return (
-      <BearbrickArt
-        uid={uid}
-        palette={{ ...pose.palette, detail: DETAIL, wash: WASH }}
-        pattern={pose.pattern ?? "solid"}
-        className={className}
-      />
-    );
-  }
   return <CollectionArt line={line} palette={pose.palette} uid={uid} className={className} />;
 }
 
@@ -85,8 +77,7 @@ export function CollectionBanner({ line, coverUrl }: { line: LineId; coverUrl: s
 
   const scene = SCENES[line];
   const pid = `cb-${line}`;
-  const [left, middle, right] = scene.poses;
-  const fig = "absolute bottom-0 h-auto drop-shadow-[0_12px_18px_rgba(0,0,0,0.55)] transition-transform duration-500";
+  const fig = "absolute bottom-0 drop-shadow-[0_12px_18px_rgba(0,0,0,0.55)] transition-transform duration-500";
 
   return (
     <span aria-hidden className="absolute inset-0 overflow-hidden" style={{ background: scene.ground }}>
@@ -120,11 +111,24 @@ export function CollectionBanner({ line, coverUrl }: { line: LineId; coverUrl: s
       />
 
       {/* Three of its figures: one in front, two behind. */}
-      <span className="absolute inset-y-0 right-[13%] w-[40%]">
-        <Pose line={line} pose={left} uid={`${pid}-l`} className={`${fig} left-[2%] w-[34%] -rotate-[8deg] brightness-[0.82] group-hover:-translate-y-1`} />
-        <Pose line={line} pose={right} uid={`${pid}-r`} className={`${fig} right-[0%] w-[32%] rotate-[9deg] brightness-[0.82] group-hover:-translate-y-1`} />
-        <Pose line={line} pose={middle} uid={`${pid}-m`} className={`${fig} left-1/2 w-[42%] -translate-x-1/2 translate-y-[6%] group-hover:-translate-y-[1%]`} />
-      </span>
+      {scene.photos ? (
+        // Photos are taller and narrower than the drawings, so they are sized
+        // by the bar's height rather than by width.
+        <span className="absolute inset-y-0 right-[14%] w-[36%]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={scene.photos[0]} alt="" className={`${fig} left-0 h-[64%] w-auto origin-bottom -rotate-[7deg] brightness-[0.82] group-hover:-translate-y-1`} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={scene.photos[2]} alt="" className={`${fig} right-0 h-[64%] w-auto origin-bottom rotate-[8deg] brightness-[0.82] group-hover:-translate-y-1`} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={scene.photos[1]} alt="" className={`${fig} left-1/2 h-[80%] w-auto -translate-x-1/2 translate-y-[3%] group-hover:-translate-y-[1%]`} />
+        </span>
+      ) : scene.poses ? (
+        <span className="absolute inset-y-0 right-[13%] w-[40%]">
+          <Pose line={line} pose={scene.poses[0]} uid={`${pid}-l`} className={`${fig} left-[2%] h-auto w-[34%] -rotate-[8deg] brightness-[0.82] group-hover:-translate-y-1`} />
+          <Pose line={line} pose={scene.poses[2]} uid={`${pid}-r`} className={`${fig} right-[0%] h-auto w-[32%] rotate-[9deg] brightness-[0.82] group-hover:-translate-y-1`} />
+          <Pose line={line} pose={scene.poses[1]} uid={`${pid}-m`} className={`${fig} left-1/2 h-auto w-[42%] -translate-x-1/2 translate-y-[6%] group-hover:-translate-y-[1%]`} />
+        </span>
+      ) : null}
     </span>
   );
 }
