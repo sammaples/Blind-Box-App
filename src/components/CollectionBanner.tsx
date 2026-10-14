@@ -22,7 +22,12 @@ interface Scene {
   /** Left, middle (in front), right. */
   poses?: [Pose, Pose, Pose];
   photos?: [string, string, string];
+  /** Where the photos stand and how tall, when the default doesn't suit
+      their shapes. Whole class names, so Tailwind sees them. */
+  fit?: { box: string; side: string; middle: string };
 }
+
+const PHOTO_FIT = { box: "right-[16.5%] w-[32%]", side: "h-[64%]", middle: "h-[80%]" };
 
 const SCENES: Record<LineId, Scene> = {
   bearbrick: {
@@ -35,11 +40,9 @@ const SCENES: Record<LineId, Scene> = {
     ground: "linear-gradient(115deg, #160a1d 0%, #5e2457 44%, #ee86b9 100%)",
     glow: "#ffc2df",
     ink: "#ffffff",
-    poses: [
-      { palette: { base: "#cdb4ff", accent: "#8f6bd9" } },
-      { palette: { base: "#f6b8d1", accent: "#d9739f" } },
-      { palette: { base: "#ffc9a3", accent: "#e58a5a" } },
-    ],
+    photos: ["/collections/popmart-left.webp", "/collections/popmart-middle.webp", "/collections/popmart-right.webp"],
+    // Wider figures than the bears, so a little more room and a little less height.
+    fit: { box: "right-[15%] w-[38%]", side: "h-[58%]", middle: "h-[78%]" },
   },
   tapcap: {
     ground: "linear-gradient(115deg, #140b03 0%, #5a3208 44%, #f0a12a 100%)",
@@ -117,13 +120,13 @@ export function CollectionBanner({ line, coverUrl }: { line: LineId; coverUrl: s
         // by the bar's height rather than by width. All three at full
         // brightness with a tight shadow: they are photos, and dimming the two
         // behind made them read as out of focus.
-        <span className="absolute inset-y-0 right-[16.5%] w-[32%]">
+        <span className={`absolute inset-y-0 ${(scene.fit ?? PHOTO_FIT).box}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={scene.photos[0]} alt="" className={`${photo} left-0 h-[64%] w-auto origin-bottom -rotate-[7deg] group-hover:-translate-y-1`} />
+          <img src={scene.photos[0]} alt="" className={`${photo} left-0 ${(scene.fit ?? PHOTO_FIT).side} w-auto origin-bottom -rotate-[7deg] group-hover:-translate-y-1`} />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={scene.photos[2]} alt="" className={`${photo} right-0 h-[64%] w-auto origin-bottom rotate-[8deg] group-hover:-translate-y-1`} />
+          <img src={scene.photos[2]} alt="" className={`${photo} right-0 ${(scene.fit ?? PHOTO_FIT).side} w-auto origin-bottom rotate-[8deg] group-hover:-translate-y-1`} />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={scene.photos[1]} alt="" className={`${photo} left-1/2 h-[80%] w-auto -translate-x-1/2 translate-y-[3%] group-hover:-translate-y-[1%]`} />
+          <img src={scene.photos[1]} alt="" className={`${photo} left-1/2 ${(scene.fit ?? PHOTO_FIT).middle} w-auto -translate-x-1/2 translate-y-[3%] group-hover:-translate-y-[1%]`} />
         </span>
       ) : scene.poses ? (
         <span className="absolute inset-y-0 right-[13%] w-[40%]">
