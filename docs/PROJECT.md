@@ -17,11 +17,13 @@ iPhone Home Screen as a PWA.
   **Pop Mart, Squishy, TapCap**. Each bar shows the collection's cover photo
   (uploaded in Inventory management → collection → Change cover; stored as the
   `cover:<collection>` setting) or, until then, a scene with three figures —
-  Be@rbrick's and Pop Mart's are cut-out photos of real pieces
+  Be@rbrick's, Pop Mart's and TapCap's are cut-out photos of real pieces
   (`public/collections/<collection>-left|middle|right.webp`, 960px tall,
-  upscaled 4× with Real-ESRGAN before cutting out; all three at full
-  brightness, never dimmed or blurred; embedded in the simulator too), the
-  others are drawn. The middle one stands in front. Each opens
+  upscaled with Real-ESRGAN before cutting out; all three at full
+  brightness, never dimmed or blurred; embedded in the simulator too).
+  TapCap's came off a dark forest scene, so they were cut out with BiRefNet
+  and colour-corrected for its blue moonlight. Squishy's are still drawn.
+  The middle one stands in front. Each opens
   `/shop/<collection>`, the box shop below, over that
   collection's own pieces and stock. Defined in `src/lib/lines.ts` (code calls
   a collection a "line"); adding one is an entry there plus its drawing in

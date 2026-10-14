@@ -48,11 +48,9 @@ const SCENES: Record<LineId, Scene> = {
     ground: "linear-gradient(115deg, #140b03 0%, #5a3208 44%, #f0a12a 100%)",
     glow: "#ffe2a6",
     ink: "#ffffff",
-    poses: [
-      { palette: { base: "#ff9db0", accent: "#d9566f" } },
-      { palette: { base: "#8fd44e", accent: "#4c9a1c" } },
-      { palette: { base: "#8fd3ff", accent: "#3b8fd0" } },
-    ],
+    photos: ["/collections/tapcap-left.webp", "/collections/tapcap-middle.webp", "/collections/tapcap-right.webp"],
+    // Boxy figures: spread wider so the two behind aren't hidden.
+    fit: { box: "right-[17.5%] w-[40%]", side: "h-[60%]", middle: "h-[76%]" },
   },
   squishy: {
     ground: "linear-gradient(115deg, #061716 0%, #124d48 44%, #56c9b6 100%)",
