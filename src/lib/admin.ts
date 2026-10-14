@@ -1,4 +1,5 @@
 import "server-only";
+import { isTesterId } from "./access";
 import { currentAccountId } from "./auth";
 import { backend } from "./db";
 import type { Collector } from "./types";
@@ -75,6 +76,9 @@ export async function checkAdmin(): Promise<AdminCheck> {
 
   const accountId = await currentAccountId();
   if (!accountId) return { ok: false, reason: "signed-out" };
+  // Tester accounts use the app, never the console — in every mode,
+  // development's open-door one included.
+  if (isTesterId(accountId)) return { ok: false, reason: "not-admin" };
 
   const account = await backend().upsertCollector(accountId, {});
   if (mode === "bootstrap" || account.isAdmin === true) return { ok: true };

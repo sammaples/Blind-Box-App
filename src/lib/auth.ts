@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { syncAdmin } from "./admin";
 import { HANDSHAKE_TTL_MS, type AppleIdentity, type Handshake } from "./apple";
 import { backend } from "./db";
+import { secret } from "./secret";
 import type { Collector } from "./types";
 
 /**
@@ -20,23 +21,6 @@ const LEGACY_COOKIE = "bb_collector";
 
 const SESSION_MAX_AGE = 60 * 60 * 24 * 90;
 const TOKEN_TTL_MS = 15 * 60 * 1000;
-
-/* --------------------------------- secret -------------------------------- */
-
-const DEV_SECRET = "blind-box-development-secret-not-for-production";
-
-function secret(): string {
-  const configured = process.env.AUTH_SECRET;
-  if (configured) return configured;
-
-  if (process.env.NODE_ENV === "production") {
-    throw new Error(
-      "AUTH_SECRET must be set in production. Without it, session cookies " +
-        "would be signed with a key that is published in the source.",
-    );
-  }
-  return DEV_SECRET;
-}
 
 /* --------------------------------- tokens -------------------------------- */
 

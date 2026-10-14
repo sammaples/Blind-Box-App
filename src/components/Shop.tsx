@@ -501,7 +501,7 @@ function CheckoutSheet({
               <span className="text-[11px] uppercase tracking-[0.16em] text-faint">
                 Buying as
               </span>
-              <span className="truncate text-sm text-chalk">{account?.email ?? formatPhone(account?.phone)}</span>
+              <span className="truncate text-sm text-chalk">{account?.email ?? (account?.phone ? formatPhone(account.phone) : "Tester")}</span>
             </div>
 
             <button

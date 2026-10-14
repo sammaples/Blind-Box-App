@@ -5,6 +5,7 @@ import { AccountProvider, CoinBalance } from "@/components/AccountBar";
 import { Monogram } from "@/components/Monogram";
 import { Onboarding } from "@/components/Onboarding";
 import { ProfileButton } from "@/components/Profile";
+import { NotOnGate } from "@/components/NotOnGate";
 import { NotOnHome } from "@/components/NotOnHome";
 import { TabBar } from "@/components/TabBar";
 import { wordmark } from "@/lib/fonts";
@@ -44,13 +45,17 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               streamed — the shop could paint a second or two before the cover
               meant to be in front of it. It is fixed and z-indexed, so being
               first in the document changes nothing about how it stacks. */}
-          <Onboarding />
-          <Header />
+          <NotOnGate>
+            <Onboarding />
+            <Header />
+          </NotOnGate>
           <main className="relative z-10">{children}</main>
-          <NotOnHome>
-            <Footer />
-          </NotOnHome>
-          <TabBar />
+          <NotOnGate>
+            <NotOnHome>
+              <Footer />
+            </NotOnHome>
+            <TabBar />
+          </NotOnGate>
         </AccountProvider>
       </body>
     </html>

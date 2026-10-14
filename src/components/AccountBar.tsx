@@ -20,6 +20,8 @@ export interface Account {
   isAdmin: boolean;
   /** Whether they have been walked through how this works. */
   onboarded: boolean;
+  /** A tester account from the access code, with no email or phone. */
+  tester?: boolean;
 }
 
 interface AccountState {
@@ -52,6 +54,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [account, setAccount] = useState<Account | null>(null);
   const [apple, setApple] = useState(false);
+  const [tester, setTester] = useState(false);
   const [loading, setLoading] = useState(true);
   const [prompt, setPrompt] = useState<string | null>(null);
   const [profile, setProfile] = useState(false);
@@ -63,6 +66,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       setAccount(data.account ?? null);
       setApple(data.apple === true);
+      setTester(data.tester === true);
     } catch {
       setAccount(null);
     } finally {
@@ -129,6 +133,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       <SignInScreen
         open={prompt !== null}
         apple={apple}
+        tester={tester}
         reason={prompt || null}
         onClose={() => setPrompt(null)}
         onSignedIn={() => {

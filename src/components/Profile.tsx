@@ -207,9 +207,11 @@ function SignedIn({ onClose }: { onClose: () => void }) {
             <p className="truncate text-[20px] font-semibold tracking-tight">
               {account.displayName || "Collector"}
             </p>
-            {(account.email || account.phone) && (
+            {account.email || account.phone ? (
               <p className="mt-0.5 truncate text-sm text-muted">{account.email ?? formatPhone(account.phone)}</p>
-            )}
+            ) : account.tester ? (
+              <p className="mt-0.5 truncate text-sm text-muted">Tester account</p>
+            ) : null}
           </div>
         </div>
         <div className="grid grid-cols-2 border-t border-white/10 bg-black/40">
@@ -432,12 +434,15 @@ const TrashIcon = () => (
 export function SignInScreen({
   open,
   apple,
+  tester = false,
   reason,
   onClose,
   onSignedIn,
 }: {
   open: boolean;
   apple: boolean;
+  /** Offer "Continue as tester": the access-code beta is on. */
+  tester?: boolean;
   reason: string | null;
   onClose: () => void;
   onSignedIn: () => void;
@@ -461,6 +466,17 @@ export function SignInScreen({
 
   const pill =
     "flex h-14 w-full items-center justify-center gap-2.5 rounded-full text-[17px] font-semibold transition-transform active:scale-[0.98]";
+
+  const [testing, setTesting] = useState(false);
+  const continueAsTester = async () => {
+    setTesting(true);
+    try {
+      const res = await fetch("/api/auth/tester", { method: "POST" });
+      if (res.ok) onSignedIn();
+    } finally {
+      setTesting(false);
+    }
+  };
 
   const screen = (
     <AnimatePresence>
@@ -498,6 +514,16 @@ export function SignInScreen({
           <div className="mx-auto w-full max-w-md">
             {reason && (
               <p className="mb-4 text-center text-[14px] leading-relaxed text-white/85">{reason}</p>
+            )}
+            {tester && (
+              <button
+                type="button"
+                onClick={() => void continueAsTester()}
+                disabled={testing}
+                className={`${pill} mb-3 bg-[#0e0b2a] text-white shadow-[0_10px_30px_rgba(10,10,40,0.35)]`}
+              >
+                {testing ? "Signing in…" : "Continue as tester"}
+              </button>
             )}
             {apple ? (
               <a href={`/auth/apple?next=${encodeURIComponent(next)}`} className={`${pill} bg-white text-black`}>

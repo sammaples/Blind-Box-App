@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { accessGateOn, isTesterId } from "@/lib/access";
 import { checkAdmin } from "@/lib/admin";
 import { appleConfigured } from "@/lib/apple";
 import { currentAccountId, endSession } from "@/lib/auth";
@@ -12,9 +13,11 @@ export async function GET() {
   // learn one boolean. It leaks nothing: a visitor finds out by pressing
   // the button anyway.
   const apple = appleConfigured();
+  // Whether the sign-in screen offers "Continue as tester".
+  const tester = accessGateOn();
 
   const accountId = await currentAccountId();
-  if (!accountId) return NextResponse.json({ account: null, apple });
+  if (!accountId) return NextResponse.json({ account: null, apple, tester });
 
   // Touch nothing: this is a read, and an unknown id simply is not signed in.
   const account = await backend().upsertCollector(accountId, {});
@@ -28,12 +31,14 @@ export async function GET() {
 
   return NextResponse.json({
     apple,
+    tester,
     account: {
       id: account.id,
       email: account.email,
       phone: account.phone ?? null,
       displayName: account.displayName,
       isAdmin: admin.ok,
+      tester: isTesterId(account.id),
       /** Coins in hand, so the header can show them without a second call. */
       coins: account.coins ?? 0,
       // What the onboarding gates on, so a returning collector never sees it
