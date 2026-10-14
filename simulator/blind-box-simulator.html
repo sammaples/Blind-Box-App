@@ -3992,11 +3992,10 @@ function setBrowser() {
   const present = new Set(inStockList.map((e) => e.piece.rarity));
   const rarities = RARITY_ORDER.filter((r) => present.has(r));
   let h = '<div class="section" id="set">' +
-    '<h2 class="head">Live Stock</h2>' +
-    '<div class="lineswitch">' + LINES.map((l) =>
-      '<button type="button" data-stockline="' + l.id + '" aria-pressed="' + (l.id === state.stockLine) + '">' + esc(l.name) + '</button>').join("") +
-    '</div>' +
-    '<div class="tabs" style="margin-top:12px">' + productsFor(state.stockLine).map((p) =>
+    // Back to the collections; the one picked there is the one on show.
+    '<div class="headrow" style="justify-content:flex-start"><button class="backbtn" type="button" data-stockback="1" aria-label="All collections">\u2039</button>' +
+      '<h2 class="head" style="margin:0">Live Stock</h2></div>' +
+    '<div class="tabs" style="margin-top:16px">' + productsFor(state.stockLine).map((p) =>
       '<button class="tab" type="button" data-tab="' + p.id + '" aria-pressed="' + (p.id === state.tab) + '"' +
       (p.id === state.tab ? ' style="background:' + p.accent + '"' : '') + '>' + esc(p.name) + '</button>').join("") +
     '</div>';
@@ -5210,7 +5209,7 @@ function submitShipment(form) {
 
 /* One delegated listener for the whole app — no per-render rebinding. */
 deviceScreen.addEventListener("click", (event) => {
-  const t = event.target.closest("[data-pickline],[data-lineback],[data-stockline],[data-go],[data-buy],[data-tab],[data-rarity],[data-piece],[data-open],[data-close],[data-scroll],[data-pick],[data-selectall],[data-shipopen],[data-shipcancel],[data-rail],[data-railto],[data-coinpay],[data-hist],[data-how],[data-cleardemo],[data-odds],[data-spin],[data-profile],[data-signin],[data-apple],[data-sendcode],[data-diffemail],[data-sheet],[data-sheetclose],[data-signout],[data-delete],[data-deletecancel],[data-deleteyes],[data-pgo],[data-skipob],[data-nextcard],[data-cardto],#box,#confirmbuy");
+  const t = event.target.closest("[data-pickline],[data-lineback],[data-stockback],[data-stockline],[data-go],[data-buy],[data-tab],[data-rarity],[data-piece],[data-open],[data-close],[data-scroll],[data-pick],[data-selectall],[data-shipopen],[data-shipcancel],[data-rail],[data-railto],[data-coinpay],[data-hist],[data-how],[data-cleardemo],[data-odds],[data-spin],[data-profile],[data-signin],[data-apple],[data-sendcode],[data-diffemail],[data-sheet],[data-sheetclose],[data-signout],[data-delete],[data-deletecancel],[data-deleteyes],[data-pgo],[data-skipob],[data-nextcard],[data-cardto],#box,#confirmbuy");
   if (!t) return;
   /* ---- collections ---- */
   if (t.dataset.pickline) {
@@ -5223,6 +5222,7 @@ deviceScreen.addEventListener("click", (event) => {
     render(); scrollTop(); return;
   }
   if (t.dataset.lineback) { state.line = null; state.box = 0; render(); scrollTop(); return; }
+  if (t.dataset.stockback) { state.stockLine = null; render(); scrollTop(); return; }
   if (t.dataset.stockline) {
     state.stockLine = t.dataset.stockline;
     state.tab = productsFor(state.stockLine)[0].id; state.rarity = "all";

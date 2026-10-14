@@ -43,7 +43,8 @@ iPhone Home Screen as a PWA.
   photos' outlines, traced to vectors in `src/lib/figureShapes.ts` (regenerate
   when the photos change); Squishy's are still drawn.
 - **Current stock** (`/stock`) starts on the same collection bars; each
-  collection's stock is `/stock/<collection>`, with a switcher at the top.
+  collection's stock is `/stock/<collection>`, with just a back arrow to the
+  bars (no collection switcher), then the box tabs and rarity filters.
 - **The draw:** one real piece per box, drawn server-side at purchase from a
   live stock shelf. Pull rates are published per piece and move as stock
   sells. Each order stores its seed and a snapshot of the shelf.

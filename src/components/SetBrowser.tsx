@@ -3,7 +3,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { LINES, type LineId } from "@/lib/lines";
 import {
   formatOdds,
   oddsAsOneIn,
@@ -47,13 +46,10 @@ function byRarity(a: StockEntry, b: StockEntry): number {
  * somebody comparing boxes is exactly who ends up on this page.
  */
 export function SetBrowser({
-  lineId,
   products,
   shelves,
   initialProductId,
 }: {
-  /** The collection on show. The switcher at the top moves between them. */
-  lineId: LineId;
   /** That collection's boxes, cheapest first. */
   products: readonly Product[];
   shelves: Record<string, StockEntry[]>;
@@ -107,32 +103,25 @@ export function SetBrowser({
   return (
     <section
       id="set"
-      className="relative z-10 mx-auto w-full max-w-6xl scroll-mt-20 px-5 py-20 sm:px-8"
+      className="relative z-10 mx-auto w-full max-w-6xl scroll-mt-20 px-5 pb-20 pt-4 sm:px-8 sm:pt-10"
     >
-      <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Live Stock</h2>
-
-      {/* Which collection. Links rather than tabs: each collection's stock
-          is its own page, so the address says what is on screen. */}
-      <nav aria-label="Collection" className="mt-6 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-        {LINES.map((l) => {
-          const on = l.id === lineId;
-          return (
-            <Link
-              key={l.id}
-              href={`/stock/${l.id}`}
-              aria-current={on ? "page" : undefined}
-              className={`shrink-0 rounded-full border px-4 py-2 text-[13px] font-semibold transition-colors ${
-                on ? "border-white/70 bg-white text-ink" : "border-hairline text-muted hover:text-chalk"
-              }`}
-            >
-              {l.name}
-            </Link>
-          );
-        })}
-      </nav>
+      {/* Back to the collections, the page before this one. Which collection
+          was picked there; this page only filters within it. */}
+      <div className="flex items-center gap-2">
+        <Link
+          href="/stock"
+          aria-label="All collections"
+          className="-ml-2 grid size-9 shrink-0 place-items-center rounded-full text-muted transition-colors hover:text-chalk"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden className="size-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </Link>
+        <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Live Stock</h2>
+      </div>
 
       {/* product tabs */}
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-6 flex flex-wrap gap-2">
         {products.map((p) => {
           const active = p.id === productId;
           return (

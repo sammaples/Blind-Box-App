@@ -40,7 +40,7 @@ export default async function CollectionStockPage({
 
   return (
     <div className="pt-6">
-      <SetBrowser lineId={line.id} products={products} shelves={shelves} initialProductId={box} />
+      <SetBrowser products={products} shelves={shelves} initialProductId={box} />
     </div>
   );
 }
