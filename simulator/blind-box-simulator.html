@@ -2576,7 +2576,7 @@ const LINES = [
   { id: "bearbrick", name: "Be@rbrick", accent: "#e0465b", sized: true },
   { id: "popmart", name: "Pop Mart", accent: "#f2a7c8", sized: false },
   { id: "squishy", name: "Squishy", accent: "#7ad3c4", sized: false },
-  { id: "tapcap", name: "TapCap", accent: "#f5a524", sized: false },
+  { id: "tapcap", name: "TapCap", accent: "#9be22f", sized: false },
 ];
 function getLine(id) { return LINES.find((l) => l.id === id); }
 
@@ -3221,7 +3221,7 @@ const BANNER_SCENES = {
     poses: [{ base: "#cdb4ff", accent: "#8f6bd9" }, { base: "#f6b8d1", accent: "#d9739f" }, { base: "#ffc9a3", accent: "#e58a5a" }] },
   squishy: { ground: "linear-gradient(115deg, #061716 0%, #124d48 44%, #56c9b6 100%)", glow: "#b9fff1",
     poses: [{ base: "#d8c8ff", accent: "#9b84e0" }, { base: "#9fe3d6", accent: "#4fb8a6" }, { base: "#ffd1b0", accent: "#f09a6a" }] },
-  tapcap: { ground: "linear-gradient(115deg, #140b03 0%, #5a3208 44%, #f0a12a 100%)", glow: "#ffe2a6",
+  tapcap: { ground: "linear-gradient(115deg, #050d02 0%, #1d4708 44%, #5cb514 100%)", glow: "#c8ff6b",
     poses: [{ base: "#ff9db0", accent: "#d9566f" }, { base: "#8fd44e", accent: "#4c9a1c" }, { base: "#8fd3ff", accent: "#3b8fd0" }] },
 };
 function bannerPose(line, pose, uid) {
@@ -3817,7 +3817,7 @@ const PRINT_WINDOW = {
 };
 
 /* Each collection's carton carries its own figure on its own ground. */
-const PRINT_GROUNDS = { bearbrick: PRINT_GROUND, popmart: "#f7c3d8", squishy: "#b6eadf", tapcap: "#ffd99a" };
+const PRINT_GROUNDS = { bearbrick: PRINT_GROUND, popmart: "#f7c3d8", squishy: "#b6eadf", tapcap: "#b8f05a" };
 function groundFor(line) { return PRINT_GROUNDS[line] || PRINT_GROUND; }
 function printShapes(line) {
   if (line === "popmart") return '<ellipse cx="62" cy="64" rx="18" ry="42" transform="rotate(-14 62 64)"/>' +

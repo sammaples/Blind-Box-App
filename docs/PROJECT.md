@@ -39,7 +39,7 @@ iPhone Home Screen as a PWA.
   (Diamond's "coming soon" flag was removed; the flag still exists).
 - **Box prints:** each collection's carton has its own print — bears on blue,
   vinyl figures on pink (Pop Mart), soft buns on mint (Squishy), block figures
-  on amber (TapCap). Where the bar has photos, the printed figures are those
+  on slime green (TapCap — its bar and colour are slime green too). Where the bar has photos, the printed figures are those
   photos' outlines, traced to vectors in `src/lib/figureShapes.ts` (regenerate
   when the photos change); Squishy's are still drawn.
 - **Current stock** (`/stock`) starts on the same collection bars; each

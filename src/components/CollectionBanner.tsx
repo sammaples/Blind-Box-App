@@ -50,8 +50,8 @@ const SCENES: Record<LineId, Scene> = {
     fit: { box: "right-[15%] w-[38%]", side: "h-[58%]", middle: "h-[78%]" },
   },
   tapcap: {
-    ground: "linear-gradient(115deg, #140b03 0%, #5a3208 44%, #f0a12a 100%)",
-    glow: "#ffe2a6",
+    ground: "linear-gradient(115deg, #050d02 0%, #1d4708 44%, #5cb514 100%)",
+    glow: "#c8ff6b",
     ink: "#ffffff",
     photos: ["/collections/tapcap-left.webp", "/collections/tapcap-middle.webp", "/collections/tapcap-right.webp"],
     shapes: ["/collections/tapcap-shape-middle.png", "/collections/tapcap-shape-left.png"],

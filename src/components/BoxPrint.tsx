@@ -65,7 +65,7 @@ const GROUNDS: Record<LineId, string> = {
   bearbrick: PRINT_GROUND,
   popmart: "#f7c3d8",
   squishy: "#b6eadf",
-  tapcap: "#ffd99a",
+  tapcap: "#b8f05a",
 };
 
 /** The ground a collection's box is printed on, which its folded edges match. */

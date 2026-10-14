@@ -27,7 +27,7 @@ export const LINES: readonly Line[] = [
   { id: "bearbrick", name: "Be@rbrick", accent: "#e0465b", sized: true },
   { id: "popmart", name: "Pop Mart", accent: "#f2a7c8", sized: false },
   { id: "squishy", name: "Squishy", accent: "#7ad3c4", sized: false },
-  { id: "tapcap", name: "TapCap", accent: "#f5a524", sized: false },
+  { id: "tapcap", name: "TapCap", accent: "#9be22f", sized: false },
 ];
 
 /** Where everything that predates collections belongs. */
