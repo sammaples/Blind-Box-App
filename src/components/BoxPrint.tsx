@@ -3,14 +3,17 @@
 import { createContext, useContext, type CSSProperties } from "react";
 import type { BoxFace } from "@/lib/boxShape";
 import { PRODUCTS } from "@/lib/catalog";
+import { FIGURE_SHAPES } from "@/lib/figureShapes";
 import type { LineId } from "@/lib/lines";
 
 /**
  * A printed box wrap: the app's own figures scattered across a pale blue
  * ground, the way a real blind box carries a picture of what might be inside.
  *
- * Drawn rather than photographed, from the same silhouette the catalogue art
- * uses, so it needs no image asset and stays sharp at any size.
+ * Vector, so it needs no image asset and stays sharp at any size. Where a
+ * collection's bar has photos, the figures are those photos' outlines
+ * (lib/figureShapes.ts), so the box matches the pieces on its bar; the rest
+ * use a drawn silhouette.
  *
  * One sheet, six windows. Every face shows a different region of the same
  * artwork, so the print reads as continuous around the box instead of the same
@@ -139,8 +142,15 @@ const WINDOW: Record<BoxFace, [number, number, number, number]> = {
   bottom: [FACE_W * 1.6, 80, FACE_W, FACE_W],
 };
 
+/** How many shapes a collection's wrap mixes. */
+export function figureCount(line: LineId): number {
+  return FIGURE_SHAPES[line]?.length ?? 1;
+}
+
 /** Each collection's figure, in the same 200 × 320 box the bear is drawn in. */
-export function Figure({ line }: { line: LineId }) {
+export function Figure({ line, variant = 0 }: { line: LineId; variant?: number }) {
+  const traced = FIGURE_SHAPES[line];
+  if (traced?.length) return <path d={traced[variant % traced.length]} fillRule="evenodd" />;
   if (line === "popmart") {
     return (
       <>
@@ -201,9 +211,11 @@ export function BoxPrint({ face, style }: { face: BoxFace; style?: CSSProperties
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", ...style }}
     >
       <defs>
-        <g id={gid}>
-          <Figure line={line} />
-        </g>
+        {Array.from({ length: figureCount(line) }, (_, v) => (
+          <g key={v} id={`${gid}-${v}`}>
+            <Figure line={line} variant={v} />
+          </g>
+        ))}
       </defs>
 
       {/* The ground is drawn oversize: `preserveAspectRatio: none` stretches the
@@ -214,7 +226,7 @@ export function BoxPrint({ face, style }: { face: BoxFace; style?: CSSProperties
       {FIGURES.map((f, i) => (
         <use
           key={i}
-          href={`#${gid}`}
+          href={`#${gid}-${i % figureCount(line)}`}
           fill={f.fill}
           transform={`translate(${f.x} ${f.y}) rotate(${f.rotate}) scale(${f.scale}) translate(${-FIG_CX} ${-FIG_CY})`}
         />
