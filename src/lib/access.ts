@@ -9,9 +9,10 @@ import { secret } from "./secret";
  * email or a phone. Testers never administer the shop. The real sign-in
  * stays where it is, for when this comes down.
  *
- * The code is ACCESS_CODE in the environment, "blindbox" when unset, and
- * "off" turns the gate off altogether. Changing it signs every pass out,
- * because a pass is a signature over the code.
+ * Off unless ACCESS_CODE is set in the environment (to the code, e.g.
+ * "blindbox"); unset or "off" means no gate, and the app signs in by email,
+ * phone or Apple as usual. Changing the code signs every pass out, because a
+ * pass is a signature over the code.
  */
 
 export const ACCESS_COOKIE = "bb_access";
@@ -23,7 +24,7 @@ export const isTesterId = (id: string | null | undefined) => !!id && id.startsWi
 
 /** The code, tidied the way a typed one is; null when the gate is off. */
 export function accessCode(): string | null {
-  const code = tidy(process.env.ACCESS_CODE ?? "blindbox");
+  const code = tidy(process.env.ACCESS_CODE ?? "off");
   return code === "" || code === "off" ? null : code;
 }
 

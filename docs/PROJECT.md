@@ -70,17 +70,14 @@ iPhone Home Screen as a PWA.
   automatically.
 - **Profile:** silver button top right. Rows: My vault, Rewards, Coins, and
   for admins Inventory management and Invites. Delete account is supported.
-- **Tester gate (beta, for now):** every page and API call sits behind an
-  access code — **`blindbox`** (case and spaces ignored), from `ACCESS_CODE`
-  in the environment (unset = "blindbox"; `off` removes the gate). The code
-  page is `/access` (`src/proxy.ts` sends everyone there until they have the
-  `bb_access` pass cookie). The right code also signs the browser in as its
-  own **tester account** (`tst_…` id, no email or phone, remembered by the
-  `bb_tester` cookie), so testers can buy, open, spin, trade and ship without
-  signing in. Testers are never admins — no Inventory management, in any mode.
-  An already signed-in account keeps itself. The sign-in screen stays, with
-  "Continue as tester" on top while the gate is on. Changing the code signs
-  every pass out. Mirrored in the simulator.
+- **Tester gate: OFF.** Sam turned the access code off; sign-in is back to
+  email / phone / Apple. The code is still there to switch on: set
+  `ACCESS_CODE` in Vercel (e.g. `blindbox`) and every page and API call sits
+  behind `/access` (`src/proxy.ts`, `bb_access` pass cookie); the right code
+  signs the browser in as its own **tester account** (`tst_…` id, no email
+  or phone, `bb_tester` cookie), never an admin, and the sign-in screen
+  offers "Continue as tester". Unset or `off` = no gate. Tester accounts
+  made while it was on still work. The simulator has the gate off too.
 - **Sign-in:** Apple (shows "Apple sign in isn't available right now" until
   configured), **Continue with email** and **Continue with phone**, each
   opening a sheet: address/number, then a typed code. Codes exist because a
@@ -141,9 +138,6 @@ phone number. Sam enters secrets straight into Vercel. The repo is public.
   `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID` (Sam will set up later).
   Limit SMS countries in Twilio.
 - **Apple sign-in:** not configured yet.
-- **Tester gate:** comes down when real sign-in is ready — set
-  `ACCESS_CODE=off` in Vercel (or remove `src/proxy.ts`). The code is in this
-  public repo's default, so it keeps strangers out, not determined people.
 - **Legal:** before a wide launch, a lawyer should review the draw for
   lottery/gambling risk (California, New York, Washington) — the trade-in
   too — and the payment processor should approve the business in writing.
