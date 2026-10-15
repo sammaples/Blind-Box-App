@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { usePathname } from "next/navigation";
 import { useCallback, useState } from "react";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { useAccount } from "./AccountBar";
@@ -88,7 +89,10 @@ function useWelcome(): [boolean, () => void] {
 }
 
 export function Onboarding() {
-  const [open, dismiss] = useWelcome();
+  const [welcome, dismiss] = useWelcome();
+  const pathname = usePathname();
+  // Never over Inventory management: whoever is there already knows the shop.
+  const open = welcome && !pathname?.startsWith("/admin");
   const { account, apple } = useAccount();
   const reduced = useReducedMotion();
   const [card, setCard] = useState(0);

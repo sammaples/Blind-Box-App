@@ -106,20 +106,34 @@ export async function POST(request: Request) {
     if (asked.length === 0 || asked.some((t) => !TIERS.includes(t as Tier))) {
       return NextResponse.json({ error: "Pick at least one box" }, { status: 400 });
     }
-    const units =
-      body.quantity === undefined || body.quantity === null || body.quantity === ""
-        ? null
-        : Math.trunc(Number(body.quantity));
-    if (units !== null && (!Number.isFinite(units) || units < 0)) {
-      return NextResponse.json({ error: "Units must be a number of zero or more" }, { status: 400 });
+    // Units to add, box by box: `add` is { bronze: 5, silver: 10, ... }.
+    const add: Partial<Record<Tier, number>> = {};
+    const rawAdd = (body.add ?? {}) as Record<string, unknown>;
+    for (const t of TIERS) {
+      const raw = rawAdd[t];
+      if (raw === undefined || raw === null || raw === "") continue;
+      const n = Math.trunc(Number(raw));
+      if (!Number.isFinite(n) || n < 0 || n > 100_000) {
+        return NextResponse.json({ error: "Units must be a number of zero or more" }, { status: 400 });
+      }
+      if (n > 0) add[t] = n;
     }
     const placed = await placeInBoxes(
       { ...piece, archived: false },
       pieceId,
       TIERS.filter((t) => asked.includes(t)),
-      units,
+      null,
     );
-    return NextResponse.json({ pieces: placed?.pieces ?? [], stock: placed?.stock ?? null });
+    if (!placed) {
+      return NextResponse.json({ error: "No piece with that id" }, { status: 404 });
+    }
+    // After the placing, so a box it has only just gone into has a listing to
+    // take the units.
+    const changes = placed.pieces
+      .filter((p) => add[p.tier])
+      .map((p) => ({ pieceId: p.id, op: "add" as const, units: add[p.tier] }));
+    const stock = changes.length > 0 ? await applyStockChanges(changes) : null;
+    return NextResponse.json({ pieces: placed.pieces, stock });
   }
 
   if (body.action === "archive" || body.action === "restore") {

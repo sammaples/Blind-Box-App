@@ -1138,14 +1138,27 @@ function Catalogue({
     return found.length > 0 ? found : [piece.tier];
   };
 
-  const setBoxes = async (piece: AdminPiece, tiers: Tier[], units: number | null) => {
+  // Units left in a box for this piece's product, from its listing there.
+  const unitsIn = (piece: { id: string }, t: Tier): number => {
+    const there = pieces.find(
+      (p) => !p.archived && p.tier === t && listingBase(p.id) === listingBase(piece.id),
+    );
+    const level = there && levels[there.id];
+    return level ? Math.max(0, level.stocked - level.sold) : 0;
+  };
+
+  const setBoxes = async (piece: AdminPiece, tiers: Tier[], add: Partial<Record<Tier, number>>) => {
     setWorking(true);
     setError(null);
     try {
-      await post("/api/admin/catalog", { action: "setBoxes", pieceId: piece.id, tiers, quantity: units });
+      await post("/api/admin/catalog", { action: "setBoxes", pieceId: piece.id, tiers, add });
       const names = tiers.map((t) => TIER_LABEL[t]);
+      const added = tiers
+        .filter((t) => (add[t] ?? 0) > 0)
+        .map((t) => `${add[t]} to ${TIER_LABEL[t]}`);
       setNote(
-        `${piece.name} is in ${tiers.length === TIER_ORDER.length ? "every box" : names.join(", ")}.`,
+        `${piece.name} is in ${tiers.length === TIER_ORDER.length ? "every box" : names.join(", ")}` +
+          (added.length > 0 ? ` — added ${added.join(", ")}.` : "."),
       );
       // Taken out of the box on show: there is no sheet left to look at here.
       if (!tiers.includes(tier)) setOpen(null);
@@ -1463,7 +1476,8 @@ function Catalogue({
               pieces={matches}
               pool={pieces}
               boxesOf={boxesOf}
-              onSetBoxes={(piece, tiers, units) => void setBoxes(piece, tiers, units)}
+              unitsIn={unitsIn}
+              onSetBoxes={(piece, tiers, add) => void setBoxes(piece, tiers, add)}
               levels={levels}
               busy={busy || working}
               onChange={onChange}

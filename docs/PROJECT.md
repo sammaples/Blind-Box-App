@@ -111,9 +111,11 @@ iPhone Home Screen as a PWA.
   series shortcuts, Add product (starts in that box) — is that box's only.
   No "every box" view. The list puts hand-made listings before the generated
   demo pieces (it shows 120 at most). A piece's sheet has a **Boxes**
-  drop-down (tick boxes, Units for each new box, Save boxes; the `setBoxes`
-  action) and no 6/12/24 presets; its pull rate counts the whole box. The
-  cover photo is at the bottom of the collection's page. The spreadsheet import takes a
+  drop-down: tick boxes, and each ticked box has its own − / + amount to add
+  (shows what's in its pool now); "Add N units & save" (the `setBoxes`
+  action with `add: {bronze: 5, …}`). No 6/12/24 presets; its pull rate counts the whole box. The
+  cover photo is at the bottom of the collection's page. The three-card welcome
+  never shows on `/admin` pages. The spreadsheet import takes a
   `collection` column (Bearbrick if blank; "set" is the set name), and scale is
   only required for Bearbrick rows. Template: `public/catalogue-template.csv`.
 - **One product, several boxes:** Add product / Edit details has tick boxes

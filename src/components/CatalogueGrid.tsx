@@ -62,6 +62,7 @@ export function CatalogueGrid({
   onDelete,
   pool: poolPieces,
   boxesOf,
+  unitsIn,
   onSetBoxes,
   focus,
 }: {
@@ -77,8 +78,10 @@ export function CatalogueGrid({
   pool?: GridPiece[];
   /** The boxes a piece's product is in, for the Boxes menu on its sheet. */
   boxesOf?: (piece: GridPiece) => Tier[];
-  /** Puts a piece's product in exactly these boxes. */
-  onSetBoxes?: (piece: GridPiece, tiers: Tier[], units: number | null) => void;
+  /** Units left in a box, for the listing of this piece's product there. */
+  unitsIn?: (piece: GridPiece, tier: Tier) => number;
+  /** Puts a piece's product in exactly these boxes, adding units to each. */
+  onSetBoxes?: (piece: GridPiece, tiers: Tier[], add: Partial<Record<Tier, number>>) => void;
   /** A piece to open the sheet on — how a freshly saved product introduces itself. */
   focus?: string | null;
 }) {
@@ -125,6 +128,7 @@ export function CatalogueGrid({
           onEdit={onEdit}
           onDelete={onDelete}
           boxes={boxesOf?.(open) ?? [open.tier]}
+          unitsIn={(t) => unitsIn?.(open, t) ?? 0}
           onSetBoxes={onSetBoxes}
         />
       )}
@@ -278,6 +282,7 @@ function StockSheet({
   onEdit,
   onDelete,
   boxes,
+  unitsIn,
   onSetBoxes,
 }: {
   piece: GridPiece;
@@ -290,7 +295,8 @@ function StockSheet({
   onEdit: (piece: GridPiece) => void;
   onDelete: (piece: GridPiece) => void;
   boxes: Tier[];
-  onSetBoxes?: (piece: GridPiece, tiers: Tier[], units: number | null) => void;
+  unitsIn: (tier: Tier) => number;
+  onSetBoxes?: (piece: GridPiece, tiers: Tier[], add: Partial<Record<Tier, number>>) => void;
 }) {
   const [amount, setAmount] = useState(1);
   useScrollLock(true);
@@ -403,8 +409,9 @@ function StockSheet({
                 <BoxesMenu
                   key={boxes.join()}
                   boxes={boxes}
+                  unitsIn={unitsIn}
                   busy={busy}
-                  onSave={(tiers, units) => onSetBoxes(piece, tiers, units)}
+                  onSave={(tiers, add) => onSetBoxes(piece, tiers, add)}
                 />
               )}
 
@@ -516,24 +523,32 @@ function StockSheet({
 const BOX_TIERS: Tier[] = ["bronze", "silver", "gold", "diamond"];
 
 /**
- * Which boxes this piece is sold in, as a drop-down of the four. Ticking a
- * box and saving lists it there too, with its own units; unticking takes it
- * out of that box.
+ * Which boxes this piece is sold in, as a drop-down of the four, each with its
+ * own count to add. Ticking a box lists it there too; unticking takes it out
+ * of that box. Saving adds each ticked box's count to that box's pool.
  */
 function BoxesMenu({
   boxes,
+  unitsIn,
   busy,
   onSave,
 }: {
   boxes: Tier[];
+  /** Units left in each box this piece is already in. */
+  unitsIn: (tier: Tier) => number;
   busy: boolean;
-  onSave: (tiers: Tier[], units: number | null) => void;
+  onSave: (tiers: Tier[], add: Partial<Record<Tier, number>>) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<Tier[]>(boxes);
-  const [units, setUnits] = useState("");
+  const [add, setAdd] = useState<Partial<Record<Tier, number>>>({});
+  const amount = (t: Tier) => add[t] ?? 0;
+  const setAmount = (t: Tier, n: number) =>
+    setAdd((now) => ({ ...now, [t]: Math.max(0, Number.isFinite(n) ? Math.trunc(n) : 0) }));
   const adding = picked.some((t) => !boxes.includes(t));
-  const changed = picked.length !== boxes.length || adding;
+  const removing = boxes.some((t) => !picked.includes(t));
+  const units = picked.reduce((sum, t) => sum + amount(t), 0);
+  const changed = adding || removing || units > 0;
   const toggle = (t: Tier) =>
     setPicked((now) => (now.includes(t) ? now.filter((x) => x !== t) : BOX_TIERS.filter((x) => x === t || now.includes(x))));
 
@@ -563,26 +578,64 @@ function BoxesMenu({
         <div className="mt-2 rounded-xl border border-hairline bg-black/25 p-2">
           {BOX_TIERS.map((t) => {
             const on = picked.includes(t);
+            const was = boxes.includes(t);
             return (
-              <button
-                key={t}
-                type="button"
-                role="menuitemcheckbox"
-                aria-checked={on}
-                onClick={() => toggle(t)}
-                className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left text-[14px] transition-colors hover:bg-white/[0.06]"
-              >
-                <span
-                  aria-hidden
-                  className={`grid size-5 shrink-0 place-items-center rounded-md border text-[12px] leading-none ${
-                    on ? "border-transparent bg-chalk text-ink" : "border-white/25"
-                  }`}
+              <div key={t} className="flex items-center gap-2 rounded-lg px-1 py-1">
+                <button
+                  type="button"
+                  role="menuitemcheckbox"
+                  aria-checked={on}
+                  onClick={() => toggle(t)}
+                  className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-1.5 py-2 text-left text-[14px] transition-colors hover:bg-white/[0.06]"
                 >
-                  {on ? "✓" : ""}
-                </span>
-                <span className="size-2 rounded-full" style={{ background: TIER_ACCENT[t] }} />
-                {TIER_LABEL[t]}
-              </button>
+                  <span
+                    aria-hidden
+                    className={`grid size-5 shrink-0 place-items-center rounded-md border text-[12px] leading-none ${
+                      on ? "border-transparent bg-chalk text-ink" : "border-white/25"
+                    }`}
+                  >
+                    {on ? "✓" : ""}
+                  </span>
+                  <span className="size-2 shrink-0 rounded-full" style={{ background: TIER_ACCENT[t] }} />
+                  <span className="min-w-0">
+                    <span className="block">{TIER_LABEL[t]}</span>
+                    <span className="block text-[11px] text-faint">
+                      {was ? `${unitsIn(t)} in the pool` : on ? "New" : "Not in it"}
+                    </span>
+                  </span>
+                </button>
+                {on && (
+                  <div className="flex shrink-0 items-stretch rounded-lg border border-hairline">
+                    <button
+                      type="button"
+                      disabled={amount(t) <= 0}
+                      onClick={() => setAmount(t, amount(t) - 1)}
+                      aria-label={`One fewer for ${TIER_LABEL[t]}`}
+                      className="grid w-8 place-items-center text-muted transition-colors hover:text-chalk disabled:opacity-30"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      value={amount(t) === 0 ? "" : amount(t)}
+                      placeholder="0"
+                      aria-label={`Units to add to ${TIER_LABEL[t]}`}
+                      onChange={(e) => setAmount(t, Number(e.target.value))}
+                      className="w-11 bg-transparent text-center font-mono text-[14px] text-chalk outline-none placeholder:text-faint"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setAmount(t, amount(t) + 1)}
+                      aria-label={`One more for ${TIER_LABEL[t]}`}
+                      className="grid w-8 place-items-center text-muted transition-colors hover:text-chalk"
+                    >
+                      +
+                    </button>
+                  </div>
+                )}
+              </div>
             );
           })}
           <button
@@ -593,31 +646,24 @@ function BoxesMenu({
             {picked.length === BOX_TIERS.length ? "Clear" : "All boxes"}
           </button>
 
-          {adding && (
-            <label className="mt-1 flex items-center justify-between gap-3 border-t border-hairline px-2.5 pt-3 text-[12px] text-muted">
-              Units for each new box
-              <input
-                value={units}
-                onChange={(e) => setUnits(e.target.value)}
-                type="number"
-                min={0}
-                inputMode="numeric"
-                placeholder="0"
-                className="w-20 rounded-lg border border-hairline bg-ink px-2.5 py-1.5 text-right text-[13px] text-chalk outline-none focus:border-white/30"
-              />
-            </label>
-          )}
-
           <button
             type="button"
             disabled={busy || picked.length === 0 || !changed}
             onClick={() => {
-              onSave(picked, units.trim() === "" ? null : Number(units));
+              onSave(
+                picked,
+                Object.fromEntries(picked.filter((t) => amount(t) > 0).map((t) => [t, amount(t)])),
+              );
+              setAdd({});
               setOpen(false);
             }}
-            className="mt-2.5 w-full rounded-lg bg-chalk py-2.5 text-[13px] font-semibold text-ink transition-opacity disabled:opacity-40"
+            className="mt-1.5 w-full rounded-lg bg-chalk py-2.5 text-[13px] font-semibold text-ink transition-opacity disabled:opacity-40"
           >
-            {picked.length === 0 ? "Pick at least one box" : "Save boxes"}
+            {picked.length === 0
+              ? "Pick at least one box"
+              : units > 0
+                ? `Add ${units} unit${units === 1 ? "" : "s"} & save`
+                : "Save boxes"}
           </button>
         </div>
       )}
