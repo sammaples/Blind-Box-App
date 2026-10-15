@@ -65,9 +65,9 @@ const SCENES: Record<LineId, Scene> = {
     photos: ["/collections/squishy-left.webp", "/collections/squishy-middle.webp", "/collections/squishy-right.webp"],
     shapes: ["/collections/squishy-shape-middle.png", "/collections/squishy-shape-left.png"],
     // Wide, low pieces — the bao with its lid most of all — so they stand
-    // side by side instead of overlapping, the bao far left, low enough to
-    // pass under the name.
-    fit: { box: "right-[17%] gap-[2.5%]", side: "h-[34%]", middle: "h-[46%]", row: true },
+    // side by side instead of overlapping, the bao far left, raised towards
+    // the middle but clear of the name.
+    fit: { box: "right-[17%] gap-[2%] -translate-y-[12%]", side: "h-[30%]", middle: "h-[42%]", row: true },
   },
 };
 
