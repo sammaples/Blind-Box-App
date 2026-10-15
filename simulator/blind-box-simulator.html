@@ -624,12 +624,13 @@ p.sub { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 8px 0 0;
 .bannerfigs.photos.tapcap .bfp.l, .bannerfigs.photos.tapcap .bfp.r { height: 60%; }
 .bannerfigs.photos.tapcap .bfp.m { height: 76%; }
 /* Squishy's pieces are wide and low, the bao with its lid most of all: they
-   stand side by side, the bao far left, raised but clear of the name. */
-.bannerfigs.photos.squishy { left: 0; right: 17%; width: auto; display: flex; align-items: flex-end; justify-content: flex-end; gap: 2.4%; transform: translateY(-12%); }
+   stand side by side, the bao far left. Raised towards the middle; the bao a
+   step lower, under the name and clear of it. */
+.bannerfigs.photos.squishy { left: 0; right: 18%; width: auto; display: flex; align-items: flex-end; justify-content: flex-end; gap: 1.83%; transform: translateY(-22%); }
 .bannerfigs.photos.squishy .bfp { position: static; flex-shrink: 0; transform: none; }
-.bannerfigs.photos.squishy .bfp.l { order: 0; height: 30%; }
-.bannerfigs.photos.squishy .bfp.m { order: 1; height: 42%; transform: translateY(3%); }
-.bannerfigs.photos.squishy .bfp.r { order: 2; height: 30%; }
+.bannerfigs.photos.squishy .bfp.l { order: 0; height: 35%; position: relative; top: 17%; }
+.bannerfigs.photos.squishy .bfp.m { order: 1; height: 49%; transform: translateY(3%); }
+.bannerfigs.photos.squishy .bfp.r { order: 2; height: 35%; }
 .colshade { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(0 0 0 / 0.55), rgb(0 0 0 / 0.1) 50%, transparent); }
 .colrow { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 14px; }
 .colname b { display: block; font-size: 23px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; text-shadow: 0 2px 10px rgb(0 0 0 / 0.45); }

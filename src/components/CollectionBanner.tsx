@@ -27,7 +27,7 @@ interface Scene {
   shapes?: [string, string];
   /** Where the photos stand and how tall, when the default doesn't suit
       their shapes. Whole class names, so Tailwind sees them. */
-  fit?: { box: string; side: string; middle: string; row?: boolean };
+  fit?: { box: string; side: string; middle: string; row?: boolean; first?: string };
 }
 
 const PHOTO_FIT = { box: "right-[16.5%] w-[32%]", side: "h-[64%]", middle: "h-[80%]" };
@@ -65,9 +65,9 @@ const SCENES: Record<LineId, Scene> = {
     photos: ["/collections/squishy-left.webp", "/collections/squishy-middle.webp", "/collections/squishy-right.webp"],
     shapes: ["/collections/squishy-shape-middle.png", "/collections/squishy-shape-left.png"],
     // Wide, low pieces — the bao with its lid most of all — so they stand
-    // side by side instead of overlapping, the bao far left, raised towards
-    // the middle but clear of the name.
-    fit: { box: "right-[17%] gap-[2%] -translate-y-[12%]", side: "h-[30%]", middle: "h-[42%]", row: true },
+    // side by side instead of overlapping, the bao far left. Raised towards
+    // the middle; the bao a step lower, under the name and clear of it.
+    fit: { box: "right-[18%] gap-[1.5%] -translate-y-[22%]", side: "h-[35%]", middle: "h-[49%]", row: true, first: "relative top-[17%]" },
   },
 };
 
@@ -151,7 +151,7 @@ export function CollectionBanner({ line, coverUrl }: { line: LineId; coverUrl: s
                 key={src}
                 src={src}
                 alt=""
-                className={`${photoInRow} w-auto ${i === 1 ? `${scene.fit!.middle} translate-y-[3%]` : scene.fit!.side} group-hover:-translate-y-1`}
+                className={`${photoInRow} w-auto ${i === 1 ? `${scene.fit!.middle} translate-y-[3%]` : scene.fit!.side} ${i === 0 ? (scene.fit!.first ?? "") : ""} group-hover:-translate-y-1`}
               />
             ))}
           </span>
