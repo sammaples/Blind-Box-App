@@ -100,6 +100,11 @@ iPhone Home Screen as a PWA.
 - **Shop pages hide "Non-Series"** under a piece's name; only series pieces
   show a series line. The console still shows it.
 - **No stock counts** are shown to shoppers anywhere.
+- **Real listings added in code:** Be@rbrick **Series 50 Blind Box** and
+  **Series 51 Blind Box** — sealed 100% boxes, Common, in the Bronze box
+  (migration 1700000017000; photos in `public/products/`, cut out of their
+  backgrounds). Listed with no units: they sell once stocked in Inventory
+  management. Series 51's photo is still to come.
 - **Inventory management** has a collection switcher at the top; the
   catalogue, shelves and Add product follow it. The spreadsheet import takes a
   `collection` column (Bearbrick if blank; "set" is the set name), and scale is
