@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CollectionCard } from "@/lib/collections";
-import { CollectionBanner } from "./CollectionBanner";
+import { CollectionBanner, bannerNameClass } from "./CollectionBanner";
 import { HowItWorksButton } from "./HowItWorks";
 
 /**
@@ -46,13 +46,13 @@ export function CollectionPicker({
           <li key={line.id} className={fill ? "min-h-[5.75rem] flex-1 basis-0" : "h-32 sm:h-40"}>
             <Link
               href={hrefFor(line.id)}
-              className="group relative flex h-full items-center overflow-hidden rounded-[26px] border border-white/10 bg-ink-card shadow-[0_14px_34px_-18px_rgba(0,0,0,0.8)] transition-transform active:scale-[0.985]"
+              className="group relative flex h-full items-center overflow-hidden [container-type:size] rounded-[26px] border border-white/10 bg-ink-card shadow-[0_14px_34px_-18px_rgba(0,0,0,0.8)] transition-transform active:scale-[0.985]"
             >
               <CollectionBanner line={line.id} coverUrl={coverUrl} />
               {/* Shade under the name, so it reads on any cover photo. */}
               <span aria-hidden className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/10 to-transparent" />
               <span className="relative flex w-full items-center justify-between gap-3 p-4 sm:p-5">
-                <span className="min-w-0">
+                <span className={`min-w-0 ${bannerNameClass(line.id, coverUrl)}`}>
                   <span className="block truncate text-[26px] font-bold leading-none tracking-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)] sm:text-3xl">
                     {line.name}
                   </span>

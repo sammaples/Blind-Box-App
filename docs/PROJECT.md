@@ -24,8 +24,9 @@ iPhone Home Screen as a PWA.
   TapCap's came off a dark forest scene, so they were cut out with BiRefNet
   and colour-corrected for its blue moonlight. Squishy's (bao in its steamer,
   lid kept; NeeDoh cube; cat burger) are wide and low, so they stand side by
-  side instead of overlapping (`fit.row`), raised towards the middle, the bao
-  far left and a step lower so it clears the name.
+  side instead of overlapping (`fit.row`), level and raised towards the
+  middle, the bao far left; the name sits a little higher on that bar
+  (`nameLift`) so the lid clears it.
   The faint print behind them is silhouettes of the same photos
   (`<collection>-shape-middle|left.png`), so the pattern is the figures in
   front — real Be@rbrick shapes on the Be@rbrick bar.

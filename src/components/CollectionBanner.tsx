@@ -28,6 +28,8 @@ interface Scene {
   /** Where the photos stand and how tall, when the default doesn't suit
       their shapes. Whole class names, so Tailwind sees them. */
   fit?: { box: string; side: string; middle: string; row?: boolean; first?: string };
+  /** Lifts the collection's name on its bar, to clear the figures. */
+  nameLift?: string;
 }
 
 const PHOTO_FIT = { box: "right-[16.5%] w-[32%]", side: "h-[64%]", middle: "h-[80%]" };
@@ -65,14 +67,20 @@ const SCENES: Record<LineId, Scene> = {
     photos: ["/collections/squishy-left.webp", "/collections/squishy-middle.webp", "/collections/squishy-right.webp"],
     shapes: ["/collections/squishy-shape-middle.png", "/collections/squishy-shape-left.png"],
     // Wide, low pieces — the bao with its lid most of all — so they stand
-    // side by side instead of overlapping, the bao far left. Raised towards
-    // the middle; the bao a step lower, under the name and clear of it.
-    fit: { box: "right-[18%] gap-[1.5%] -translate-y-[22%]", side: "h-[35%]", middle: "h-[49%]", row: true, first: "relative top-[17%]" },
+    // side by side instead of overlapping, the bao far left, all raised
+    // towards the middle. The name sits a little higher to clear the lid.
+    fit: { box: "right-[18%] gap-[1.5%] -translate-y-[22%]", side: "h-[35%]", middle: "h-[49%]", row: true, first: "h-[32%]" },
+    nameLift: "-translate-y-[14cqh]",
   },
 };
 
 function Pose({ line, pose, uid, className }: { line: LineId; pose: Pose; uid: string; className: string }) {
   return <CollectionArt line={line} palette={pose.palette} uid={uid} className={className} />;
+}
+
+/** Classes for the name on a bar: its scene may need it lifted, a cover photo never does. */
+export function bannerNameClass(line: LineId, coverUrl: string | null): string {
+  return coverUrl ? "" : (SCENES[line].nameLift ?? "");
 }
 
 export function CollectionBanner({ line, coverUrl }: { line: LineId; coverUrl: string | null }) {
@@ -151,7 +159,7 @@ export function CollectionBanner({ line, coverUrl }: { line: LineId; coverUrl: s
                 key={src}
                 src={src}
                 alt=""
-                className={`${photoInRow} w-auto ${i === 1 ? `${scene.fit!.middle} translate-y-[3%]` : scene.fit!.side} ${i === 0 ? (scene.fit!.first ?? "") : ""} group-hover:-translate-y-1`}
+                className={`${photoInRow} w-auto ${i === 1 ? `${scene.fit!.middle} translate-y-[3%]` : i === 0 ? (scene.fit!.first ?? scene.fit!.side) : scene.fit!.side} group-hover:-translate-y-1`}
               />
             ))}
           </span>
