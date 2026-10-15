@@ -7,7 +7,7 @@ Keep it current — when a decision changes, change it here in the same commit.
 ## What it is
 
 A mobile-first shop for physical blind-box collectibles (Bearbrick-style
-figures). Live at **https://ripnshipapp.vercel.app**, in an invite-only beta.
+figures). Live at **https://ripnshipapp.vercel.app**, in an open beta.
 Next.js 16 app router + Tailwind + framer-motion, Postgres (Neon) via
 node-pg-migrate, with a JSON-file backend for local use. Installable to the
 iPhone Home Screen as a PWA.
@@ -69,7 +69,7 @@ iPhone Home Screen as a PWA.
   `made_from`; it earns no coins. Traded pieces don't go back on the shelf
   automatically.
 - **Profile:** silver button top right. Rows: My vault, Rewards, Coins, and
-  for admins Inventory management and Invites. Delete account is supported.
+  for admins Inventory management and Sign-in. Delete account is supported.
 - **Tester gate: OFF.** Sam turned the access code off; sign-in is back to
   email / phone / Apple. The code is still there to switch on: set
   `ACCESS_CODE` in Vercel (e.g. `blindbox`) and every page and API call sits
@@ -83,17 +83,16 @@ iPhone Home Screen as a PWA.
   opening a sheet: address/number, then a typed code. Codes exist because a
   Home Screen app keeps its own cookies, separate from Safari.
 - **Open testing (on):** anyone signs in by typing just their email — no
-  code, no invite needed — so friends can test while emailed codes only reach
+  code — so friends can test while emailed codes only reach
   Sam (Resend is on its test domain). **Admin addresses (`ADMIN_EMAILS`) never
   take the shortcut**; they still need the emailed code, and only they get
-  Inventory management. Switch on Profile → Invites ("Open testing", stored
+  Inventory management. Switch on Profile → Sign-in (`/admin/sign-in`, stored
   as the `open_testing` setting; on unless switched off). Anyone can sign in
   as any non-admin address while it's on — fine for the beta, not for launch.
   Mirrored in the simulator.
-- **Invite-only:** when open testing is off, only addresses/numbers on the
-  in-app invite list (profile → Invites) can sign in; admins always can.
-  Browsing needs no invite. The list lives in the database, never in code —
-  this repo is public.
+- **No invite list:** everyone can sign in (Sam removed invite-only). With
+  open testing off, sign-in is by emailed code / phone / Apple. The old
+  `invites` table is left in the database, unused.
 - **Shop pages hide "Non-Series"** under a piece's name; only series pieces
   show a series line. The console still shows it.
 - **No stock counts** are shown to shoppers anywhere.
@@ -140,7 +139,7 @@ phone number. Sam enters secrets straight into Vercel. The repo is public.
 
 ## Still to do (outside the code)
 
-- **Before a wider launch:** turn Open testing off (Profile → Invites).
+- **Before a wider launch:** turn Open testing off (Profile → Sign-in).
 - **Email sign-in:** `RESEND_API_KEY` and `EMAIL_FROM` in Vercel, with
   `EMAIL_FROM` on a domain verified in Resend (Resend's test domain only
   reaches the account owner, so friends would get no code).
@@ -168,5 +167,5 @@ Playwright is at `/opt/node22/lib/node_modules/playwright/index.mjs` with
 Chromium preinstalled (don't run `playwright install`). For a local Postgres,
 initdb a cluster, run migrations with `DATABASE_URL=… npx node-pg-migrate up`,
 and start `next dev` with `DATABASE_URL`, `AUTH_SECRET` and, to test admin
-and invite rules as production does, `ADMIN_EMAILS` set to a test address.
+and the open-testing rules as production does, `ADMIN_EMAILS` set to a test address.
 Without `ADMIN_EMAILS`, local admin mode lets every signed-in account in.

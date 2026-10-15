@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { syncAdmin } from "@/lib/admin";
 import { issueLoginToken, normaliseEmail, safeNext, startSession } from "@/lib/auth";
 import { backend } from "@/lib/db";
-import { mayEnterWithoutCode, maySignIn, NOT_INVITED } from "@/lib/invites";
+import { mayEnterWithoutCode } from "@/lib/openTesting";
 import {
   canRevealLinkInResponse,
   canSendLoginLinks,
@@ -50,11 +50,6 @@ export async function POST(request: Request) {
       { error: "That does not look like an email address" },
       { status: 400 },
     );
-  }
-
-  // Before anything is sent: an address that is not invited gets no email.
-  if (!(await maySignIn({ email: address }))) {
-    return NextResponse.json({ error: NOT_INVITED }, { status: 403 });
   }
 
   const { token, code } = await issueLoginToken(address);

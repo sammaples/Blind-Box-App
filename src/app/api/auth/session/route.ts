@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { accessGateOn, isTesterId } from "@/lib/access";
 import { checkAdmin } from "@/lib/admin";
-import { openTesting } from "@/lib/invites";
+import { openTesting } from "@/lib/openTesting";
 import { appleConfigured } from "@/lib/apple";
 import { currentAccountId, endSession } from "@/lib/auth";
 import { backend } from "@/lib/db";

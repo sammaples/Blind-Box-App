@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { normalisePhone } from "@/lib/auth";
 import { SmsError, canRevealCodeInResponse, canTextCodes, sms } from "@/lib/sms";
-import { maySignIn, NOT_INVITED } from "@/lib/invites";
 
 /** Texts a sign-in code to a phone number. */
 export async function POST(request: Request) {
@@ -24,12 +23,6 @@ export async function POST(request: Request) {
       { error: "That doesn’t look like a phone number. Outside the US, start with + and the country code." },
       { status: 400 },
     );
-  }
-
-  // Before anything is sent: a text costs money, and an uninvited number
-  // gets nothing.
-  if (!(await maySignIn({ phone }))) {
-    return NextResponse.json({ error: NOT_INVITED }, { status: 403 });
   }
 
   try {

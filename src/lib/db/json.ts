@@ -553,30 +553,6 @@ export function createJsonBackend(): Backend {
       }
     },
 
-    async listInvites() {
-      const db = await read();
-      return [...db.invites].sort((a, b) => (a.addedAt < b.addedAt ? 1 : -1));
-    },
-
-    async addInvite(entry) {
-      await transact((db) => {
-        if (!db.invites.some((i) => i.entry === entry)) {
-          db.invites.push({ entry, addedAt: new Date().toISOString() });
-        }
-      });
-    },
-
-    async removeInvite(entry) {
-      await transact((db) => {
-        db.invites = db.invites.filter((i) => i.entry !== entry);
-      });
-    },
-
-    async hasInvite(entry) {
-      const db = await read();
-      return db.invites.some((i) => i.entry === entry);
-    },
-
     async getSetting(key) {
       const db = await read();
       return db.settings[key] ?? null;

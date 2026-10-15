@@ -191,11 +191,6 @@ export interface Backend {
   /** The most recent movements, newest first. */
   coinHistory(collectorId: string, limit: number): Promise<CoinEntry[]>;
 
-  /** The invite list, newest first: emails (lowercased) and phone numbers (E.164). */
-  listInvites(): Promise<{ entry: string; addedAt: string }[]>;
-  addInvite(entry: string): Promise<void>;
-  removeInvite(entry: string): Promise<void>;
-  hasInvite(entry: string): Promise<boolean>;
 
   /** A shop-wide setting, or null when it has never been set. */
   getSetting(key: string): Promise<string | null>;

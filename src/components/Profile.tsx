@@ -235,7 +235,7 @@ function SignedIn({ onClose }: { onClose: () => void }) {
         {account.isAdmin && (
           <>
             <Row href="/admin" onClose={onClose} icon={<BoxIcon />}>Inventory management</Row>
-            <Row href="/admin/invites" onClose={onClose} icon={<InviteIcon />}>Invites</Row>
+            <Row href="/admin/sign-in" onClose={onClose} icon={<InviteIcon />}>Sign-in</Row>
           </>
         )}
       </Group>

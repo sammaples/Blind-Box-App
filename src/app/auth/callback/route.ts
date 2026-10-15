@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { redeemLoginToken, safeNext, startSession } from "@/lib/auth";
-import { maySignIn } from "@/lib/invites";
 
 /**
  * Opens a sign-in link. Redeeming is single-use, so a link that has already
@@ -18,8 +17,6 @@ export async function GET(request: Request) {
     return NextResponse.redirect(to);
   };
   if (!account) return retry("expired");
-  // A link sent before its address came off the invite list no longer works.
-  if (!(await maySignIn({ email: account.email }))) return retry("invite");
 
   const claimed = await startSession(account);
   const destination = new URL(safeNext(url.searchParams.get("next")), url.origin);
