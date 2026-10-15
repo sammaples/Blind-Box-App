@@ -27,7 +27,7 @@ interface Scene {
   shapes?: [string, string];
   /** Where the photos stand and how tall, when the default doesn't suit
       their shapes. Whole class names, so Tailwind sees them. */
-  fit?: { box: string; side: string; middle: string };
+  fit?: { box: string; side: string; middle: string; row?: boolean };
 }
 
 const PHOTO_FIT = { box: "right-[16.5%] w-[32%]", side: "h-[64%]", middle: "h-[80%]" };
@@ -62,11 +62,12 @@ const SCENES: Record<LineId, Scene> = {
     ground: "linear-gradient(115deg, #061716 0%, #124d48 44%, #56c9b6 100%)",
     glow: "#b9fff1",
     ink: "#ffffff",
-    poses: [
-      { palette: { base: "#d8c8ff", accent: "#9b84e0" } },
-      { palette: { base: "#9fe3d6", accent: "#4fb8a6" } },
-      { palette: { base: "#ffd1b0", accent: "#f09a6a" } },
-    ],
+    photos: ["/collections/squishy-left.webp", "/collections/squishy-middle.webp", "/collections/squishy-right.webp"],
+    shapes: ["/collections/squishy-shape-middle.png", "/collections/squishy-shape-left.png"],
+    // Wide, low pieces — the bao with its lid most of all — so they stand
+    // side by side instead of overlapping, the bao far left, low enough to
+    // pass under the name.
+    fit: { box: "right-[17%] gap-[2.5%]", side: "h-[34%]", middle: "h-[46%]", row: true },
   },
 };
 
@@ -86,6 +87,7 @@ export function CollectionBanner({ line, coverUrl }: { line: LineId; coverUrl: s
   const pid = `cb-${line}`;
   const fig = "absolute bottom-0 drop-shadow-[0_12px_18px_rgba(0,0,0,0.55)] transition-transform duration-500";
   const photo = "absolute bottom-0 drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)] transition-transform duration-500";
+  const photoInRow = "shrink-0 drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)] transition-transform duration-500";
 
   return (
     <span aria-hidden className="absolute inset-0 overflow-hidden" style={{ background: scene.ground }}>
@@ -141,6 +143,19 @@ export function CollectionBanner({ line, coverUrl }: { line: LineId; coverUrl: s
         // by the bar's height rather than by width. All three at full
         // brightness with a tight shadow: they are photos, and dimming the two
         // behind made them read as out of focus.
+        scene.fit?.row ? (
+          <span className={`absolute inset-y-0 flex w-full items-end justify-end ${scene.fit.box}`}>
+            {scene.photos.map((src, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={src}
+                src={src}
+                alt=""
+                className={`${photoInRow} w-auto ${i === 1 ? `${scene.fit!.middle} translate-y-[3%]` : scene.fit!.side} group-hover:-translate-y-1`}
+              />
+            ))}
+          </span>
+        ) : (
         <span className={`absolute inset-y-0 ${(scene.fit ?? PHOTO_FIT).box}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={scene.photos[0]} alt="" className={`${photo} left-0 ${(scene.fit ?? PHOTO_FIT).side} w-auto origin-bottom -rotate-[7deg] group-hover:-translate-y-1`} />
@@ -149,6 +164,7 @@ export function CollectionBanner({ line, coverUrl }: { line: LineId; coverUrl: s
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={scene.photos[1]} alt="" className={`${photo} left-1/2 ${(scene.fit ?? PHOTO_FIT).middle} w-auto -translate-x-1/2 translate-y-[3%] group-hover:-translate-y-[1%]`} />
         </span>
+        )
       ) : scene.poses ? (
         <span className="absolute inset-y-0 right-[13%] w-[40%]">
           <Pose line={line} pose={scene.poses[0]} uid={`${pid}-l`} className={`${fig} left-[2%] h-auto w-[34%] -rotate-[8deg] brightness-[0.82] group-hover:-translate-y-1`} />

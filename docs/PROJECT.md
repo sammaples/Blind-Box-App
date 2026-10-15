@@ -17,16 +17,18 @@ iPhone Home Screen as a PWA.
   **Pop Mart, Squishy, TapCap**. Each bar shows the collection's cover photo
   (uploaded in Inventory management → collection → Change cover; stored as the
   `cover:<collection>` setting) or, until then, a scene with three figures —
-  Be@rbrick's, Pop Mart's and TapCap's are cut-out photos of real pieces
+  all four are cut-out photos of real pieces
   (`public/collections/<collection>-left|middle|right.webp`, 960px tall,
   upscaled with Real-ESRGAN before cutting out; all three at full
   brightness, never dimmed or blurred; embedded in the simulator too).
   TapCap's came off a dark forest scene, so they were cut out with BiRefNet
-  and colour-corrected for its blue moonlight. Squishy's are still drawn.
+  and colour-corrected for its blue moonlight. Squishy's (bao in its steamer,
+  lid kept; NeeDoh cube; cat burger) are wide and low, so they stand side by
+  side instead of overlapping (`fit.row`), the bao far left under the name.
   The faint print behind them is silhouettes of the same photos
   (`<collection>-shape-middle|left.png`), so the pattern is the figures in
   front — real Be@rbrick shapes on the Be@rbrick bar.
-  The middle one stands in front. Each opens
+  On the other bars the middle one stands in front. Each opens
   `/shop/<collection>`, the box shop below, over that
   collection's own pieces and stock. Defined in `src/lib/lines.ts` (code calls
   a collection a "line"); adding one is an entry there plus its drawing in
@@ -38,10 +40,10 @@ iPhone Home Screen as a PWA.
   other collections have no sizes (hidden everywhere). All tiers are buyable
   (Diamond's "coming soon" flag was removed; the flag still exists).
 - **Box prints:** each collection's carton has its own print — bears on blue,
-  vinyl figures on pink (Pop Mart), soft buns on mint (Squishy), block figures
-  on slime green (TapCap — its bar and colour are slime green too). Where the bar has photos, the printed figures are those
-  photos' outlines, traced to vectors in `src/lib/figureShapes.ts` (regenerate
-  when the photos change); Squishy's are still drawn.
+  vinyl figures on pink (Pop Mart), squishies on mint (Squishy), block figures
+  on slime green (TapCap — its bar and colour are slime green too). The
+  printed figures are the bar photos' outlines, traced to vectors in
+  `src/lib/figureShapes.ts` (regenerate when the photos change).
 - **Current stock** (`/stock`) starts on the same collection bars; each
   collection's stock is `/stock/<collection>`, with just a back arrow to the
   bars (no collection switcher), then the box tabs and rarity filters.
