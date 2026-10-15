@@ -17,6 +17,7 @@ import { backend } from "./db";
  */
 
 const SETTING = "invite_only";
+const OPEN_SETTING = "open_testing";
 
 /** Shown on the sign-in sheet as is. */
 export const NOT_INVITED =
@@ -31,6 +32,27 @@ export async function setInviteOnly(on: boolean): Promise<void> {
   await backend().setSetting(SETTING, on ? "true" : "false");
 }
 
+/**
+ * Open testing: anyone signs in with just their email, no code, and the
+ * invite list is set aside. For the beta, while emailed codes only reach the
+ * owner. Admin addresses never take this shortcut — they still need the code
+ * — so typing the owner's address gets nobody into the console. On unless
+ * switched off (Invites page).
+ */
+export async function openTesting(): Promise<boolean> {
+  return (await backend().getSetting(OPEN_SETTING)) !== "false";
+}
+
+export async function setOpenTesting(on: boolean): Promise<void> {
+  await backend().setSetting(OPEN_SETTING, on ? "true" : "false");
+}
+
+/** Whether this address may sign in by typing it alone. Never an admin's. */
+export async function mayEnterWithoutCode(email: string): Promise<boolean> {
+  if (shouldBeAdmin(email)) return false;
+  return openTesting();
+}
+
 /** An email (lowercased) or a phone number (E.164), or null if it is neither. */
 export function normaliseInvite(input: unknown): string | null {
   if (typeof input !== "string") return null;
@@ -42,6 +64,7 @@ export function normaliseInvite(input: unknown): string | null {
 /** Whether this email or phone number may sign in right now. */
 export async function maySignIn(who: { email?: string | null; phone?: string | null }): Promise<boolean> {
   if (adminMode() === "bootstrap") return true;
+  if (await openTesting()) return true;
   if (!(await inviteOnly())) return true;
   const email = who.email ? normaliseEmail(who.email) : null;
   if (email && shouldBeAdmin(email)) return true;

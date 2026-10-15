@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { accessGateOn, isTesterId } from "@/lib/access";
 import { checkAdmin } from "@/lib/admin";
+import { openTesting } from "@/lib/invites";
 import { appleConfigured } from "@/lib/apple";
 import { currentAccountId, endSession } from "@/lib/auth";
 import { backend } from "@/lib/db";
@@ -15,9 +16,11 @@ export async function GET() {
   const apple = appleConfigured();
   // Whether the sign-in screen offers "Continue as tester".
   const tester = accessGateOn();
+  // Whether typing an email signs straight in (the sheet words itself to match).
+  const open = await openTesting();
 
   const accountId = await currentAccountId();
-  if (!accountId) return NextResponse.json({ account: null, apple, tester });
+  if (!accountId) return NextResponse.json({ account: null, apple, tester, openTesting: open });
 
   // Touch nothing: this is a read, and an unknown id simply is not signed in.
   const account = await backend().upsertCollector(accountId, {});
@@ -32,6 +35,7 @@ export async function GET() {
   return NextResponse.json({
     apple,
     tester,
+    openTesting: open,
     account: {
       id: account.id,
       email: account.email,

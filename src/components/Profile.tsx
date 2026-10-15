@@ -435,6 +435,7 @@ export function SignInScreen({
   open,
   apple,
   tester = false,
+  openTesting = false,
   reason,
   onClose,
   onSignedIn,
@@ -443,6 +444,8 @@ export function SignInScreen({
   apple: boolean;
   /** Offer "Continue as tester": the access-code beta is on. */
   tester?: boolean;
+  /** Typing an email signs straight in, no code (admins excepted). */
+  openTesting?: boolean;
   reason: string | null;
   onClose: () => void;
   onSignedIn: () => void;
@@ -569,7 +572,7 @@ export function SignInScreen({
     ? createPortal(
         <>
           {screen}
-          <CodeSheet method={open ? method : null} next={next} onClose={() => setMethod(null)} onSignedIn={onSignedIn} />
+          <CodeSheet method={open ? method : null} next={next} openTesting={openTesting} onClose={() => setMethod(null)} onSignedIn={onSignedIn} />
         </>,
         document.body,
       )
@@ -639,11 +642,13 @@ function useKeyboardInset(active: boolean): number {
 function CodeSheet({
   method,
   next,
+  openTesting = false,
   onClose,
   onSignedIn,
 }: {
   method: CodeMethod | null;
   next: string;
+  openTesting?: boolean;
   onClose: () => void;
   onSignedIn: () => void;
 }) {
@@ -683,6 +688,11 @@ function CodeSheet({
     setError(null);
     try {
       const data = await post(m.send, kind === "email" ? { email: value, next } : { phone: value });
+      // Open testing: the address was enough, and the session is already set.
+      if (data.signedIn === true) {
+        onSignedIn();
+        return;
+      }
       setSentTo(kind === "phone" && typeof data.phone === "string" ? data.phone : value.trim());
       setCode(typeof data.devCode === "string" ? data.devCode : "");
     } catch (err) {
@@ -746,7 +756,7 @@ function CodeSheet({
                       Sent to <span className="font-medium text-[#0e0b2a]">{kind === "phone" ? formatPhone(sentTo) : sentTo}</span>
                     </>
                   ) : (
-                    m.hint
+                    kind === "email" && openTesting ? "Enter your email to sign in." : m.hint
                   )}
                 </p>
               </div>
@@ -800,7 +810,7 @@ function CodeSheet({
                   />
                 )}
                 <button type="submit" disabled={busy || value.trim() === ""} className={primary}>
-                  {busy ? "Sending…" : "Send code"}
+                  {busy ? (kind === "email" && openTesting ? "Signing in…" : "Sending…") : kind === "email" && openTesting ? "Continue" : "Send code"}
                 </button>
               </form>
             ) : (

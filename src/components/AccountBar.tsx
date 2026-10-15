@@ -55,6 +55,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<Account | null>(null);
   const [apple, setApple] = useState(false);
   const [tester, setTester] = useState(false);
+  const [openTesting, setOpenTesting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [prompt, setPrompt] = useState<string | null>(null);
   const [profile, setProfile] = useState(false);
@@ -67,6 +68,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       setAccount(data.account ?? null);
       setApple(data.apple === true);
       setTester(data.tester === true);
+      setOpenTesting(data.openTesting === true);
     } catch {
       setAccount(null);
     } finally {
@@ -134,6 +136,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         open={prompt !== null}
         apple={apple}
         tester={tester}
+        openTesting={openTesting}
         reason={prompt || null}
         onClose={() => setPrompt(null)}
         onSignedIn={() => {

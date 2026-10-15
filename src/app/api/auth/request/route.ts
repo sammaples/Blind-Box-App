@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { issueLoginToken, normaliseEmail, safeNext } from "@/lib/auth";
-import { maySignIn, NOT_INVITED } from "@/lib/invites";
+import { syncAdmin } from "@/lib/admin";
+import { issueLoginToken, normaliseEmail, safeNext, startSession } from "@/lib/auth";
+import { backend } from "@/lib/db";
+import { mayEnterWithoutCode, maySignIn, NOT_INVITED } from "@/lib/invites";
 import {
   canRevealLinkInResponse,
   canSendLoginLinks,
@@ -19,6 +21,16 @@ export async function POST(request: Request) {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Malformed request body" }, { status: 400 });
+  }
+
+  // Open testing: a tester's address signs straight in, no email sent, so it
+  // works before any email service can reach them. An admin's address never
+  // does — it falls through to the code below.
+  const early = normaliseEmail(body.email);
+  if (early && (await mayEnterWithoutCode(early))) {
+    const account = await syncAdmin(await backend().accountForEmail(early));
+    await startSession(account);
+    return NextResponse.json({ ok: true, signedIn: true });
   }
 
   if (!canSendLoginLinks()) {

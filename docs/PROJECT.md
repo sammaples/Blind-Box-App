@@ -82,9 +82,18 @@ iPhone Home Screen as a PWA.
   configured), **Continue with email** and **Continue with phone**, each
   opening a sheet: address/number, then a typed code. Codes exist because a
   Home Screen app keeps its own cookies, separate from Safari.
-- **Invite-only:** only addresses/numbers on the in-app invite list (profile →
-  Invites) can sign in; admins (`ADMIN_EMAILS`) always can. Browsing needs no
-  invite. The list lives in the database, never in code — this repo is public.
+- **Open testing (on):** anyone signs in by typing just their email — no
+  code, no invite needed — so friends can test while emailed codes only reach
+  Sam (Resend is on its test domain). **Admin addresses (`ADMIN_EMAILS`) never
+  take the shortcut**; they still need the emailed code, and only they get
+  Inventory management. Switch on Profile → Invites ("Open testing", stored
+  as the `open_testing` setting; on unless switched off). Anyone can sign in
+  as any non-admin address while it's on — fine for the beta, not for launch.
+  Mirrored in the simulator.
+- **Invite-only:** when open testing is off, only addresses/numbers on the
+  in-app invite list (profile → Invites) can sign in; admins always can.
+  Browsing needs no invite. The list lives in the database, never in code —
+  this repo is public.
 - **Shop pages hide "Non-Series"** under a piece's name; only series pieces
   show a series line. The console still shows it.
 - **No stock counts** are shown to shoppers anywhere.
@@ -131,6 +140,7 @@ phone number. Sam enters secrets straight into Vercel. The repo is public.
 
 ## Still to do (outside the code)
 
+- **Before a wider launch:** turn Open testing off (Profile → Invites).
 - **Email sign-in:** `RESEND_API_KEY` and `EMAIL_FROM` in Vercel, with
   `EMAIL_FROM` on a domain verified in Resend (Resend's test domain only
   reaches the account owner, so friends would get no code).

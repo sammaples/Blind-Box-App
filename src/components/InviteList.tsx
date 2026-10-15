@@ -5,6 +5,8 @@ import { formatPhone } from "@/lib/phone";
 
 interface State {
   inviteOnly: boolean;
+  /** Anyone signs in with just their email; admins still need the code. */
+  openTesting: boolean;
   invites: { entry: string; addedAt: string }[];
 }
 
@@ -41,29 +43,22 @@ export function InviteList({ initial }: { initial: State }) {
 
   return (
     <div className="mt-6">
-      <button
-        type="button"
-        role="switch"
-        aria-checked={state.inviteOnly}
+      <Switch
+        on={state.openTesting}
         disabled={busy}
-        onClick={() => void call("PATCH", { inviteOnly: !state.inviteOnly })}
-        className="flex w-full items-center gap-4 rounded-2xl border border-hairline bg-ink-card px-5 py-4 text-left"
-      >
-        <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-medium">Invite only</span>
-          <span className="mt-0.5 block text-[13px] text-muted">
-            {state.inviteOnly ? "Only the people below can sign in" : "Anyone can sign in"}
-          </span>
-        </span>
-        <span
-          aria-hidden
-          className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${state.inviteOnly ? "bg-emerald-500" : "bg-white/15"}`}
-        >
-          <span
-            className={`absolute top-0.5 size-6 rounded-full bg-white shadow transition-transform ${state.inviteOnly ? "translate-x-[22px]" : "translate-x-0.5"}`}
-          />
-        </span>
-      </button>
+        onClick={() => void call("PATCH", { openTesting: !state.openTesting })}
+        title="Open testing"
+        detail={state.openTesting ? "Anyone can sign in with just their email. Admins still need the code." : "Sign-in needs the emailed code"}
+      />
+      <div className={state.openTesting ? "pointer-events-none mt-3 opacity-40" : "mt-3"}>
+        <Switch
+          on={state.inviteOnly}
+          disabled={busy || state.openTesting}
+          onClick={() => void call("PATCH", { inviteOnly: !state.inviteOnly })}
+          title="Invite only"
+          detail={state.openTesting ? "Off while open testing is on" : state.inviteOnly ? "Only the people below can sign in" : "Anyone can sign in"}
+        />
+      </div>
 
       <form
         className="mt-6 flex gap-2"
@@ -125,5 +120,38 @@ export function InviteList({ initial }: { initial: State }) {
         </ul>
       )}
     </div>
+  );
+}
+
+function Switch({
+  on,
+  disabled,
+  onClick,
+  title,
+  detail,
+}: {
+  on: boolean;
+  disabled: boolean;
+  onClick: () => void;
+  title: string;
+  detail: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      disabled={disabled}
+      onClick={onClick}
+      className="flex w-full items-center gap-4 rounded-2xl border border-hairline bg-ink-card px-5 py-4 text-left"
+    >
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-medium">{title}</span>
+        <span className="mt-0.5 block text-[13px] text-muted">{detail}</span>
+      </span>
+      <span aria-hidden className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${on ? "bg-emerald-500" : "bg-white/15"}`}>
+        <span className={`absolute top-0.5 size-6 rounded-full bg-white shadow transition-transform ${on ? "translate-x-[22px]" : "translate-x-0.5"}`} />
+      </span>
+    </button>
   );
 }

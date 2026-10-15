@@ -3157,7 +3157,8 @@ function codeSheet() {
     '<div class="csheet" role="dialog" aria-label="' + (phone ? "Sign in with phone" : "Sign in with email") + '">' +
       '<span class="grab"></span>' +
       '<div class="top"><div><h2>' + (sent ? "Enter the code" : phone ? "Sign in with phone" : "Sign in with email") + '</h2>' +
-        '<p class="hint">' + (sent ? 'Sent to <b>' + esc(sent) + '</b>' : phone ? "We\u2019ll text you a code." : "We\u2019ll email you a code.") + '</p></div>' +
+        // Open testing, as in the app: an email alone signs in.
+        '<p class="hint">' + (sent ? 'Sent to <b>' + esc(sent) + '</b>' : phone ? "We\u2019ll text you a code." : "Enter your email to sign in.") + '</p></div>' +
         '<button class="x" type="button" aria-label="Close" data-sheetclose="1">\u00d7</button></div>' +
       (sent
         ? '<input class="code" type="text" value="' + (phone ? "834275" : "BX7K-Q2MD") + '" aria-label="Sign-in code">' +
@@ -3167,7 +3168,8 @@ function codeSheet() {
         : (phone
             ? '<input type="tel" placeholder="(555) 123-4567" aria-label="Phone number" autocomplete="tel">'
             : '<input type="email" placeholder="you@example.com" aria-label="Email address" autocomplete="email">') +
-          '<button class="pill dark" type="button" data-sendcode="1">Send code</button>') +
+          (phone ? '<button class="pill dark" type="button" data-sendcode="1">Send code</button>'
+            : '<button class="pill dark" type="button" data-apple="1">Continue</button>')) +
     '</div>';
 }
 

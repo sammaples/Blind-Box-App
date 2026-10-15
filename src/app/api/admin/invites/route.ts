@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin";
 import { backend } from "@/lib/db";
-import { inviteOnly, normaliseInvite, setInviteOnly } from "@/lib/invites";
+import { inviteOnly, normaliseInvite, openTesting, setInviteOnly, setOpenTesting } from "@/lib/invites";
 
 /** The invite list and whether it is being enforced. Admins only, every method. */
 async function state() {
-  const [on, invites] = await Promise.all([inviteOnly(), backend().listInvites()]);
-  return { inviteOnly: on, invites };
+  const [on, open, invites] = await Promise.all([inviteOnly(), openTesting(), backend().listInvites()]);
+  return { inviteOnly: on, openTesting: open, invites };
 }
 
 const refuse = () => NextResponse.json({ error: "Not authorised" }, { status: 401 });
@@ -50,13 +50,16 @@ export async function DELETE(request: Request) {
   return NextResponse.json(await state());
 }
 
-/** Switches invite-only on or off. */
+/** Switches invite-only, or open testing, on or off. */
 export async function PATCH(request: Request) {
   if (!(await isAdmin())) return refuse();
-  const on = (await body(request))?.inviteOnly;
-  if (typeof on !== "boolean") {
+  const sent = await body(request);
+  const on = sent?.inviteOnly;
+  const open = sent?.openTesting;
+  if (typeof on !== "boolean" && typeof open !== "boolean") {
     return NextResponse.json({ error: "Malformed request body" }, { status: 400 });
   }
-  await setInviteOnly(on);
+  if (typeof on === "boolean") await setInviteOnly(on);
+  if (typeof open === "boolean") await setOpenTesting(open);
   return NextResponse.json(await state());
 }
