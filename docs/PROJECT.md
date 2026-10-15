@@ -103,8 +103,8 @@ iPhone Home Screen as a PWA.
 - **Real listings added in code:** Be@rbrick **Series 50 Blind Box** and
   **Series 51 Blind Box** — sealed 100% boxes, Common, in the Bronze box
   (migration 1700000017000; photos in `public/products/`, cut out of their
-  backgrounds). Listed with no units: they sell once stocked in Inventory
-  management. Series 51's photo is still to come.
+  backgrounds — Series 51's added by 1700000018000 to every box it is in).
+  Listed with no units: they sell once stocked in Inventory management.
 - **Inventory management** (`/admin`) opens on the collection bars (pieces
   and units under each name). Tap one: **Bronze / Silver / Gold / Diamond**
   buttons, and everything below — stats, "In this box" list, shelf, stocking,
