@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AddProduct, type EditableProduct, type NewProduct } from "@/components/AddProduct";
+import { listingBase } from "@/lib/listings";
 import { CatalogueGrid } from "@/components/CatalogueGrid";
 import { PieceImage } from "@/components/PieceImage";
 import { RarityChip } from "@/components/ui";
@@ -1134,7 +1135,7 @@ function Catalogue({
           // Show it: a new product landing on page four of an unfiltered list
           // looks exactly like a save that did not happen.
           setQuery(product.name);
-          setTierFilter(product.tier);
+          setTierFilter(product.tiers.length > 1 ? "all" : product.tier);
           setOpen(product.id);
           router.refresh();
         }}
@@ -1381,6 +1382,12 @@ function Catalogue({
                   series: piece.series,
                   scale: piece.scale,
                   tier: piece.tier,
+                  // Every box this product is in, so the form opens on all of them.
+                  tiers: ((found) => (found.length > 0 ? found : [piece.tier]))(
+                    TIER_ORDER.filter((t) =>
+                      pieces.some((p) => !p.archived && p.tier === t && listingBase(p.id) === listingBase(piece.id)),
+                    ),
+                  ),
                   rarity: piece.rarity,
                   category: piece.category,
                   imageUrl: piece.imageUrl,

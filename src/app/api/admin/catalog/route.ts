@@ -3,6 +3,7 @@ import { parseCoinValue } from "@/lib/coins";
 import { isAdmin } from "@/lib/admin";
 import { toCategory } from "@/lib/catalog";
 import { DEFAULT_LINE, toLine } from "@/lib/lines";
+import { listingBase, listingIdFor } from "@/lib/listings";
 import {
   allPieces,
   buildPiece,
@@ -18,7 +19,7 @@ import {
   setPieceArchived,
 } from "@/lib/pieces";
 import { applyStockChanges } from "@/lib/stock";
-import type { Rarity, Scale, Tier } from "@/lib/types";
+import type { Piece, Rarity, Scale, Tier } from "@/lib/types";
 
 /** What has to be typed to empty the shop. Shown in the console beside the box. */
 const RESET_PHRASE = "RESET";
@@ -115,16 +116,20 @@ export async function POST(request: Request) {
     );
   }
 
-  // Which box sells it. Validated here and not only in the form, because the
-  // form is not the only way to reach this — and a piece in the wrong box is
-  // sold at the wrong price to the wrong pool.
-  const tier = (body.tier ?? "bronze") as Tier;
-  if (!TIERS.includes(tier)) {
+  // Which boxes sell it: `tiers`, or the older single `tier`. Validated here
+  // and not only in the form, because the form is not the only way to reach
+  // this — and a piece in the wrong box is sold at the wrong price to the
+  // wrong pool.
+  const asked: unknown[] = Array.isArray(body.tiers) ? body.tiers : [body.tier ?? "bronze"];
+  if (asked.length === 0 || asked.some((t) => !TIERS.includes(t as Tier))) {
     return NextResponse.json(
-      { error: "Tier must be bronze, silver, gold or diamond" },
+      { error: "Pick at least one box: bronze, silver, gold or diamond" },
       { status: 400 },
     );
   }
+  // Cheapest first, once each.
+  const tiers = TIERS.filter((t) => asked.includes(t));
+  const tier = tiers[0];
 
   const rarity = (body.rarity ?? "common") as Rarity;
   if (!RARITIES.includes(rarity)) {
@@ -198,23 +203,64 @@ export async function POST(request: Request) {
     coinValue,
   });
 
-  let piece = draft;
-  if (editingId) {
-    await savePieces([draft]);
+  // A product in several boxes is one listing per box (see lib/listings).
+  // `placed` are the listings it ends up with; `fresh` are the ones this save
+  // put in a box they were not in, which is where new units go.
+  const placed: Piece[] = [];
+  const fresh: Piece[] = [];
+
+  if (!editingId) {
+    const first = await createPiece(draft);
+    placed.push(first);
+    for (const t of tiers.slice(1)) {
+      placed.push(await createPiece({ ...draft, id: listingIdFor(first.id, t), tier: t }));
+    }
+    fresh.push(...placed);
   } else {
-    piece = await createPiece(draft);
+    const base = listingBase(editingId);
+    const members = (await allPieces()).filter((p) => listingBase(p.id) === base);
+    if (!members.some((m) => m.id === editingId)) {
+      return NextResponse.json({ error: "No piece with that id" }, { status: 404 });
+    }
+    for (const t of TIERS) {
+      const live = members.find((m) => m.tier === t && !m.archived);
+      if (tiers.includes(t)) {
+        // Already in this box: the edit applies here too. Taken out of it
+        // before: brought back, history and all. Never in it: a new listing.
+        const kept = live ?? members.find((m) => m.tier === t);
+        if (kept) {
+          const updated = { ...draft, id: kept.id, tier: t };
+          await savePieces([updated]);
+          if (kept.archived) {
+            await setPieceArchived(kept.id, false);
+            fresh.push(updated);
+          }
+          placed.push(updated);
+        } else {
+          const created = await createPiece({ ...draft, id: listingIdFor(base, t), tier: t });
+          placed.push(created);
+          fresh.push(created);
+        }
+      } else if (live) {
+        // Taken out of this box. Deleted if none ever sold, otherwise archived
+        // so the orders that pulled it still resolve — as Delete does.
+        const removed = await deletePiece(live.id);
+        if (!removed.deleted) await setPieceArchived(live.id, true);
+      }
+    }
   }
 
   // Listing a product and putting the box of them on the shelf is usually one
-  // errand, so the form can do both. Stock has to follow the save: there is
-  // nothing to attach units to until the piece exists.
+  // errand, so the form can do both — the same count in each box it went
+  // into. Stock has to follow the save: there is nothing to attach units to
+  // until the piece exists.
   let stock = null;
-  if (quantity !== null) {
-    const [applied] = await applyStockChanges([
-      { pieceId: piece.id, op: "set", units: quantity },
-    ]);
-    stock = applied ?? null;
+  if (quantity !== null && fresh.length > 0) {
+    stock = await applyStockChanges(
+      fresh.map((p) => ({ pieceId: p.id, op: "set" as const, units: quantity })),
+    );
   }
 
-  return NextResponse.json({ piece, stock });
+  const piece = placed.find((p) => p.id === editingId) ?? placed[0];
+  return NextResponse.json({ piece, pieces: placed, stock });
 }

@@ -109,6 +109,13 @@ iPhone Home Screen as a PWA.
   catalogue, shelves and Add product follow it. The spreadsheet import takes a
   `collection` column (Bearbrick if blank; "set" is the set name), and scale is
   only required for Bearbrick rows. Template: `public/catalogue-template.csv`.
+- **One product, several boxes:** Add product / Edit details has tick boxes
+  for Bronze/Silver/Gold/Diamond plus "All boxes". Each ticked box gets its
+  own listing — own units, own pull rate — tied by id (the first keeps the
+  plain id, the rest are `<id>-in-<box>`; `src/lib/listings.ts`). Editing any
+  one changes all of them; unticking a box deletes that listing if it never
+  sold, otherwise archives it. "Units per box" stocks each new box the same.
+  No simulator mirror: the simulator has no Inventory management.
 
 ## Sam's preferences (the owner)
 

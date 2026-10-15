@@ -34,12 +34,21 @@ import type { Category, Rarity, Scale, Tier } from "@/lib/types";
  * what the old single picker did, and it is why a 400% could only ever be sold
  * on its own shelf. Now a 400% is what hides at the bottom of a tier.
  */
-const TIER_CHOICES: { tier: Tier; label: string; note: string; accent: string }[] = [
-  { tier: "bronze", label: "Bronze Box", note: "The everyday box", accent: TIER_ACCENT.bronze },
-  { tier: "silver", label: "Silver Box", note: "Rares and an ultra", accent: TIER_ACCENT.silver },
-  { tier: "gold", label: "Gold Box", note: "No commons at all", accent: TIER_ACCENT.gold },
-  { tier: "diamond", label: "Diamond Box", note: "Secrets and grails", accent: TIER_ACCENT.diamond },
+const TIER_CHOICES: { tier: Tier; label: string; accent: string }[] = [
+  { tier: "bronze", label: "Bronze", accent: TIER_ACCENT.bronze },
+  { tier: "silver", label: "Silver", accent: TIER_ACCENT.silver },
+  { tier: "gold", label: "Gold", accent: TIER_ACCENT.gold },
+  { tier: "diamond", label: "Diamond", accent: TIER_ACCENT.diamond },
 ];
+const ALL_TIERS = TIER_CHOICES.map((c) => c.tier);
+
+/** "Bronze", "Bronze and Gold", "every box". */
+function boxesLabel(tiers: readonly Tier[]): string {
+  if (tiers.length === ALL_TIERS.length) return "every box";
+  const names = tiers.map((t) => TIER_CHOICES.find((c) => c.tier === t)!.label);
+  const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0];
+  return `the ${list} box${names.length > 1 ? "es" : ""}`;
+}
 
 const SCALE_CHOICES: { scale: Scale; label: string; note: string }[] = [
   { scale: "100%", label: "100%", note: "The standard figure" },
@@ -71,6 +80,8 @@ export interface NewProduct {
   id: string;
   name: string;
   tier: Tier;
+  /** Every box it is in after the save. */
+  tiers: Tier[];
 }
 
 /**
@@ -102,6 +113,8 @@ export interface EditableProduct {
   series: number | null;
   scale: Scale;
   tier: Tier;
+  /** Every box this product is in, this listing's included. */
+  tiers?: Tier[];
   rarity: Rarity;
   imageUrl: string | null;
   blurb?: string;
@@ -126,7 +139,13 @@ export function AddProduct({
   // Only some collections come in sizes; the rest are stored at the base size.
   const sized = getLine(line)?.sized ?? true;
   const [scale, setScale] = useState<Scale>(editing?.scale ?? "100%");
-  const [tier, setTier] = useState<Tier>(editing?.tier ?? "bronze");
+  // Which boxes it is sold in — any number of them, each its own listing.
+  const inBefore: Tier[] = editing ? (editing.tiers ?? [editing.tier]) : [];
+  const [tiers, setTiers] = useState<Tier[]>(editing ? inBefore : ["bronze"]);
+  const toggleTier = (t: Tier) =>
+    setTiers((now) => (now.includes(t) ? now.filter((x) => x !== t) : ALL_TIERS.filter((x) => x === t || now.includes(x))));
+  const addedBoxes = tiers.filter((t) => !inBefore.includes(t));
+  const droppedBoxes = inBefore.filter((t) => !tiers.includes(t));
   const [name, setName] = useState(editing?.name ?? "");
   const originalSeries = seriesChoiceFor(editing);
   const [series, setSeries] = useState(originalSeries);
@@ -198,7 +217,7 @@ export function AddProduct({
           line,
           name,
           scale: sized ? scale : "100%",
-          tier,
+          tiers,
           rarity,
           setName: setNameToSave(),
           series: series === NON_SERIES_CHOICE ? null : Number(series),
@@ -208,12 +227,18 @@ export function AddProduct({
           coinValue,
           // Optional: a listing can go straight onto the shelf, because most of
           // the time you are adding a product because a box of them just came in.
+          // The same count goes into each box it is newly in.
           quantity: quantity.trim() === "" ? undefined : Number(quantity),
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Could not save that product");
-      onSaved({ id: data.piece.id, name: data.piece.name, tier: data.piece.tier });
+      onSaved({
+        id: data.piece.id,
+        name: data.piece.name,
+        tier: data.piece.tier,
+        tiers: (data.pieces as { tier: Tier }[] | undefined)?.map((p) => p.tier) ?? [data.piece.tier],
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save that product");
     } finally {
@@ -226,7 +251,11 @@ export function AddProduct({
   // Categories are Bearbrick's, so it is only required there.
   const categoryRequired = series !== NON_SERIES_CHOICE && line === DEFAULT_LINE;
   const ready =
-    name.trim() !== "" && !uploading && !saving && (!categoryRequired || category !== "");
+    name.trim() !== "" &&
+    tiers.length > 0 &&
+    !uploading &&
+    !saving &&
+    (!categoryRequired || category !== "");
 
   return (
     <form
@@ -240,8 +269,8 @@ export function AddProduct({
           </h3>
           <p className="mt-1 text-xs leading-relaxed text-muted">
             {editing
-              ? "Changes apply everywhere this piece appears, including on orders that already pulled it."
-              : "A piece people can pull. It lands in the catalogue straight away; it only becomes pullable once it has units on the shelf."}
+              ? "Changes apply in every box it's in, and on orders that already pulled it."
+              : "Pullable once it has units on the shelf."}
           </p>
         </div>
         <button
@@ -278,34 +307,46 @@ export function AddProduct({
         </div>
       </fieldset>
 
-      {/* which box */}
+      {/* which boxes — any number; each one is its own shelf */}
       <fieldset className="mt-6">
-        <legend className="text-[11px] font-medium uppercase tracking-wider text-faint">
-          Which blind box
-        </legend>
-        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-          {TIER_CHOICES.map((choice) => (
-            <button
-              key={choice.tier}
-              type="button"
-              onClick={() => setTier(choice.tier)}
-              aria-pressed={tier === choice.tier}
-              className={`rounded-xl border p-3.5 text-left transition-colors ${
-                tier === choice.tier
-                  ? "border-white/35 bg-white/[0.07]"
-                  : "border-hairline hover:border-white/20"
-              }`}
-            >
-              <span className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-3">
+          <legend className="text-[11px] font-medium uppercase tracking-wider text-faint">
+            Which blind boxes
+          </legend>
+          <button
+            type="button"
+            onClick={() => setTiers(tiers.length === ALL_TIERS.length ? [] : ALL_TIERS)}
+            className="text-[11px] font-medium text-muted transition-colors hover:text-chalk"
+          >
+            {tiers.length === ALL_TIERS.length ? "Clear" : "All boxes"}
+          </button>
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {TIER_CHOICES.map((choice) => {
+            const on = tiers.includes(choice.tier);
+            return (
+              <button
+                key={choice.tier}
+                type="button"
+                onClick={() => toggleTier(choice.tier)}
+                aria-pressed={on}
+                className={`flex items-center gap-2 rounded-xl border p-3 text-left transition-colors ${
+                  on ? "border-white/35 bg-white/[0.07]" : "border-hairline hover:border-white/20"
+                }`}
+              >
                 <span
-                  className="size-2 rounded-full"
-                  style={{ background: choice.accent }}
-                />
+                  aria-hidden
+                  className={`grid size-4 shrink-0 place-items-center rounded-[5px] border text-[10px] leading-none ${
+                    on ? "border-transparent bg-chalk text-ink" : "border-white/25"
+                  }`}
+                >
+                  {on ? "✓" : ""}
+                </span>
+                <span className="size-2 rounded-full" style={{ background: choice.accent }} />
                 <span className="text-[13px] font-medium">{choice.label}</span>
-              </span>
-              <span className="mt-1 block text-[11px] text-faint">{choice.note}</span>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </fieldset>
 
@@ -481,8 +522,11 @@ export function AddProduct({
             </Field>
           </div>
 
-          {!editing && (
-            <Field label="Units in hand" hint="Optional — puts it on the shelf now.">
+          {(!editing || addedBoxes.length > 0) && (
+            <Field
+              label={editing ? "Units for each new box" : tiers.length > 1 ? "Units per box" : "Units in hand"}
+              hint="Optional — puts it on the shelf now."
+            >
               <input
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
@@ -525,11 +569,15 @@ export function AddProduct({
         <span className="text-[11px] text-faint">
           {name.trim() === ""
             ? "A product needs a title."
+            : tiers.length === 0
+              ? "Pick at least one box."
             : categoryRequired && category === ""
               ? "A series piece needs a category."
+            : editing && droppedBoxes.length > 0
+              ? `Comes out of ${boxesLabel(droppedBoxes)}.`
             : editing
-              ? `Stays a ${scale} piece in the ${tier} box.`
-              : `Goes in as a ${scale} piece in the ${tier} box.`}
+              ? `In ${boxesLabel(tiers)}.`
+              : `Goes in ${boxesLabel(tiers)}.`}
         </span>
       </div>
     </form>
