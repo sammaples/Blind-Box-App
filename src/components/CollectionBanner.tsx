@@ -69,7 +69,7 @@ const SCENES: Record<LineId, Scene> = {
     // Wide, low pieces — the bao with its lid most of all — so they stand
     // side by side instead of overlapping, the bao far left, all raised
     // towards the middle. The name sits a little higher to clear the lid.
-    fit: { box: "right-[18%] gap-[1.5%] -translate-y-[22%]", side: "h-[35%]", middle: "h-[49%]", row: true, first: "h-[32%]" },
+    fit: { box: "right-[18%] gap-[2.5%] -translate-y-[22%]", side: "h-[35%]", middle: "h-[49%]", row: true, first: "relative top-[2%] h-[32%]" },
     nameLift: "-translate-y-[14cqh]",
   },
 };
