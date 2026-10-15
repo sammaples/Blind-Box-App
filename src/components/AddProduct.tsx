@@ -126,12 +126,15 @@ export interface EditableProduct {
 export function AddProduct({
   editing,
   defaultLine,
+  defaultTiers,
   onSaved,
   onCancel,
 }: {
   editing?: EditableProduct | null;
   /** The collection a new piece starts in: whichever the console is showing. */
   defaultLine?: LineId;
+  /** The boxes a new piece starts in: whichever the console is showing. */
+  defaultTiers?: Tier[];
   onSaved: (product: NewProduct) => void;
   onCancel: () => void;
 }) {
@@ -141,7 +144,7 @@ export function AddProduct({
   const [scale, setScale] = useState<Scale>(editing?.scale ?? "100%");
   // Which boxes it is sold in — any number of them, each its own listing.
   const inBefore: Tier[] = editing ? (editing.tiers ?? [editing.tier]) : [];
-  const [tiers, setTiers] = useState<Tier[]>(editing ? inBefore : ["bronze"]);
+  const [tiers, setTiers] = useState<Tier[]>(editing ? inBefore : defaultTiers ?? ["bronze"]);
   const toggleTier = (t: Tier) =>
     setTiers((now) => (now.includes(t) ? now.filter((x) => x !== t) : ALL_TIERS.filter((x) => x === t || now.includes(x))));
   const addedBoxes = tiers.filter((t) => !inBefore.includes(t));

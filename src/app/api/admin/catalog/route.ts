@@ -94,6 +94,34 @@ export async function POST(request: Request) {
     });
   }
 
+  // Which boxes a piece is in, changed from its own sheet: everything else
+  // about it stays as it is.
+  if (body.action === "setBoxes") {
+    const pieceId = typeof body.pieceId === "string" ? body.pieceId : "";
+    const piece = await findPiece(pieceId);
+    if (!piece) {
+      return NextResponse.json({ error: "No piece with that id" }, { status: 404 });
+    }
+    const asked: unknown[] = Array.isArray(body.tiers) ? body.tiers : [];
+    if (asked.length === 0 || asked.some((t) => !TIERS.includes(t as Tier))) {
+      return NextResponse.json({ error: "Pick at least one box" }, { status: 400 });
+    }
+    const units =
+      body.quantity === undefined || body.quantity === null || body.quantity === ""
+        ? null
+        : Math.trunc(Number(body.quantity));
+    if (units !== null && (!Number.isFinite(units) || units < 0)) {
+      return NextResponse.json({ error: "Units must be a number of zero or more" }, { status: 400 });
+    }
+    const placed = await placeInBoxes(
+      { ...piece, archived: false },
+      pieceId,
+      TIERS.filter((t) => asked.includes(t)),
+      units,
+    );
+    return NextResponse.json({ pieces: placed?.pieces ?? [], stock: placed?.stock ?? null });
+  }
+
   if (body.action === "archive" || body.action === "restore") {
     const pieceId = typeof body.pieceId === "string" ? body.pieceId : "";
     const piece = await setPieceArchived(pieceId, body.action === "archive");
@@ -203,6 +231,25 @@ export async function POST(request: Request) {
     coinValue,
   });
 
+  const placed = await placeInBoxes(draft, editingId, tiers, quantity);
+  if (!placed) {
+    return NextResponse.json({ error: "No piece with that id" }, { status: 404 });
+  }
+  const piece = placed.pieces.find((p) => p.id === editingId) ?? placed.pieces[0];
+  return NextResponse.json({ piece, pieces: placed.pieces, stock: placed.stock });
+}
+
+/**
+ * Puts a product in exactly the boxes asked for and saves `draft`'s details
+ * onto every one of them. A product in several boxes is one listing per box
+ * (see lib/listings). Null when `editingId` names no piece.
+ */
+async function placeInBoxes(
+  draft: Piece,
+  editingId: string | undefined,
+  tiers: readonly Tier[],
+  quantity: number | null,
+): Promise<{ pieces: Piece[]; stock: unknown } | null> {
   // A product in several boxes is one listing per box (see lib/listings).
   // `placed` are the listings it ends up with; `fresh` are the ones this save
   // put in a box they were not in, which is where new units go.
@@ -220,7 +267,7 @@ export async function POST(request: Request) {
     const base = listingBase(editingId);
     const members = (await allPieces()).filter((p) => listingBase(p.id) === base);
     if (!members.some((m) => m.id === editingId)) {
-      return NextResponse.json({ error: "No piece with that id" }, { status: 404 });
+      return null;
     }
     for (const t of TIERS) {
       const live = members.find((m) => m.tier === t && !m.archived);
@@ -261,6 +308,5 @@ export async function POST(request: Request) {
     );
   }
 
-  const piece = placed.find((p) => p.id === editingId) ?? placed[0];
-  return NextResponse.json({ piece, pieces: placed, stock });
+  return { pieces: placed, stock };
 }

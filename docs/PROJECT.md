@@ -105,8 +105,15 @@ iPhone Home Screen as a PWA.
   (migration 1700000017000; photos in `public/products/`, cut out of their
   backgrounds). Listed with no units: they sell once stocked in Inventory
   management. Series 51's photo is still to come.
-- **Inventory management** has a collection switcher at the top; the
-  catalogue, shelves and Add product follow it. The spreadsheet import takes a
+- **Inventory management** (`/admin`) opens on the collection bars (pieces
+  and units under each name). Tap one: **Bronze / Silver / Gold / Diamond**
+  buttons, and everything below — stats, "In this box" list, shelf, stocking,
+  series shortcuts, Add product (starts in that box) — is that box's only.
+  No "every box" view. The list puts hand-made listings before the generated
+  demo pieces (it shows 120 at most). A piece's sheet has a **Boxes**
+  drop-down (tick boxes, Units for each new box, Save boxes; the `setBoxes`
+  action) and no 6/12/24 presets; its pull rate counts the whole box. The
+  cover photo is at the bottom of the collection's page. The spreadsheet import takes a
   `collection` column (Bearbrick if blank; "set" is the set name), and scale is
   only required for Bearbrick rows. Template: `public/catalogue-template.csv`.
 - **One product, several boxes:** Add product / Edit details has tick boxes

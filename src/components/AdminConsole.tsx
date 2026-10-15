@@ -1,7 +1,7 @@
 "use client";
 
 import { DEFAULT_LINE, getLine, LINES, type LineId } from "@/lib/lines";
-import { CollectionBanner } from "@/components/CollectionBanner";
+import { bannerNameClass, CollectionBanner } from "@/components/CollectionBanner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -42,6 +42,11 @@ export interface AdminPiece {
 
 type Levels = Record<string, { stocked: number; sold: number }>;
 type Change = { pieceId: string; op: "add" | "set" | "pull"; units?: number };
+
+/** Whether a piece is from the generated demo catalogue rather than listed by hand. */
+function isDemo(piece: { id: string; imageUrl: string | null }): boolean {
+  return piece.imageUrl === null && /^(s\d+-|big-\d+-)/.test(piece.id);
+}
 
 /** Must match the phrase the reset endpoint checks for. */
 const RESET_PHRASE = "RESET";
@@ -101,7 +106,9 @@ export function AdminConsole({
   // One collection at a time: Bearbrick, Pop Mart and Squishy each have their
   // own four shelves, and a list of every collection's pieces at once would
   // put a Pop Mart figure next to the Bearbrick it never competes with.
-  const [line, setLine] = useState<LineId>(DEFAULT_LINE);
+  // Null is the first screen: the collections to choose from.
+  const [picked, setPicked] = useState<LineId | null>(null);
+  const line = picked ?? DEFAULT_LINE;
   const shown = useMemo(() => pieces.filter((p) => p.line === line), [pieces, line]);
 
   const send = async (changes: Change[], message: string) => {
@@ -225,25 +232,18 @@ export function AdminConsole({
     void send(changes, `Series ${series} pulled from the shelf`);
   };
 
-  return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 sm:py-10">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="max-w-2xl">
-          <Link href="/" className="text-xs text-faint transition-colors hover:text-muted">
-            ← Back to the shop
-          </Link>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
-            Inventory
-          </h1>
-          <p className="mt-1.5 hidden text-sm text-muted sm:block">
-            Stock is the product. Change what is on a shelf and the published pull rates
-            move with it, because a rate is just a piece&apos;s share of the units left.
-          </p>
-          <p className="mt-1.5 text-[13px] text-muted sm:hidden">
-            Stock is the product — change it and the pull rates move with it.
-          </p>
-        </div>
-      </div>
+  const boxCount = (t: Tier) => shown.filter((p) => p.tier === t && !p.archived).length;
+
+  /* ------------------------- first: which collection ------------------------ */
+
+  if (picked === null) {
+    return (
+      <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 sm:py-10">
+        <Link href="/" className="text-xs text-faint transition-colors hover:text-muted">
+          ← Back to the shop
+        </Link>
+        <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">Inventory</h1>
+        <p className="mt-1.5 text-[13px] text-muted">Pick a collection.</p>
 
       {bootstrapAccess && (
         <p className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs leading-relaxed text-amber-200">
@@ -253,31 +253,110 @@ export function AdminConsole({
         </p>
       )}
 
-      {/* shelf picker */}
-      <div className="mt-7 flex flex-wrap gap-2">
+        <ul className="mt-6 flex flex-col gap-3">
+          {LINES.map((l) => {
+            const own = pieces.filter((p) => p.line === l.id && !p.archived);
+            const units = own.reduce((sum, p) => {
+              const level = levels[p.id];
+              return sum + (level ? Math.max(0, level.stocked - level.sold) : 0);
+            }, 0);
+            return (
+              <li key={l.id} className="h-28 sm:h-32">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPicked(l.id);
+                    setTier("bronze");
+                    setTab("catalogue");
+                    setNote(null);
+                    setError(null);
+                  }}
+                  className="group relative flex h-full w-full items-center overflow-hidden rounded-[22px] border border-white/10 bg-ink-card text-left [container-type:size] active:scale-[0.985]"
+                >
+                  <CollectionBanner line={l.id} coverUrl={covers[l.id] ?? null} />
+                  <span aria-hidden className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/20 to-transparent" />
+                  <span className="relative flex w-full items-center justify-between gap-3 p-4">
+                    <span className={`min-w-0 ${bannerNameClass(l.id, covers[l.id] ?? null)}`}>
+                      <span className="block truncate text-[22px] font-bold leading-none text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]">
+                        {l.name}
+                      </span>
+                      <span className="mt-1.5 block text-[12px] font-medium text-white/75 drop-shadow-[0_1px_6px_rgba(0,0,0,0.6)]">
+                        {own.length} piece{own.length === 1 ? "" : "s"} · {units.toLocaleString()} unit{units === 1 ? "" : "s"}
+                      </span>
+                    </span>
+                    <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-white/15 text-white">
+                      ›
+                    </span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  }
+
+  /* ------------------------ then: one collection's boxes ------------------------ */
+
+  const lineInfo = getLine(line);
+
+  return (
+    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 sm:py-10">
+      <button
+        type="button"
+        onClick={() => {
+          setPicked(null);
+          setNote(null);
+          setError(null);
+        }}
+        className="text-xs text-faint transition-colors hover:text-muted"
+      >
+        ← All collections
+      </button>
+      <h1 className="mt-3 flex items-center gap-2.5 text-2xl font-semibold tracking-tight sm:text-3xl">
+        <span aria-hidden className="size-3 rounded-full" style={{ background: lineInfo?.accent }} />
+        {lineInfo?.name ?? line}
+      </h1>
+
+      {bootstrapAccess && (
+        <p className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs leading-relaxed text-amber-200">
+          No <code className="font-mono">ADMIN_EMAILS</code> is set, so any signed-in
+          account reaches this console. Fine locally; in production it refuses to load
+          until you list the addresses that should have it.
+        </p>
+      )}
+
+      {/* which box — everything below is this box's */}
+      <div className="mt-5 grid grid-cols-4 gap-2" role="tablist" aria-label="Box">
         {SHELVES.map((s) => (
           <button
             key={s.tier}
             type="button"
+            role="tab"
+            aria-selected={tier === s.tier}
             onClick={() => setTier(s.tier)}
-            className="rounded-full px-4 py-2 text-[13px] font-medium transition-colors"
+            className="rounded-2xl px-2 py-3 text-center transition-colors"
             style={
               tier === s.tier
                 ? { background: s.accent, color: "#08080b" }
                 : { color: "#8b8b99", boxShadow: "inset 0 0 0 1px #26262f" }
             }
           >
-            {s.label}
+            <span className="block text-[14px] font-semibold">{TIER_LABEL[s.tier]}</span>
+            <span className="mt-0.5 block text-[11px] opacity-75">
+              {boxCount(s.tier)} piece{boxCount(s.tier) === 1 ? "" : "s"}
+            </span>
           </button>
         ))}
       </div>
 
-      <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-4">
+      <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-4">
         <Stat label="Pieces in stock" value={inStock.toLocaleString()} />
         <Stat label="Units available" value={unitsLeft.toLocaleString()} />
         <Stat label="Units sold" value={unitsSold.toLocaleString()} />
         <Stat
-          label="Shelf status"
+          label="Box status"
           value={unitsLeft > 0 ? "Selling" : "Sold out"}
           tone={unitsLeft > 0 ? "good" : "warn"}
         />
@@ -295,9 +374,77 @@ export function AdminConsole({
         </p>
       )}
 
+      {/* this box's views */}
+      <div className="mt-6 flex gap-1 overflow-x-auto border-b border-hairline">
+        {(["catalogue", "shelf", "add", "log"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-[13px] font-medium transition-colors sm:px-4 ${
+              tab === t
+                ? "border-chalk text-chalk"
+                : "border-transparent text-muted hover:text-chalk"
+            }`}
+          >
+            {t === "shelf"
+              ? `On the shelf (${shelf.length})`
+              : t === "add"
+                ? "Stock a piece"
+                : t === "catalogue"
+                  ? `In this box (${boxCount(tier)})`
+                  : `Change log (${log.length})`}
+          </button>
+        ))}
+      </div>
+
+      {tab === "shelf" && (
+        <ShelfTable
+          rows={shelf}
+          busy={busy}
+          onChange={send}
+          tier={tier}
+          onBalanceChases={
+            chaseRows.length > 0 && chaseUnits > 0
+              ? () =>
+                  send(
+                    chaseRows.map((r) => ({
+                      pieceId: r.piece.id,
+                      op: "set" as const,
+                      units: chaseUnits,
+                    })),
+                    `Chases set to ${chaseUnits} each — about ${oddsLabel(tier)}`,
+                  )
+              : null
+          }
+        />
+      )}
+      {tab === "add" && (
+        <AddPieces
+          pieces={shown.filter((p) => p.tier === tier && !p.archived && !levels[p.id])}
+          busy={busy}
+          onChange={send}
+          byId={byId}
+          chaseUnits={chaseUnits}
+        />
+      )}
+      {tab === "catalogue" && (
+        <Catalogue
+          pieces={shown}
+          totalPieces={pieces.length}
+          line={line}
+          tier={tier}
+          onShowBox={setTier}
+          levels={levels}
+          busy={busy}
+          onChange={send}
+        />
+      )}
+      {tab === "log" && <ChangeLog entries={log} byId={byId} />}
+
       {/* series shortcuts */}
       {seriesRows.length > 0 && (
-        <section className="mt-8">
+        <section className="mt-10">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-faint">
             Stock a whole series
           </h2>
@@ -350,84 +497,8 @@ export function AdminConsole({
         </section>
       )}
 
-      {/* which collection the views below are of */}
-      <div className="mt-7 flex gap-2 overflow-x-auto sm:mt-9" role="tablist" aria-label="Collection">
-        {LINES.map((l) => (
-          <button
-            key={l.id}
-            type="button"
-            role="tab"
-            aria-selected={line === l.id}
-            onClick={() => setLine(l.id)}
-            className={`shrink-0 rounded-full border px-4 py-2 text-[13px] font-semibold transition-colors ${
-              line === l.id ? "border-white/70 bg-white text-ink" : "border-hairline text-muted hover:text-chalk"
-            }`}
-          >
-            {l.name} ({pieces.filter((p) => p.line === l.id && !p.archived).length})
-          </button>
-        ))}
-      </div>
 
       <CoverRow key={line} line={line} initial={covers[line] ?? null} />
-
-      {/* shelf / add tabs */}
-      <div className="mt-4 flex gap-1 overflow-x-auto border-b border-hairline">
-        {(["catalogue", "shelf", "add", "log"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(t)}
-            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-[13px] font-medium transition-colors sm:px-4 ${
-              tab === t
-                ? "border-chalk text-chalk"
-                : "border-transparent text-muted hover:text-chalk"
-            }`}
-          >
-            {t === "shelf"
-              ? `On the shelf (${shelf.length})`
-              : t === "add"
-                ? "Stock a piece"
-                : t === "catalogue"
-                  ? `Catalogue (${shown.length})`
-                  : `Change log (${log.length})`}
-          </button>
-        ))}
-      </div>
-
-      {tab === "shelf" && (
-        <ShelfTable
-          rows={shelf}
-          busy={busy}
-          onChange={send}
-          tier={tier}
-          onBalanceChases={
-            chaseRows.length > 0 && chaseUnits > 0
-              ? () =>
-                  send(
-                    chaseRows.map((r) => ({
-                      pieceId: r.piece.id,
-                      op: "set" as const,
-                      units: chaseUnits,
-                    })),
-                    `Chases set to ${chaseUnits} each — about ${oddsLabel(tier)}`,
-                  )
-              : null
-          }
-        />
-      )}
-      {tab === "add" && (
-        <AddPieces
-          pieces={shown.filter((p) => p.tier === tier && !p.archived && !levels[p.id])}
-          busy={busy}
-          onChange={send}
-          byId={byId}
-          chaseUnits={chaseUnits}
-        />
-      )}
-      {tab === "catalogue" && (
-        <Catalogue pieces={shown} totalPieces={pieces.length} line={line} levels={levels} busy={busy} onChange={send} />
-      )}
-      {tab === "log" && <ChangeLog entries={log} byId={byId} />}
     </div>
   );
 }
@@ -937,15 +1008,22 @@ function Catalogue({
   pieces,
   totalPieces,
   line,
+  tier,
+  onShowBox,
   levels,
   busy,
   onChange,
 }: {
+  /** The collection's pieces, every box — editing needs to see them all. */
   pieces: AdminPiece[];
   /** Every piece in every collection, for the "empty the shop" warning. */
   totalPieces: number;
   /** The collection on show, which a new piece is added to. */
   line: LineId;
+  /** The box on show: the list is its pieces, and a new piece starts in it. */
+  tier: Tier;
+  /** Switches the console to another box, to show a piece saved there. */
+  onShowBox: (tier: Tier) => void;
   levels: Levels;
   busy: boolean;
   onChange: (changes: Change[], message: string) => void;
@@ -957,7 +1035,6 @@ function Catalogue({
   const [open, setOpen] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
-  const [tierFilter, setTierFilter] = useState<Tier | "all">("all");
   const [csv, setCsv] = useState<string>("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
@@ -972,7 +1049,7 @@ function Catalogue({
     const q = query.trim().toLowerCase();
     return pieces
       .filter((p) => showArchived || !p.archived)
-      .filter((p) => tierFilter === "all" || p.tier === tierFilter)
+      .filter((p) => p.tier === tier)
       .filter(
         (p) =>
           q === "" ||
@@ -980,8 +1057,11 @@ function Catalogue({
           p.setName.toLowerCase().includes(q) ||
           p.id.toLowerCase().includes(q),
       )
+      // Your own listings before the generated demo set, so a real product is
+      // never hidden past the first 120 behind hundreds of test figures.
+      .sort((a, b) => Number(isDemo(a)) - Number(isDemo(b)))
       .slice(0, 120);
-  }, [pieces, query, showArchived, tierFilter]);
+  }, [pieces, query, showArchived, tier]);
 
   const post = async (path: string, body: unknown) => {
     const res = await fetch(path, {
@@ -1042,6 +1122,33 @@ function Catalogue({
         pieceId: piece.id,
       });
       setNote(`${piece.archived ? "Restored" : "Archived"} ${piece.name}.`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That did not work");
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  // Every box a piece's product is in, from its listings in this collection.
+  const boxesOf = (piece: { id: string; tier: Tier }): Tier[] => {
+    const found = TIER_ORDER.filter((t) =>
+      pieces.some((p) => !p.archived && p.tier === t && listingBase(p.id) === listingBase(piece.id)),
+    );
+    return found.length > 0 ? found : [piece.tier];
+  };
+
+  const setBoxes = async (piece: AdminPiece, tiers: Tier[], units: number | null) => {
+    setWorking(true);
+    setError(null);
+    try {
+      await post("/api/admin/catalog", { action: "setBoxes", pieceId: piece.id, tiers, quantity: units });
+      const names = tiers.map((t) => TIER_LABEL[t]);
+      setNote(
+        `${piece.name} is in ${tiers.length === TIER_ORDER.length ? "every box" : names.join(", ")}.`,
+      );
+      // Taken out of the box on show: there is no sheet left to look at here.
+      if (!tiers.includes(tier)) setOpen(null);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "That did not work");
@@ -1120,6 +1227,7 @@ function Catalogue({
       <AddProduct
         editing={editing}
         defaultLine={line}
+        defaultTiers={[tier]}
         onCancel={() => {
           setAdding(false);
           setEditing(null);
@@ -1135,7 +1243,7 @@ function Catalogue({
           // Show it: a new product landing on page four of an unfiltered list
           // looks exactly like a save that did not happen.
           setQuery(product.name);
-          setTierFilter(product.tiers.length > 1 ? "all" : product.tier);
+          if (!product.tiers.includes(tier)) onShowBox(product.tiers[0]);
           setOpen(product.id);
           router.refresh();
         }}
@@ -1314,25 +1422,9 @@ function Catalogue({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search the catalogue"
+            placeholder="Search this box"
             className="w-full rounded-xl border border-hairline bg-ink px-4 py-2.5 text-sm outline-none transition-colors focus:border-white/30 sm:min-w-56 sm:flex-1"
           />
-          <div className="flex gap-1 rounded-xl border border-hairline p-1">
-            {(["all", ...TIER_ORDER] as const).map((choice) => (
-              <button
-                key={choice}
-                type="button"
-                onClick={() => setTierFilter(choice)}
-                className={`rounded-lg px-3 py-1.5 text-[12px] transition-colors ${
-                  tierFilter === choice
-                    ? "bg-white/12 text-chalk"
-                    : "text-muted hover:text-chalk"
-                }`}
-              >
-                {choice === "all" ? "Every box" : TIER_LABEL[choice]}
-              </button>
-            ))}
-          </div>
           <label className="flex items-center gap-2 py-1 text-xs text-muted">
             <input
               type="checkbox"
@@ -1369,6 +1461,9 @@ function Catalogue({
           <div className="mt-4">
             <CatalogueGrid
               pieces={matches}
+              pool={pieces}
+              boxesOf={boxesOf}
+              onSetBoxes={(piece, tiers, units) => void setBoxes(piece, tiers, units)}
               levels={levels}
               busy={busy || working}
               onChange={onChange}
@@ -1383,11 +1478,7 @@ function Catalogue({
                   scale: piece.scale,
                   tier: piece.tier,
                   // Every box this product is in, so the form opens on all of them.
-                  tiers: ((found) => (found.length > 0 ? found : [piece.tier]))(
-                    TIER_ORDER.filter((t) =>
-                      pieces.some((p) => !p.archived && p.tier === t && listingBase(p.id) === listingBase(piece.id)),
-                    ),
-                  ),
+                  tiers: boxesOf(piece),
                   rarity: piece.rarity,
                   category: piece.category,
                   imageUrl: piece.imageUrl,

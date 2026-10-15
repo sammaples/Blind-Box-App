@@ -60,6 +60,9 @@ export function CatalogueGrid({
   onArchive,
   onEdit,
   onDelete,
+  pool: poolPieces,
+  boxesOf,
+  onSetBoxes,
   focus,
 }: {
   pieces: GridPiece[];
@@ -69,6 +72,13 @@ export function CatalogueGrid({
   onArchive: (piece: GridPiece) => void;
   onEdit: (piece: GridPiece) => void;
   onDelete: (piece: GridPiece) => void;
+  /** Every piece a pull rate is a share of. Defaults to the ones shown, which
+      a search or the 120 cap would make too few. */
+  pool?: GridPiece[];
+  /** The boxes a piece's product is in, for the Boxes menu on its sheet. */
+  boxesOf?: (piece: GridPiece) => Tier[];
+  /** Puts a piece's product in exactly these boxes. */
+  onSetBoxes?: (piece: GridPiece, tiers: Tier[], units: number | null) => void;
   /** A piece to open the sheet on — how a freshly saved product introduces itself. */
   focus?: string | null;
 }) {
@@ -86,7 +96,7 @@ export function CatalogueGrid({
   // unit count into a pull rate. The shelf is the tier: a piece competes for
   // the draw against the others in its own box, whatever size any of them are.
   const poolFor = (piece: GridPiece) =>
-    pieces
+    (poolPieces ?? pieces)
       .filter((p) => p.line === piece.line && p.tier === piece.tier && !p.archived)
       .reduce((sum, p) => sum + available(levels[p.id]), 0);
 
@@ -114,6 +124,8 @@ export function CatalogueGrid({
           onArchive={onArchive}
           onEdit={onEdit}
           onDelete={onDelete}
+          boxes={boxesOf?.(open) ?? [open.tier]}
+          onSetBoxes={onSetBoxes}
         />
       )}
     </>
@@ -265,6 +277,8 @@ function StockSheet({
   onArchive,
   onEdit,
   onDelete,
+  boxes,
+  onSetBoxes,
 }: {
   piece: GridPiece;
   level: GridLevel | null;
@@ -275,6 +289,8 @@ function StockSheet({
   onArchive: (piece: GridPiece) => void;
   onEdit: (piece: GridPiece) => void;
   onDelete: (piece: GridPiece) => void;
+  boxes: Tier[];
+  onSetBoxes?: (piece: GridPiece, tiers: Tier[], units: number | null) => void;
 }) {
   const [amount, setAmount] = useState(1);
   useScrollLock(true);
@@ -383,7 +399,16 @@ function StockSheet({
             </dl>
 
             <div className="p-4 sm:p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-faint">
+              {onSetBoxes && (
+                <BoxesMenu
+                  key={boxes.join()}
+                  boxes={boxes}
+                  busy={busy}
+                  onSave={(tiers, units) => onSetBoxes(piece, tiers, units)}
+                />
+              )}
+
+              <p className={`${onSetBoxes ? "mt-5" : ""} text-[11px] font-semibold uppercase tracking-wider text-faint`}>
                 Add to the pool
               </p>
 
@@ -402,24 +427,6 @@ function StockSheet({
                 >
                   Add {amount}
                 </button>
-              </div>
-
-              <div className="mt-2 flex gap-2">
-                {[6, 12, 24].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    disabled={busy}
-                    onClick={() => setAmount(n)}
-                    className={`flex-1 rounded-lg border py-2 text-[13px] transition-colors disabled:opacity-40 ${
-                      amount === n
-                        ? "border-white/35 bg-white/10 text-chalk"
-                        : "border-hairline text-muted hover:border-white/25 hover:text-chalk"
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
               </div>
 
               <p className="mt-3 text-[12px] leading-relaxed text-faint">
@@ -502,6 +509,118 @@ function StockSheet({
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+const BOX_TIERS: Tier[] = ["bronze", "silver", "gold", "diamond"];
+
+/**
+ * Which boxes this piece is sold in, as a drop-down of the four. Ticking a
+ * box and saving lists it there too, with its own units; unticking takes it
+ * out of that box.
+ */
+function BoxesMenu({
+  boxes,
+  busy,
+  onSave,
+}: {
+  boxes: Tier[];
+  busy: boolean;
+  onSave: (tiers: Tier[], units: number | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [picked, setPicked] = useState<Tier[]>(boxes);
+  const [units, setUnits] = useState("");
+  const adding = picked.some((t) => !boxes.includes(t));
+  const changed = picked.length !== boxes.length || adding;
+  const toggle = (t: Tier) =>
+    setPicked((now) => (now.includes(t) ? now.filter((x) => x !== t) : BOX_TIERS.filter((x) => x === t || now.includes(x))));
+
+  return (
+    <div>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-faint">Boxes</p>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="mt-2.5 flex w-full items-center justify-between gap-3 rounded-xl border border-hairline px-3.5 py-3 text-left text-[14px] transition-colors hover:border-white/30"
+      >
+        <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+          {boxes.length === BOX_TIERS.length
+            ? "Every box"
+            : boxes.map((t) => (
+                <span key={t} className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full" style={{ background: TIER_ACCENT[t] }} />
+                  {TIER_LABEL[t]}
+                </span>
+              ))}
+        </span>
+        <span aria-hidden className={`text-faint transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
+      </button>
+
+      {open && (
+        <div className="mt-2 rounded-xl border border-hairline bg-black/25 p-2">
+          {BOX_TIERS.map((t) => {
+            const on = picked.includes(t);
+            return (
+              <button
+                key={t}
+                type="button"
+                role="menuitemcheckbox"
+                aria-checked={on}
+                onClick={() => toggle(t)}
+                className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left text-[14px] transition-colors hover:bg-white/[0.06]"
+              >
+                <span
+                  aria-hidden
+                  className={`grid size-5 shrink-0 place-items-center rounded-md border text-[12px] leading-none ${
+                    on ? "border-transparent bg-chalk text-ink" : "border-white/25"
+                  }`}
+                >
+                  {on ? "✓" : ""}
+                </span>
+                <span className="size-2 rounded-full" style={{ background: TIER_ACCENT[t] }} />
+                {TIER_LABEL[t]}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setPicked(picked.length === BOX_TIERS.length ? [] : BOX_TIERS)}
+            className="w-full rounded-lg px-2.5 py-2 text-left text-[12px] font-medium text-muted transition-colors hover:text-chalk"
+          >
+            {picked.length === BOX_TIERS.length ? "Clear" : "All boxes"}
+          </button>
+
+          {adding && (
+            <label className="mt-1 flex items-center justify-between gap-3 border-t border-hairline px-2.5 pt-3 text-[12px] text-muted">
+              Units for each new box
+              <input
+                value={units}
+                onChange={(e) => setUnits(e.target.value)}
+                type="number"
+                min={0}
+                inputMode="numeric"
+                placeholder="0"
+                className="w-20 rounded-lg border border-hairline bg-ink px-2.5 py-1.5 text-right text-[13px] text-chalk outline-none focus:border-white/30"
+              />
+            </label>
+          )}
+
+          <button
+            type="button"
+            disabled={busy || picked.length === 0 || !changed}
+            onClick={() => {
+              onSave(picked, units.trim() === "" ? null : Number(units));
+              setOpen(false);
+            }}
+            className="mt-2.5 w-full rounded-lg bg-chalk py-2.5 text-[13px] font-semibold text-ink transition-opacity disabled:opacity-40"
+          >
+            {picked.length === 0 ? "Pick at least one box" : "Save boxes"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
