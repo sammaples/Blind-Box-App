@@ -105,6 +105,9 @@ iPhone Home Screen as a PWA.
   1700000017000, 1700000019000, 1700000020000; photos in `public/products/`,
   on transparent backgrounds — Series 51's added by 1700000018000 to every box
   it is in; Series 49's had a crease across the top retouched out).
+  1700000021000 brings Series 51 level with 50: back in Bronze if it was
+  removed, and in every box Series 50 is in. Current stock only lists pieces
+  with units, so a listing with none doesn't show there.
   Listed with no units: they sell once stocked in Inventory management.
 - **Inventory management** (`/admin`) opens on the collection bars (pieces
   and units under each name). Tap one: **Bronze / Silver / Gold / Diamond**
