@@ -38,7 +38,8 @@ iPhone Home Screen as a PWA.
   collection; draws filter on collection + tier. Bearbrick's box ids stay
   `bronze`…`diamond`; others are `<collection>-<tier>`.
 - **Boxes:** four tiers per collection — Bronze ($25), Silver, Gold, Diamond
-  ($250). Bearbrick pieces come in 100%, 400% and a 400%/100% combo; the
+  ($250). Bearbrick pieces come in 100%, 400%, a 400%/100% combo and 1000%
+  (migration 1700000024000); the
   other collections have no sizes (hidden everywhere). All tiers are buyable
   (Diamond's "coming soon" flag was removed; the flag still exists).
 - **Box prints:** each collection's carton has its own print — bears on blue,
@@ -112,9 +113,9 @@ iPhone Home Screen as a PWA.
   1700000017000, 1700000019000, 1700000020000; photos in `public/products/`,
   on transparent backgrounds — Series 51's added by 1700000018000 to every box
   it is in; Series 49's had a crease across the top retouched out).
-  **Marc Jacobs** (400%/100% set) is the Diamond box's chase (1700000022000;
-  photo upscaled with Real-ESRGAN and cut out with BiRefNet so the white of
-  its pattern stays).
+  **Marc Jacobs** 400%/100% set and **Marc Jacobs** 1000% are Diamond-box
+  chases (1700000022000, 1700000025000; photos upscaled with Real-ESRGAN and
+  cut out with BiRefNet so the white of their pattern stays).
   1700000021000 brings Series 51 level with 50: back in Bronze if it was
   removed, and in every box Series 50 is in. Current stock only lists pieces
   with units, so a listing with none doesn't show there.

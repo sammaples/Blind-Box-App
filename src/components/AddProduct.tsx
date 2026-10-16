@@ -54,6 +54,7 @@ const SCALE_CHOICES: { scale: Scale; label: string; note: string }[] = [
   { scale: "100%", label: "100%", note: "The standard figure" },
   { scale: "400%", label: "400%", note: "The eleven-inch figure" },
   { scale: "400%/100%", label: "400%/100%", note: "The pair, sold as one" },
+  { scale: "1000%", label: "1000%", note: "The 28-inch figure" },
 ];
 
 /** What the server did to the file, so the resize is not a silent change. */
@@ -360,7 +361,7 @@ export function AddProduct({
         <legend className="text-[11px] font-medium uppercase tracking-wider text-faint">
           Figure size
         </legend>
-        <div className="mt-2 grid gap-2 sm:grid-cols-3">
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {SCALE_CHOICES.map((choice) => (
             <button
               key={choice.scale}

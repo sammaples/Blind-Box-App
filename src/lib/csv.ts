@@ -132,6 +132,7 @@ function normaliseScale(value: string): Scale | null {
   if (pair === "400/100" || pair === "100/400" || v === "combo") return "400%/100%";
   if (v === "100" || v === "100%" || v === "1x") return "100%";
   if (v === "400" || v === "400%" || v === "4x") return "400%";
+  if (v === "1000" || v === "1000%" || v === "10x") return "1000%";
   return null;
 }
 

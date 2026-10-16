@@ -51,7 +51,7 @@ export type PatternKind =
  * which box you can find it in — that is the tier.
  */
 /** "400%/100%" is a combo: the 400% and its matching 100%, sold together. */
-export type Scale = "100%" | "400%" | "400%/100%";
+export type Scale = "100%" | "400%" | "400%/100%" | "1000%";
 
 /**
  * Which box a piece comes out of, and the only thing that decides a pool.
