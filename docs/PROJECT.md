@@ -115,9 +115,11 @@ iPhone Home Screen as a PWA.
   it is in; Series 49's had a crease across the top retouched out).
   **Chase Spider-Man No Way Home Blind Box** (100%) is a Rare in Bronze
   (1700000027000).
-  **Marc Jacobs** 400%/100% set, **Marc Jacobs** 1000% and **Care Bears
-  Cheer Bear** 400% are Diamond-box chases (1700000022000, 1700000025000,
-  1700000026000; photos upscaled with Real-ESRGAN and cut out with BiRefNet,
+  **Rule (Sam): every Be@rbrick 400%, 400%/100% and 1000% is a Chase** —
+  picking one of those sizes in Add product sets Chase.
+  **Marc Jacobs** 400%/100% set, **Marc Jacobs** 1000%, **Care Bears
+  Cheer Bear** 400% and **Barbie** 400% are Diamond-box chases
+  (1700000022000, 1700000025000, 1700000026000, 1700000028000; photos upscaled with Real-ESRGAN and cut out with BiRefNet,
   so white on the figure stays).
   1700000021000 brings Series 51 level with 50: back in Bronze if it was
   removed, and in every box Series 50 is in. Current stock only lists pieces

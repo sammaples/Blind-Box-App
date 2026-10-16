@@ -366,7 +366,11 @@ export function AddProduct({
             <button
               key={choice.scale}
               type="button"
-              onClick={() => setScale(choice.scale)}
+              onClick={() => {
+                setScale(choice.scale);
+                // Every Be@rbrick 400% and 1000% is a chase.
+                if (choice.scale !== "100%") setRarity("chase");
+              }}
               aria-pressed={scale === choice.scale}
               className={`rounded-xl border p-3.5 text-left transition-colors ${
                 scale === choice.scale
