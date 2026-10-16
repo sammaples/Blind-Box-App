@@ -50,6 +50,8 @@ iPhone Home Screen as a PWA.
 - **Current stock** (`/stock`) starts on the same collection bars; each
   collection's stock is `/stock/<collection>`, with just a back arrow to the
   bars (no collection switcher), then the box tabs and rarity filters.
+  Pieces are grouped rarest first; within each rarity the **lowest pull rate
+  is at the top**, the highest at the bottom.
 - **The draw:** one real piece per box, drawn server-side at purchase from a
   live stock shelf. Pull rates are published per piece and move as stock
   sells. Each order stores its seed and a snapshot of the shelf.

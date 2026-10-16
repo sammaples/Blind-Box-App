@@ -4086,13 +4086,13 @@ function setBrowser() {
   // odds, so it leaves the list rather than sitting there greyed out.
   const inStockList = shelf.filter((e) => e.available > 0);
 
-  // Rarest first, then the longest odds — the only order. Sorting a scarcity
-  // grid by name buries the chase among the commons.
+  // Rarest first; within each rarity the lowest pull rate first, as in the
+  // app. Sorting a scarcity grid by name buries the chase among the commons.
   let list = state.rarity === "all"
     ? inStockList
     : inStockList.filter((e) => e.piece.rarity === state.rarity);
   list = list.slice().sort((a, b) =>
-    RARITY_ORDER.indexOf(a.piece.rarity) - RARITY_ORDER.indexOf(b.piece.rarity) || b.odds - a.odds);
+    RARITY_ORDER.indexOf(a.piece.rarity) - RARITY_ORDER.indexOf(b.piece.rarity) || a.odds - b.odds);
 
   const present = new Set(inStockList.map((e) => e.piece.rarity));
   const rarities = RARITY_ORDER.filter((r) => present.has(r));

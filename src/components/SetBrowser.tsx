@@ -21,7 +21,8 @@ import { RarityChip } from "./ui";
 import { useScrollLock } from "@/lib/useScrollLock";
 
 /**
- * Rarest first, then the longest odds.
+ * Rarest first; within each rarity, the lowest pull rate first and the
+ * highest last.
  *
  * The only order now. A sort control offered four ways to arrange a grid whose
  * whole point is what is scarce and what it pays — sorting it by name buries
@@ -32,7 +33,7 @@ import { useScrollLock } from "@/lib/useScrollLock";
 function byRarity(a: StockEntry, b: StockEntry): number {
   return (
     RARITY_ORDER.indexOf(a.piece.rarity) - RARITY_ORDER.indexOf(b.piece.rarity) ||
-    b.odds - a.odds
+    a.odds - b.odds
   );
 }
 
