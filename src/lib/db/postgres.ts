@@ -521,6 +521,26 @@ export function createPostgresBackend(connectionString: string): Backend {
       return emailUsed;
     },
 
+    async failLoginCode(email, limit) {
+      const key = email.trim().toLowerCase();
+      return withTx(async (client) => {
+        const { rows } = await client.query(
+          `update login_tokens set failed_attempts = failed_attempts + 1
+            where lower(email) = $1 and consumed_at is null
+        returning failed_attempts`,
+          [key],
+        );
+        const count = Math.max(0, ...rows.map((r) => Number(r.failed_attempts)));
+        if (count >= limit) {
+          await client.query(
+            "delete from login_tokens where lower(email) = $1 and consumed_at is null",
+            [key],
+          );
+        }
+        return count;
+      });
+    },
+
     async claimOrders(fromCollectorId, toCollectorId) {
       if (fromCollectorId === toCollectorId) return 0;
       const { rowCount } = await query(

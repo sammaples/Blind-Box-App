@@ -39,6 +39,7 @@ interface LoginToken {
   createdAt: string;
   expiresAt: string;
   consumedAt: string | null;
+  failedAttempts?: number;
 }
 
 interface Db {
@@ -347,6 +348,22 @@ export function createJsonBackend(): Backend {
         // The link and the code are one sign-in: using either retires the other.
         db.loginTokens = tokens.filter((t) => t === token || t.email !== token.email || t.consumedAt !== null);
         return token.email;
+      });
+    },
+
+    async failLoginCode(email, limit) {
+      const key = email.trim().toLowerCase();
+      return transact((db) => {
+        const live = (db.loginTokens ?? []).filter((t) => t.email === key && t.consumedAt === null);
+        let count = 0;
+        for (const t of live) {
+          t.failedAttempts = (t.failedAttempts ?? 0) + 1;
+          count = Math.max(count, t.failedAttempts);
+        }
+        if (count >= limit) {
+          db.loginTokens = db.loginTokens.filter((t) => t.email !== key || t.consumedAt !== null);
+        }
+        return count;
       });
     },
 

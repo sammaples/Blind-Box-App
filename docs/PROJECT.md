@@ -86,6 +86,13 @@ iPhone Home Screen as a PWA.
   configured), **Continue with email** and **Continue with phone**, each
   opening a sheet: address/number, then a typed code. Codes exist because a
   Home Screen app keeps its own cookies, separate from Safari.
+  Email codes are **6 digits** (were 8 characters), subject "123456 is your
+  Blind Box code", so iPhone offers the code from a new Mail/Messages
+  message above the keyboard (the field is `autocomplete="one-time-code"`,
+  numeric) and a full code signs in by itself. A **Paste code** button reads
+  the clipboard for Gmail and other apps. Five wrong codes retire that
+  sign-in (`login_tokens.failed_attempts`, migration 1700000023000); a new
+  code has to be sent.
 - **Open testing (on):** anyone signs in by typing just their email — no
   code — so friends can test while emailed codes only reach
   Sam (Resend is on its test domain). **Admin addresses (`ADMIN_EMAILS`) never

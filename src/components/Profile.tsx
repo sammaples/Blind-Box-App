@@ -588,7 +588,7 @@ const METHOD = {
     send: "/api/auth/request",
     verify: "/api/auth/code",
     change: "Use a different email",
-    codeLength: 8,
+    codeLength: 6,
   },
   phone: {
     title: "Sign in with phone",
@@ -715,7 +715,26 @@ function CodeSheet({
     }
   };
 
-  const codeReady = code.replace(/[^a-z0-9]/gi, "").length === m.codeLength;
+  const codeReady = code.replace(/\D/g, "").length === m.codeLength;
+
+  // For mail apps the phone cannot read a code out of (Gmail, Outlook): copy
+  // it there, and one tap here pastes it in and signs in.
+  const canPaste = typeof navigator !== "undefined" && !!navigator.clipboard?.readText;
+  const pasteCode = async () => {
+    setError(null);
+    try {
+      const text = await navigator.clipboard.readText();
+      const found = text.match(new RegExp(`(?<!\\d)\\d{${m.codeLength}}(?!\\d)`))?.[0];
+      if (!found) {
+        setError(`No ${m.codeLength}-digit code found. Copy it from the ${kind === "phone" ? "text" : "email"} first.`);
+        return;
+      }
+      setCode(found);
+      void verify(found);
+    } catch {
+      setError("Couldn’t paste. Tap the box and paste the code instead.");
+    }
+  };
   const field =
     "h-14 w-full rounded-2xl bg-[#f1f0f7] px-5 text-[17px] text-[#0e0b2a] outline-none ring-[#4b48d8]/50 placeholder:text-[#1a1640]/35 focus:ring-2";
   const primary =
@@ -824,24 +843,39 @@ function CodeSheet({
                 <input
                   key="code"
                   type="text"
-                  inputMode={kind === "phone" ? "numeric" : "text"}
+                  inputMode="numeric"
+                  // What lets the phone offer the code from a new email or
+                  // text above the keyboard, so nobody has to copy it.
                   autoComplete="one-time-code"
-                  autoCapitalize="characters"
                   spellCheck={false}
                   autoFocus
-                  maxLength={kind === "phone" ? 10 : 9}
+                  maxLength={10}
                   value={code}
                   onChange={(e) => {
-                    const typed = kind === "phone" ? e.target.value.replace(/\D/g, "") : e.target.value.toUpperCase();
+                    const typed = e.target.value.replace(/\D/g, "").slice(0, m.codeLength);
                     setCode(typed);
-                    // A whole code, typed or filled in from the text, signs in
-                    // without another tap.
-                    if (!busy && typed.replace(/[^a-z0-9]/gi, "").length === m.codeLength) void verify(typed);
+                    // A whole code, typed or filled in from the email or text,
+                    // signs in without another tap.
+                    if (!busy && typed.length === m.codeLength) void verify(typed);
                   }}
-                  placeholder={kind === "phone" ? "123456" : "XXXX-XXXX"}
+                  placeholder="123456"
                   aria-label="Sign-in code"
                   className={`${field} text-center font-mono text-[22px] tracking-[0.25em]`}
                 />
+                {canPaste && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void pasteCode()}
+                    className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#f1f0f7] text-[16px] font-semibold text-[#0e0b2a] transition-transform active:scale-[0.98] disabled:opacity-40"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="8" y="3" width="8" height="4" rx="1" />
+                      <path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                    </svg>
+                    Paste code
+                  </button>
+                )}
                 <button type="submit" disabled={busy || !codeReady} className={primary}>
                   {busy ? "Signing in…" : "Sign in"}
                 </button>

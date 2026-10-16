@@ -19,13 +19,13 @@ export async function POST(request: Request) {
   const address = normaliseEmail(body.email);
   const code = normaliseCode(body.code);
   if (!address || !code) {
-    return NextResponse.json({ error: "Enter the 8-character code from the email" }, { status: 400 });
+    return NextResponse.json({ error: "Enter the 6-digit code from the email" }, { status: 400 });
   }
 
   const account = await redeemLoginCode(address, code);
   if (!account) {
     return NextResponse.json(
-      { error: "That code didn’t work. Check it, or ask for a new one." },
+      { error: "That code didn’t work. Check it, or send a new one — after 5 tries it stops working." },
       { status: 401 },
     );
   }

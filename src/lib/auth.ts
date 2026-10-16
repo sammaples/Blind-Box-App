@@ -62,22 +62,26 @@ export function normaliseEmail(input: unknown): string | null {
 }
 
 /**
- * The code's alphabet: no 0/O or 1/I, so it reads back off an email without
- * guessing. Eight of these is about a trillion codes, and each is bound to one
- * address and lives fifteen minutes, which is what lets it go without an
- * attempt counter.
+ * Six digits, because that is what a phone's code autofill reads out of an
+ * email ("123456 is your code") and offers above the keyboard. A million
+ * codes is few enough to guess at, so each sign-in allows this many wrong
+ * tries before it is retired and a new code has to be sent.
  */
-const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const CODE_TRIES = 5;
 
 function codeHashFor(email: string, code: string): string {
   return hashToken(`code:${email.trim().toLowerCase()}:${code}`);
 }
 
-/** Tidies a typed code: case, spaces and the dash are not part of it. */
+/**
+ * Tidies a typed code: spaces and dashes are not part of it. Six digits, or
+ * the eight-character codes sent before the switch, still live for their
+ * fifteen minutes.
+ */
 export function normaliseCode(input: unknown): string | null {
   if (typeof input !== "string") return null;
   const code = input.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  return code.length === 8 ? code : null;
+  return /^\d{6}$/.test(code) || code.length === 8 ? code : null;
 }
 
 /**
@@ -90,7 +94,7 @@ export function normaliseCode(input: unknown): string | null {
  */
 export async function issueLoginToken(email: string): Promise<{ token: string; code: string }> {
   const token = randomBytes(32).toString("base64url");
-  const code = Array.from({ length: 8 }, () => CODE_ALPHABET[randomInt(0, CODE_ALPHABET.length)]).join("");
+  const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
   await backend().createLoginToken({
     tokenHash: hashToken(token),
     codeHash: codeHashFor(email, code),
@@ -126,7 +130,10 @@ export async function signInWithPhone(phone: string): Promise<Collector> {
 /** Redeems a typed code for the address it was sent to. */
 export async function redeemLoginCode(email: string, code: string): Promise<Collector | null> {
   const used = await backend().consumeLoginToken(codeHashFor(email, code), new Date().toISOString());
-  if (!used) return null;
+  if (!used) {
+    await backend().failLoginCode(email, CODE_TRIES);
+    return null;
+  }
   const account = await backend().accountForEmail(used);
   return syncAdmin(account);
 }

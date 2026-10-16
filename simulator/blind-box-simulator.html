@@ -861,6 +861,7 @@ p.sub { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 8px 0 0;
 .signin .csheet input:focus { box-shadow: 0 0 0 2px rgb(75 72 216 / 0.5); }
 .signin .csheet input.code { text-align: center; font-family: ui-monospace, Menlo, monospace; font-size: 20px; letter-spacing: 0.25em; }
 .signin .csheet .pill.dark { margin-top: 10px; background: #0e0b2a; color: #fff; }
+.signin .csheet .pill.paste { margin-top: 10px; background: #f1f0f7; color: #0e0b2a; }
 .signin .csheet .links { display: flex; justify-content: center; gap: 20px; margin: 14px 0 0; }
 .signin .csheet .links button { background: none; border: 0; padding: 0; font: inherit; font-size: 12.5px; color: rgb(26 22 64 / 0.6); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
 .faq li { display: block; padding: 14px 16px; }
@@ -3217,7 +3218,10 @@ function codeSheet() {
         '<p class="hint">' + (sent ? 'Sent to <b>' + esc(sent) + '</b>' : phone ? "We\u2019ll text you a code." : "Enter your email to sign in.") + '</p></div>' +
         '<button class="x" type="button" aria-label="Close" data-sheetclose="1">\u00d7</button></div>' +
       (sent
-        ? '<input class="code" type="text" value="' + (phone ? "834275" : "BX7K-Q2MD") + '" aria-label="Sign-in code">' +
+        ? '<input class="code" type="text" inputmode="numeric" autocomplete="one-time-code" value="' + (phone ? "834275" : "502913") + '" aria-label="Sign-in code">' +
+          // As in the app: the phone offers the code from the email or text
+          // above the keyboard; Paste code is for mail apps it cannot read.
+          '<button class="pill paste" type="button" data-apple="1">Paste code</button>' +
           '<button class="pill dark" type="button" data-apple="1">Sign in</button>' +
           '<p class="links"><button type="button" data-sendcode="again">Send a new code</button><button type="button" data-diffemail="1">' +
             (phone ? "Use a different number" : "Use a different email") + '</button></p>'

@@ -152,6 +152,13 @@ export interface Backend {
    */
   consumeLoginToken(tokenHash: string, now: string): Promise<string | null>;
 
+  /**
+   * Counts a wrong code against the address's live sign-in. At `limit` the
+   * sign-in is retired, so guessing has to start again from a new code sent
+   * to the inbox. Returns the count so far.
+   */
+  failLoginCode(email: string, limit: number): Promise<number>;
+
   /** Moves a browser's pre-account orders onto the account it signed into. */
   claimOrders(fromCollectorId: string, toCollectorId: string): Promise<number>;
 

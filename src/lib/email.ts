@@ -18,11 +18,18 @@ export interface EmailProvider {
  * The message
  * ------------------------------------------------------------------ */
 
-const SUBJECT = "Your Blind Box sign-in code";
+/**
+ * The code leads the subject, in the shape a phone's code autofill looks for
+ * ("123456 is your … code"), so it can be offered above the keyboard without
+ * opening the email at all.
+ */
+function subjectFor(code: string): string {
+  return `${code} is your Blind Box code`;
+}
 
-/** "K7QM2XPD" as "K7QM-2XPD", which is easier to read and to type. */
+/** Six digits as they are; an older eight-character code as "K7QM-2XPD". */
 function displayCode(code: string): string {
-  return `${code.slice(0, 4)}-${code.slice(4)}`;
+  return code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
 }
 
 function escapeHtml(value: string): string {
@@ -34,7 +41,7 @@ function escapeHtml(value: string): string {
 /** Plain text matters: some clients show it, and some people prefer it. */
 function textBody(url: string, code: string): string {
   return [
-    `Your Blind Box sign-in code: ${displayCode(code)}`,
+    `Your Blind Box code is ${displayCode(code)}`,
     "",
     "Type it into the app, or open this link:",
     url,
@@ -63,7 +70,7 @@ function htmlBody(url: string, code: string): string {
             Sign in to collect
           </h1>
           <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#4a4a55;">
-            Type this code into the app to sign in:
+            Your Blind Box code is:
           </p>
           <p style="margin:0 0 24px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
                     font-size:30px;font-weight:700;letter-spacing:0.12em;color:#17171c;">${shown}</p>
@@ -118,7 +125,7 @@ function createResendProvider(apiKey: string, from: string): EmailProvider {
         body: JSON.stringify({
           from,
           to,
-          subject: SUBJECT,
+          subject: subjectFor(code),
           html: htmlBody(url, code),
           text: textBody(url, code),
         }),
