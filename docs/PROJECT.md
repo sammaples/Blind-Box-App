@@ -113,9 +113,10 @@ iPhone Home Screen as a PWA.
   1700000017000, 1700000019000, 1700000020000; photos in `public/products/`,
   on transparent backgrounds — Series 51's added by 1700000018000 to every box
   it is in; Series 49's had a crease across the top retouched out).
-  **Marc Jacobs** 400%/100% set and **Marc Jacobs** 1000% are Diamond-box
-  chases (1700000022000, 1700000025000; photos upscaled with Real-ESRGAN and
-  cut out with BiRefNet so the white of their pattern stays).
+  **Marc Jacobs** 400%/100% set, **Marc Jacobs** 1000% and **Care Bears
+  Cheer Bear** 400% are Diamond-box chases (1700000022000, 1700000025000,
+  1700000026000; photos upscaled with Real-ESRGAN and cut out with BiRefNet,
+  so white on the figure stays).
   1700000021000 brings Series 51 level with 50: back in Bronze if it was
   removed, and in every box Series 50 is in. Current stock only lists pieces
   with units, so a listing with none doesn't show there.
