@@ -64,6 +64,8 @@ export function CatalogueGrid({
   boxesOf,
   unitsIn,
   onSetBoxes,
+  cardBoxes,
+  cardUnits,
   focus,
 }: {
   pieces: GridPiece[];
@@ -78,6 +80,10 @@ export function CatalogueGrid({
   pool?: GridPiece[];
   /** The boxes a piece's product is in, for the Boxes menu on its sheet. */
   boxesOf?: (piece: GridPiece) => Tier[];
+  /** On each card, every box its product is in, instead of its own one. */
+  cardBoxes?: (piece: GridPiece) => Tier[];
+  /** On each card, units across all those boxes, instead of its own. */
+  cardUnits?: (piece: GridPiece) => number;
   /** Units left in a box, for the listing of this piece's product there. */
   unitsIn?: (piece: GridPiece, tier: Tier) => number;
   /** Puts a piece's product in exactly these boxes, adding units to each. */
@@ -110,6 +116,8 @@ export function CatalogueGrid({
           <Card
             key={piece.id}
             piece={piece}
+            boxes={cardBoxes?.(piece)}
+            total={cardUnits?.(piece)}
             level={levels[piece.id] ?? null}
             onOpen={() => setOpenId(piece.id)}
           />
@@ -144,14 +152,18 @@ function available(level: GridLevel | null | undefined): number {
 
 function Card({
   piece,
+  boxes,
+  total,
   level,
   onOpen,
 }: {
   piece: GridPiece;
+  boxes?: Tier[];
+  total?: number;
   level: GridLevel | null;
   onOpen: () => void;
 }) {
-  const units = available(level);
+  const units = total ?? available(level);
   const live = units > 0 && !piece.archived;
 
   return (
@@ -207,15 +219,23 @@ function Card({
         <div className="mt-1.5 flex items-center gap-2">
           {/* Which box sells it, then how big it is: two different facts, and
               the first is the one that decides what it is in the draw with. */}
-          <span
-            className="rounded-md px-1.5 py-0.5 text-[11px] font-medium"
-            style={{
-              background: `color-mix(in srgb, ${TIER_ACCENT[piece.tier]} 22%, transparent)`,
-              color: TIER_ACCENT[piece.tier],
-            }}
-          >
-            {TIER_LABEL[piece.tier]}
-          </span>
+          {boxes && boxes.length > 1 ? (
+            <span className="flex shrink-0 items-center gap-1 rounded-md bg-white/[0.07] px-1.5 py-[5px]" title={boxes.map((t) => TIER_LABEL[t]).join(", ")}>
+              {boxes.map((t) => (
+                <span key={t} className="size-2 rounded-full" style={{ background: TIER_ACCENT[t] }} />
+              ))}
+            </span>
+          ) : (
+            <span
+              className="rounded-md px-1.5 py-0.5 text-[11px] font-medium"
+              style={{
+                background: `color-mix(in srgb, ${TIER_ACCENT[piece.tier]} 22%, transparent)`,
+                color: TIER_ACCENT[piece.tier],
+              }}
+            >
+              {TIER_LABEL[piece.tier]}
+            </span>
+          )}
           <span className="rounded-md bg-white/[0.07] px-1.5 py-0.5 font-mono text-[11px] text-muted">
             {piece.scale}
           </span>

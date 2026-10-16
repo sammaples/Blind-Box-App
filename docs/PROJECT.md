@@ -122,9 +122,12 @@ iPhone Home Screen as a PWA.
   Listed with no units: they sell once stocked in Inventory management.
 - **Inventory management** (`/admin`) opens on the collection bars (pieces
   and units under each name). Tap one: **Bronze / Silver / Gold / Diamond**
-  buttons, and everything below — stats, "In this box" list, shelf, stocking,
-  series shortcuts, Add product (starts in that box) — is that box's only.
-  No "every box" view. The list puts hand-made listings before the generated
+  buttons; the stats, series shortcuts and Add product (starts in that box)
+  follow the box. Three tabs: **All products** (every product in the
+  collection once, however many boxes it's in — coloured dots for its boxes,
+  units summed), **In this box** (opens first) and **Change log**. Stocking is
+  on each piece's sheet; the old "On the shelf" and "Stock a piece" tabs are
+  gone. The list puts hand-made listings before the generated
   demo pieces (it shows 120 at most). A piece's sheet has a **Boxes**
   drop-down: tick boxes, and each ticked box has its own − / + amount to add
   (shows what's in its pool now); "Add N units & save" (the `setBoxes`

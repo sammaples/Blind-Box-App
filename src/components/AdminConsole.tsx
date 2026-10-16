@@ -8,19 +8,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AddProduct, type EditableProduct, type NewProduct } from "@/components/AddProduct";
 import { listingBase } from "@/lib/listings";
 import { CatalogueGrid } from "@/components/CatalogueGrid";
-import { PieceImage } from "@/components/PieceImage";
-import { RarityChip } from "@/components/ui";
 import {
-  formatOdds,
-  pieceSubtitle,
-  RARITY_LABEL,
   RARITY_ORDER,
   seriesLabel,
   TIER_ACCENT,
   TIER_LABEL,
   TIER_ORDER,
 } from "@/lib/catalog";
-import { chaseUnitsFor, oddsLabel, UNITS_BY_RARITY } from "@/lib/inventory";
+import { UNITS_BY_RARITY } from "@/lib/inventory";
 import type { AuditBatch, Category, Palette, PatternKind, Rarity, Scale, Tier } from "@/lib/types";
 
 /** The slice of a piece the console needs. */
@@ -96,7 +91,7 @@ export function AdminConsole({
   const [tier, setTier] = useState<Tier>("bronze");
   // The catalogue opens first. Adding a product and stocking it are the two
   // things done most often, and both start from a list of what already exists.
-  const [tab, setTab] = useState<"catalogue" | "shelf" | "add" | "log">("catalogue");
+  const [tab, setTab] = useState<"all" | "box" | "log">("box");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -170,13 +165,6 @@ export function AdminConsole({
       );
   }, [shown, levels, tier]);
 
-  // A chase target is a share of the shelf, so it can only be worked out from
-  // the shelf: how many units are not chases, and how many chases split them.
-  const nonChaseUnits = shelf
-    .filter((r) => r.piece.rarity !== "chase")
-    .reduce((sum, r) => sum + r.stocked, 0);
-  const chaseRows = shelf.filter((r) => r.piece.rarity === "chase");
-  const chaseUnits = chaseUnitsFor(tier, nonChaseUnits, chaseRows.length);
 
   const unitsLeft = shelf.reduce((sum, r) => sum + r.available, 0);
   const unitsSold = shelf.reduce((sum, r) => sum + r.sold, 0);
@@ -233,6 +221,8 @@ export function AdminConsole({
   };
 
   const boxCount = (t: Tier) => shown.filter((p) => p.tier === t && !p.archived).length;
+  // Products, not listings: one in all four boxes is one product.
+  const productCount = new Set(shown.filter((p) => !p.archived).map((p) => listingBase(p.id))).size;
 
   /* ------------------------- first: which collection ------------------------ */
 
@@ -267,7 +257,7 @@ export function AdminConsole({
                   onClick={() => {
                     setPicked(l.id);
                     setTier("bronze");
-                    setTab("catalogue");
+                    setTab("box");
                     setNote(null);
                     setError(null);
                   }}
@@ -376,60 +366,30 @@ export function AdminConsole({
 
       {/* this box's views */}
       <div className="mt-6 flex gap-1 overflow-x-auto border-b border-hairline">
-        {(["catalogue", "shelf", "add", "log"] as const).map((t) => (
+        {(["all", "box", "log"] as const).map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-[13px] font-medium transition-colors sm:px-4 ${
+            className={`-mb-px flex-1 whitespace-nowrap border-b-2 px-1.5 py-2.5 text-center text-[13px] font-medium transition-colors sm:flex-none sm:px-4 ${
               tab === t
                 ? "border-chalk text-chalk"
                 : "border-transparent text-muted hover:text-chalk"
             }`}
           >
-            {t === "shelf"
-              ? `On the shelf (${shelf.length})`
-              : t === "add"
-                ? "Stock a piece"
-                : t === "catalogue"
-                  ? `In this box (${boxCount(tier)})`
-                  : `Change log (${log.length})`}
+            {t === "all"
+              ? `All products (${productCount})`
+              : t === "box"
+                ? `In this box (${boxCount(tier)})`
+                : "Change log"}
           </button>
         ))}
       </div>
 
-      {tab === "shelf" && (
-        <ShelfTable
-          rows={shelf}
-          busy={busy}
-          onChange={send}
-          tier={tier}
-          onBalanceChases={
-            chaseRows.length > 0 && chaseUnits > 0
-              ? () =>
-                  send(
-                    chaseRows.map((r) => ({
-                      pieceId: r.piece.id,
-                      op: "set" as const,
-                      units: chaseUnits,
-                    })),
-                    `Chases set to ${chaseUnits} each — about ${oddsLabel(tier)}`,
-                  )
-              : null
-          }
-        />
-      )}
-      {tab === "add" && (
-        <AddPieces
-          pieces={shown.filter((p) => p.tier === tier && !p.archived && !levels[p.id])}
-          busy={busy}
-          onChange={send}
-          byId={byId}
-          chaseUnits={chaseUnits}
-        />
-      )}
-      {tab === "catalogue" && (
+      {tab !== "log" && (
         <Catalogue
+          key={tab}
+          scope={tab}
           pieces={shown}
           totalPieces={pieces.length}
           line={line}
@@ -619,281 +579,6 @@ function Stat({
 
 /* ------------------------------------------------------------------ */
 
-interface ShelfRow {
-  piece: AdminPiece;
-  stocked: number;
-  sold: number;
-  available: number;
-  odds: number;
-}
-
-function ShelfTable({
-  rows,
-  busy,
-  onChange,
-  tier,
-  onBalanceChases,
-}: {
-  rows: ShelfRow[];
-  busy: boolean;
-  onChange: (changes: Change[], message: string) => void;
-  tier: Tier;
-  onBalanceChases: (() => void) | null;
-}) {
-  if (rows.length === 0) {
-    return (
-      <p className="mt-8 rounded-2xl border border-dashed border-hairline p-12 text-center text-sm text-muted">
-        Nothing on this shelf yet. Stock a series above, or add pieces one at a time.
-      </p>
-    );
-  }
-
-  // What the shelf is actually paying out at right now, against what this tier
-  // promises. Shown together because the gap is the whole point: stock moves,
-  // and the published rate moves with it unless someone puts it back.
-  const chaseAvailable = rows
-    .filter((r) => r.piece.rarity === "chase")
-    .reduce((sum, r) => sum + r.available, 0);
-  const totalAvailable = rows.reduce((sum, r) => sum + r.available, 0);
-  const actual = totalAvailable > 0 ? chaseAvailable / totalAvailable : 0;
-
-  return (
-    <div className="mt-5 overflow-x-auto">
-      {onBalanceChases && (
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-ink-card px-4 py-3">
-          <p className="text-[12px] text-muted">
-            Chase odds{" "}
-            <span className="font-mono text-chalk">
-              {actual > 0 ? `1 in ${(1 / actual).toFixed(1)}` : "—"}
-            </span>{" "}
-            <span className="text-faint">· target {oddsLabel(tier)}</span>
-          </p>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onBalanceChases}
-            className="rounded-lg bg-white/10 px-3 py-1.5 text-[12px] transition-colors hover:bg-white/16 disabled:opacity-40"
-          >
-            Set chases to target
-          </button>
-        </div>
-      )}
-      <table className="w-full min-w-[46rem] border-separate border-spacing-y-1.5 text-sm">
-        <thead>
-          <tr className="text-left text-[10px] uppercase tracking-[0.16em] text-faint">
-            <th className="px-3 pb-1 font-medium">Piece</th>
-            <th className="px-3 pb-1 font-medium">Rarity</th>
-            <th className="px-3 pb-1 text-right font-medium">Left</th>
-            <th className="px-3 pb-1 text-right font-medium">Sold</th>
-            <th className="px-3 pb-1 text-right font-medium">Pull rate</th>
-            <th className="px-3 pb-1 text-right font-medium">Restock</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr
-              key={row.piece.id}
-              className={`bg-ink-card ${row.available === 0 ? "opacity-55" : ""}`}
-            >
-              <td className="rounded-l-xl px-3 py-2.5">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="grid size-10 shrink-0 place-items-center rounded-lg"
-                    style={{
-                      background: `radial-gradient(120% 90% at 50% 12%, ${row.piece.palette.wash}, #0b0b10 78%)`,
-                    }}
-                  >
-                    <PieceImage piece={row.piece} className="h-8 w-auto" simple thumb />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{row.piece.name}</p>
-                    <p className="truncate text-[11px] text-faint">{pieceSubtitle(row.piece)}</p>
-                  </div>
-                </div>
-              </td>
-              <td className="px-3 py-2.5">
-                <RarityChip rarity={row.piece.rarity} />
-              </td>
-              <td className="px-3 py-2.5 text-right font-mono">
-                {row.available === 0 ? (
-                  <span className="text-[11px] uppercase tracking-[0.14em] text-faint">
-                    Sold out
-                  </span>
-                ) : (
-                  row.available
-                )}
-              </td>
-              <td className="px-3 py-2.5 text-right font-mono text-muted">{row.sold}</td>
-              <td className="px-3 py-2.5 text-right font-mono text-muted">
-                {row.available > 0 ? formatOdds(row.odds) : "—"}
-              </td>
-              <td className="rounded-r-xl px-3 py-2.5">
-                <div className="flex items-center justify-end gap-1.5">
-                  <QuantityBox row={row} busy={busy} onChange={onChange} />
-                  {[1, 5, 25].map((n) => (
-                    <button
-                      key={n}
-                      type="button"
-                      disabled={busy}
-                      onClick={() =>
-                        onChange(
-                          [{ pieceId: row.piece.id, op: "add", units: n }],
-                          `Added ${n} × ${row.piece.name}`,
-                        )
-                      }
-                      className="rounded-lg bg-white/8 px-2.5 py-1.5 font-mono text-[11px] transition-colors hover:bg-white/16 disabled:opacity-40"
-                    >
-                      +{n}
-                    </button>
-                  ))}
-                  {row.available > 0 && (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() =>
-                        onChange(
-                          [{ pieceId: row.piece.id, op: "pull" }],
-                          `Pulled ${row.piece.name} from the shelf`,
-                        )
-                      }
-                      className="rounded-lg border border-hairline px-2.5 py-1.5 text-[11px] text-muted transition-colors hover:border-white/30 hover:text-chalk disabled:opacity-40"
-                    >
-                      Pull
-                    </button>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-
-function AddPieces({
-  pieces,
-  busy,
-  onChange,
-  byId,
-  chaseUnits,
-}: {
-  pieces: AdminPiece[];
-  busy: boolean;
-  onChange: (changes: Change[], message: string) => void;
-  byId: Map<string, AdminPiece>;
-  /** What a chase needs to carry to hit this shelf's published odds. */
-  chaseUnits: number;
-}) {
-  const [query, setQuery] = useState("");
-  const [rarity, setRarity] = useState<Rarity | "all">("all");
-
-  const matches = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return pieces
-      .filter((p) => rarity === "all" || p.rarity === rarity)
-      .filter(
-        (p) =>
-          q === "" ||
-          p.name.toLowerCase().includes(q) ||
-          p.setName.toLowerCase().includes(q),
-      )
-      .slice(0, 60);
-  }, [pieces, query, rarity]);
-
-  return (
-    <div className="mt-5">
-      <p className="text-xs text-muted">
-        Anything in the catalogue that is not already on this shelf. Adding a piece puts it
-        straight into the pool at the units you choose.
-      </p>
-
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by name or series"
-          className="min-w-56 flex-1 rounded-xl border border-hairline bg-ink px-4 py-2.5 text-sm outline-none transition-colors focus:border-white/30"
-        />
-        <select
-          value={rarity}
-          onChange={(e) => setRarity(e.target.value as Rarity | "all")}
-          className="rounded-xl border border-hairline bg-ink-raised px-3 py-2.5 text-xs text-chalk outline-none focus:border-white/30"
-        >
-          <option value="all">All rarities</option>
-          {RARITY_ORDER.map((r) => (
-            <option key={r} value={r}>
-              {RARITY_LABEL[r]}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <p className="mt-3 text-xs text-faint">
-        {pieces.length.toLocaleString()} pieces available to stock
-        {matches.length < pieces.length ? ` · showing ${matches.length}` : ""}
-      </p>
-
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {matches.map((piece) => {
-          // A chase is stocked to the tier's target rather than to a flat
-          // default: its unit count is the odds, so a fixed number would make
-          // the published rate drift every time the rest of the shelf moved.
-          const suggested =
-            piece.rarity === "chase" && chaseUnits > 0
-              ? chaseUnits
-              : UNITS_BY_RARITY[piece.scale][piece.rarity];
-          return (
-            <div
-              key={piece.id}
-              className="flex items-center gap-3 rounded-xl border border-hairline bg-ink-card p-3"
-            >
-              <div
-                className="grid size-11 shrink-0 place-items-center rounded-lg"
-                style={{
-                  background: `radial-gradient(120% 90% at 50% 12%, ${piece.palette.wash}, #0b0b10 78%)`,
-                }}
-              >
-                <PieceImage piece={piece} className="h-9 w-auto" simple thumb />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium">{piece.name}</p>
-                <p className="truncate text-[11px] text-faint">{pieceSubtitle(piece)}</p>
-              </div>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() =>
-                  onChange(
-                    [{ pieceId: piece.id, op: "set", units: suggested }],
-                    `Stocked ${suggested} × ${piece.name}`,
-                  )
-                }
-                className="shrink-0 rounded-lg bg-white/10 px-3 py-2 font-mono text-[11px] transition-colors hover:bg-white/16 disabled:opacity-40"
-                title={`Stock ${suggested} units`}
-              >
-                +{suggested}
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      {matches.length === 0 && (
-        <p className="mt-6 rounded-2xl border border-dashed border-hairline p-10 text-center text-sm text-muted">
-          {byId.size > 0 && pieces.length === 0
-            ? "Every piece in this box is already on the shelf."
-            : "Nothing matches that search."}
-        </p>
-      )}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-
 /**
  * The inventory edit log. Batches are summarised server-side, so a line always
  * reports the true size of the click that made it — an inventory log that
@@ -1005,6 +690,7 @@ interface ImportPreview {
  * exist here before any quantity of it can be stocked.
  */
 function Catalogue({
+  scope,
   pieces,
   totalPieces,
   line,
@@ -1014,6 +700,8 @@ function Catalogue({
   busy,
   onChange,
 }: {
+  /** Every product in the collection, once each, or this box's listings. */
+  scope: "all" | "box";
   /** The collection's pieces, every box — editing needs to see them all. */
   pieces: AdminPiece[];
   /** Every piece in every collection, for the "empty the shop" warning. */
@@ -1049,7 +737,7 @@ function Catalogue({
     const q = query.trim().toLowerCase();
     return pieces
       .filter((p) => showArchived || !p.archived)
-      .filter((p) => p.tier === tier)
+      .filter((p) => scope === "all" || p.tier === tier)
       .filter(
         (p) =>
           q === "" ||
@@ -1060,8 +748,11 @@ function Catalogue({
       // Your own listings before the generated demo set, so a real product is
       // never hidden past the first 120 behind hundreds of test figures.
       .sort((a, b) => Number(isDemo(a)) - Number(isDemo(b)))
+      // All products shows each product once — its cheapest box's listing —
+      // however many boxes it is in.
+      .filter((p, i, list) => scope === "box" || list.findIndex((q) => listingBase(q.id) === listingBase(p.id)) === i)
       .slice(0, 120);
-  }, [pieces, query, showArchived, tier]);
+  }, [pieces, query, showArchived, tier, scope]);
 
   const post = async (path: string, body: unknown) => {
     const res = await fetch(path, {
@@ -1435,7 +1126,7 @@ function Catalogue({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search this box"
+            placeholder={scope === "all" ? "Search all products" : "Search this box"}
             className="w-full rounded-xl border border-hairline bg-ink px-4 py-2.5 text-sm outline-none transition-colors focus:border-white/30 sm:min-w-56 sm:flex-1"
           />
           <label className="flex items-center gap-2 py-1 text-xs text-muted">
@@ -1476,6 +1167,8 @@ function Catalogue({
               pieces={matches}
               pool={pieces}
               boxesOf={boxesOf}
+              cardBoxes={scope === "all" ? boxesOf : undefined}
+              cardUnits={scope === "all" ? (piece) => TIER_ORDER.reduce((sum, t) => sum + unitsIn(piece, t), 0) : undefined}
               unitsIn={unitsIn}
               onSetBoxes={(piece, tiers, add) => void setBoxes(piece, tiers, add)}
               levels={levels}
@@ -1584,54 +1277,5 @@ function Catalogue({
         </section>
       )}
     </div>
-  );
-}
-
-/**
- * Sets an exact number of units. The quick buttons beside it are for topping
- * up; this is for "I counted them, there are nineteen".
- */
-function QuantityBox({
-  row,
-  busy,
-  onChange,
-}: {
-  row: ShelfRow;
-  busy: boolean;
-  onChange: (changes: Change[], message: string) => void;
-}) {
-  const [value, setValue] = useState(String(row.stocked));
-
-  // Follow the row when stock moves for any other reason.
-  useEffect(() => setValue(String(row.stocked)), [row.stocked]);
-
-  const commit = () => {
-    const units = Number(value);
-    if (!Number.isFinite(units) || units < 0 || Math.trunc(units) === row.stocked) {
-      setValue(String(row.stocked));
-      return;
-    }
-    onChange(
-      [{ pieceId: row.piece.id, op: "set", units: Math.trunc(units) }],
-      `Set ${row.piece.name} to ${Math.trunc(units)} units`,
-    );
-  };
-
-  return (
-    <input
-      type="number"
-      min={0}
-      inputMode="numeric"
-      value={value}
-      disabled={busy}
-      aria-label={`Units of ${row.piece.name}`}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") e.currentTarget.blur();
-        if (e.key === "Escape") setValue(String(row.stocked));
-      }}
-      className="w-16 rounded-lg border border-hairline bg-ink px-2 py-1.5 text-right font-mono text-[11px] outline-none transition-colors focus:border-white/30 disabled:opacity-40"
-    />
   );
 }
