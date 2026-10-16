@@ -100,11 +100,11 @@ iPhone Home Screen as a PWA.
 - **Shop pages hide "Non-Series"** under a piece's name; only series pieces
   show a series line. The console still shows it.
 - **No stock counts** are shown to shoppers anywhere.
-- **Real listings added in code:** Be@rbrick **Series 50, 51 and 52 Blind
-  Box** — sealed 100% boxes, Common, in the Bronze box (migrations
-  1700000017000 and 1700000019000; photos in `public/products/`, cut out of
-  their backgrounds — Series 51's added by 1700000018000 to every box it is
-  in).
+- **Real listings added in code:** Be@rbrick **Series 49, 50, 51 and 52
+  Blind Box** — sealed 100% boxes, Common, in the Bronze box (migrations
+  1700000017000, 1700000019000, 1700000020000; photos in `public/products/`,
+  on transparent backgrounds — Series 51's added by 1700000018000 to every box
+  it is in; Series 49's had a crease across the top retouched out).
   Listed with no units: they sell once stocked in Inventory management.
 - **Inventory management** (`/admin`) opens on the collection bars (pieces
   and units under each name). Tap one: **Bronze / Silver / Gold / Diamond**
