@@ -119,8 +119,8 @@ iPhone Home Screen as a PWA.
   Blind Box** (100%) are Rares in Bronze (1700000027000, 1700000030000).
   **Rule (Sam): every Be@rbrick 400%, 400%/100% and 1000% is a Chase** —
   picking one of those sizes in Add product sets Chase (200% doesn't).
-  **Bape Nemesis Prime - Black** (200%) is an Ultra Rare in Diamond
-  (1700000032000).
+  **BAPE Transformers Nemesis Prime - Black** (200%) is an Ultra Rare in
+  Diamond (1700000032000; renamed by 1700000033000).
   **Marc Jacobs** 400%/100% set, **Marc Jacobs** 1000%, **Care Bears
   Cheer Bear** 400%, **Barbie** 400% and **BAPE x F1 Las Vegas** 400%/100%
   are Diamond-box chases (1700000022000, 1700000025000, 1700000026000,
