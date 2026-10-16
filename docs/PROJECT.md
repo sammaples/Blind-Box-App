@@ -115,8 +115,8 @@ iPhone Home Screen as a PWA.
   1700000017000, 1700000019000, 1700000020000; photos in `public/products/`,
   on transparent backgrounds — Series 51's added by 1700000018000 to every box
   it is in; Series 49's had a crease across the top retouched out).
-  **Chase Spider-Man No Way Home Blind Box** (100%) is a Rare in Bronze
-  (1700000027000).
+  **Chase Spider-Man No Way Home Blind Box** and **Chase Star Wars Series 2
+  Blind Box** (100%) are Rares in Bronze (1700000027000, 1700000030000).
   **Rule (Sam): every Be@rbrick 400%, 400%/100% and 1000% is a Chase** —
   picking one of those sizes in Add product sets Chase.
   **Marc Jacobs** 400%/100% set, **Marc Jacobs** 1000%, **Care Bears
