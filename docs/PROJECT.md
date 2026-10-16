@@ -118,8 +118,9 @@ iPhone Home Screen as a PWA.
   **Rule (Sam): every Be@rbrick 400%, 400%/100% and 1000% is a Chase** —
   picking one of those sizes in Add product sets Chase.
   **Marc Jacobs** 400%/100% set, **Marc Jacobs** 1000%, **Care Bears
-  Cheer Bear** 400% and **Barbie** 400% are Diamond-box chases
-  (1700000022000, 1700000025000, 1700000026000, 1700000028000; photos upscaled with Real-ESRGAN and cut out with BiRefNet,
+  Cheer Bear** 400%, **Barbie** 400% and **BAPE x F1 Las Vegas** 400%/100%
+  are Diamond-box chases (1700000022000, 1700000025000, 1700000026000,
+  1700000028000, 1700000029000; photos upscaled with Real-ESRGAN and cut out with BiRefNet,
   so white on the figure stays).
   1700000021000 brings Series 51 level with 50: back in Bronze if it was
   removed, and in every box Series 50 is in. Current stock only lists pieces
