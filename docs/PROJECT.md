@@ -38,8 +38,8 @@ iPhone Home Screen as a PWA.
   collection; draws filter on collection + tier. Bearbrick's box ids stay
   `bronze`…`diamond`; others are `<collection>-<tier>`.
 - **Boxes:** four tiers per collection — Bronze ($25), Silver, Gold, Diamond
-  ($250). Bearbrick pieces come in 100%, 400%, a 400%/100% combo and 1000%
-  (migration 1700000024000); the
+  ($250). Bearbrick pieces come in 100%, 200%, 400%, a 400%/100% combo and
+  1000% (migrations 1700000024000, 1700000031000); the
   other collections have no sizes (hidden everywhere). All tiers are buyable
   (Diamond's "coming soon" flag was removed; the flag still exists).
 - **Box prints:** each collection's carton has its own print — bears on blue,
@@ -118,7 +118,9 @@ iPhone Home Screen as a PWA.
   **Chase Spider-Man No Way Home Blind Box** and **Chase Star Wars Series 2
   Blind Box** (100%) are Rares in Bronze (1700000027000, 1700000030000).
   **Rule (Sam): every Be@rbrick 400%, 400%/100% and 1000% is a Chase** —
-  picking one of those sizes in Add product sets Chase.
+  picking one of those sizes in Add product sets Chase (200% doesn't).
+  **Bape Nemesis Prime - Black** (200%) is an Ultra Rare in Diamond
+  (1700000032000).
   **Marc Jacobs** 400%/100% set, **Marc Jacobs** 1000%, **Care Bears
   Cheer Bear** 400%, **Barbie** 400% and **BAPE x F1 Las Vegas** 400%/100%
   are Diamond-box chases (1700000022000, 1700000025000, 1700000026000,

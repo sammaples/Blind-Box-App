@@ -52,6 +52,7 @@ function boxesLabel(tiers: readonly Tier[]): string {
 
 const SCALE_CHOICES: { scale: Scale; label: string; note: string }[] = [
   { scale: "100%", label: "100%", note: "The standard figure" },
+  { scale: "200%", label: "200%", note: "The double-size figure" },
   { scale: "400%", label: "400%", note: "The eleven-inch figure" },
   { scale: "400%/100%", label: "400%/100%", note: "The pair, sold as one" },
   { scale: "1000%", label: "1000%", note: "The 28-inch figure" },
@@ -325,7 +326,7 @@ export function AddProduct({
             {tiers.length === ALL_TIERS.length ? "Clear" : "All boxes"}
           </button>
         </div>
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
           {TIER_CHOICES.map((choice) => {
             const on = tiers.includes(choice.tier);
             return (
@@ -369,7 +370,7 @@ export function AddProduct({
               onClick={() => {
                 setScale(choice.scale);
                 // Every Be@rbrick 400% and 1000% is a chase.
-                if (choice.scale !== "100%") setRarity("chase");
+                if (choice.scale !== "100%" && choice.scale !== "200%") setRarity("chase");
               }}
               aria-pressed={scale === choice.scale}
               className={`rounded-xl border p-3.5 text-left transition-colors ${
